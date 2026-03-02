@@ -41,10 +41,14 @@ import UserPanel from "./components/UserPanel";
 // ใช้ IP เดียวกับที่ user เปิดเว็บ (รองรับ LAN)
 // ถ้าเปิดจาก localhost → ใช้ localhost:3000
 // ถ้าเปิดจาก IP อื่น   → ใช้ IP นั้น:3000
-const SOCKET_URL =
-  window.location.hostname === "localhost"
+// const SOCKET_URL =
+//   window.location.hostname === "localhost"
+//     ? "http://localhost:3000"
+//     : `http://${window.location.hostname}:3000`;
+
+const SOCKET_URL = import.meta.env.MODE === "development"
     ? "http://localhost:3000"
-    : `http://${window.location.hostname}:3000`;
+    : undefined;
 
 const socket = io(SOCKET_URL);
 
