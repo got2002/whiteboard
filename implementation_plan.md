@@ -1,88 +1,88 @@
-# Phase 7 — Real-time Collaboration Enhancements
+# Enhanced EClass Modes + OnScreen Mode
 
-## Overview
+## ภาพรวม
 
-เพิ่มฟีเจอร์ Collaboration ขั้นสูงให้ Whiteboard เพื่อให้ผู้ใช้หลายคนทำงานร่วมกันได้ดีขึ้น
+เสริมฟีเจอร์ 3 โหมดพิเศษ (คณิตศาสตร์/วิทยาศาสตร์/ภาษา) ให้เทียบเท่า EClass และเพิ่ม OnScreen Mode ใหม่ โค้ดจะเขียนให้สะอาด อ่านง่าย มี comment ทุกส่วน
 
-**ฟีเจอร์ที่จะเพิ่ม:**
-1. **ตั้งชื่อผู้ใช้** — ป๊อปอัปตอนเข้าใช้ครั้งแรก ให้พิมพ์ชื่อ + ได้สีประจำตัวอัตโนมัติ
-2. **Live Cursors** — แสดงเคอร์เซอร์ของผู้ใช้คนอื่นบน canvas ในเวลาจริง พร้อมชื่อ
-3. **Laser Pointer** — เครื่องมือ "ชี้" สำหรับนำเสนอ (แสดงจุดสีแดงชั่วคราว)
-4. **รายชื่อผู้ใช้ออนไลน์** — แผงแสดงผู้ใช้ที่เชื่อมต่ออยู่ พร้อมสีและหน้าที่กำลังดู
-5. **Follow Mode** — กดตามคนอื่นเพื่อสลับหน้าตามเขาอัตโนมัติ
+## สิ่งที่แต่ละโหมดมีอยู่ vs จะเพิ่ม
+
+### 🧮 Math Mode (คณิตศาสตร์)
+| มีแล้ว | จะเพิ่มใหม่ |
+|---|---|
+| ไม้บรรทัด (ลาก+หมุน) | วงเวียน (Compass) — วาดวงกลมตามรัศมี |
+| โปรแทรกเตอร์ (ครึ่งวงกลม) | สามเหลี่ยมมุมฉาก (Set Square) — วัดมุม 45°/60° |
+| Grid background | เครื่องคิดเลข popup (Calculator) |
+| | กราฟพิกัด X-Y (Coordinate Grid overlay) |
+
+### 🔬 Science Mode (วิทยาศาสตร์)
+| มีแล้ว | จะเพิ่มใหม่ |
+|---|---|
+| 16 lab stamps (emoji) | Timer/Stopwatch — จับเวลาทดลอง |
+| ตารางธาตุ (1-20) | ตารางธาตุเต็ม (118 ธาตุ) — จัดตาม Period/Group |
+| | แม่เหล็กไฟฟ้า diagram stamps (วงจรไฟฟ้า) |
+| | หลอดทดลองแบบ interactive (เปลี่ยนสี/ระดับ) |
+
+### 📖 Language Mode (ภาษา)
+| มีแล้ว | จะเพิ่มใหม่ |
+|---|---|
+| แถบแนะนำ (banner) | เส้นคัดลายมือ 4 เส้น (Handwriting guide lines) |
+| Lined background | Font size quick presets (หัวข้อ/ข้อความ/หมายเหตุ) |
+| Text tool | ตัวอักษรตัวด้น (Bold), ขีดเส้นใต้ (Underline) |
+| | Sticker คำศัพท์ (vocabulary stamps) |
+| | เส้นประสำหรับลากหัดเขียน (dotted guide) |
+
+### 🖥️ OnScreen Mode (ใหม่!)
+| ฟีเจอร์ |
+|---|
+| ทำ canvas โปร่งใส — วาดทับหน้าจอ Desktop ได้ |
+| แสดง Toolbar ลอยเล็กๆ มุมจอ |
+| ปิด OnScreen → กลับกระดานปกติ |
+
+> **OnScreen Mode ทำได้ในเว็บ** โดยการทำ canvas background เป็น transparent + window ขยายเต็มจอ ผู้ใช้จะเห็นเว็บพื้นหลังทะลุผ่านได้ แต่จะวาดทับ Desktop จริงได้ต้องเป็น Desktop App (Electron) ซึ่งสามารถทำเพิ่มทีหลังได้
 
 ---
 
 ## Proposed Changes
 
-### Server
+### Component: ModePanel
 
-#### [MODIFY] [server.js](file:///c:/test_ai/Whiteboard/Server/server.js)
+#### [MODIFY] [ModePanel.jsx](file:///c:/test_ai/Whiteboard/Client/src/components/ModePanel.jsx)
 
-- เพิ่มเก็บข้อมูลผู้ใช้: `users = { socketId: { name, color, pageIndex, cursorX, cursorY } }`
-- เพิ่ม event ใหม่:
-  - `set-user` — รับชื่อ → กำหนดสี → broadcast `user-joined`
-  - `cursor-move` — รับตำแหน่ง cursor → broadcast ให้คนอื่น
-  - `laser` — รับตำแหน่ง laser → broadcast ให้คนอื่น
-  - `page-change` — รับ pageIndex → อัปเดตใน users → broadcast `user-page-change`
-- แก้ `disconnect` → broadcast `user-left`
-- แก้ `init-state` → ส่ง `users` map ไปด้วย
+**Math Mode เพิ่ม:**
+- `CompassOverlay` — วงเวียน SVG ลาก+หมุน+ปรับรัศมี
+- `SetSquareOverlay` — สามเหลี่ยมมุมฉาก SVG ลากได้
+- `CalculatorPopup` — เครื่องคิดเลขลอย (+-×÷ พื้นฐาน)
+- `CoordinateGridOverlay` — กราฟแกน X-Y ทับ canvas
 
----
+**Science Mode เพิ่ม:**
+- `TimerWidget` — จับเวลา start/stop/reset
+- ขยายตารางธาตุเป็น 118 ธาตุ พร้อม color coding
+- เพิ่ม circuit diagram stamps (วงจรไฟฟ้า)
 
-### Client — App Component
-
-#### [MODIFY] [App.jsx](file:///c:/test_ai/Whiteboard/Client/src/App.jsx)
-
-- เพิ่ม state: `username`, `userColor`, `remoteUsers`, `showUserPanel`, `followUserId`
-- เพิ่ม `showNameDialog` state — แสดง dialog ให้ใส่ชื่อตอน mount
-- ส่ง `set-user` event ตอนตั้งชื่อเสร็จ
-- ฟัง event ใหม่: `user-joined`, `user-left`, `user-list`, `user-page-change`
-- ส่ง `page-change` event เมื่อเปลี่ยนหน้า
-- Follow Mode: เมื่อคนที่ follow เปลี่ยนหน้า → สลับหน้าตาม
-- เพิ่ม `tool === "laser"` → ส่ง cursor pos ผ่าน `laser` event
-- ส่ง `cursor-move` ทุก pointermove บน canvas
+**Language Mode เพิ่ม:**
+- `HandwritingGuide` — เส้นคัดลายมือ 4 เส้น overlay
+- `FontSizePresets` — ปุ่มเลือกขนาด (หัวข้อ/ข้อความ)
+- `VocabStamps` — sticker คำศัพท์พื้นฐาน
 
 ---
 
-### Client — Canvas Component
-
-#### [MODIFY] [Canvas.jsx](file:///c:/test_ai/Whiteboard/Client/src/components/Canvas.jsx)
-
-- รับ props ใหม่: `remoteCursors`, `laserPointers`
-- วาด remote cursors เป็น `<div>` ที่ลอยทับ canvas (ใช้ CSS transform) พร้อมชื่อ + สี
-- วาด laser pointers เป็นวงกลมเรืองแสงชั่วคราว (fade out)
-- ส่ง `onCursorMove(x, y)` callback กลับไป App เมื่อ pointermove
-
----
-
-### Client — Toolbar
+### Component: Toolbar
 
 #### [MODIFY] [Toolbar.jsx](file:///c:/test_ai/Whiteboard/Client/src/components/Toolbar.jsx)
 
-- เพิ่มปุ่ม Laser Pointer 🔴 ในกลุ่มเครื่องมือวาด
-- เพิ่มปุ่มเปิด/ปิด User Panel 👥
+- เพิ่มปุ่ม OnScreen Mode 🖥️ ในกลุ่ม Mode
+- เพิ่มปุ่ม Highlighter 🖍️ ในกลุ่ม Drawing Tools
 
 ---
 
-### New Component — UserPanel
+### Component: App
 
-#### [NEW] [UserPanel.jsx](file:///c:/test_ai/Whiteboard/Client/src/components/UserPanel.jsx)
+#### [MODIFY] [App.jsx](file:///c:/test_ai/Whiteboard/Client/src/App.jsx)
 
-- แผงสไลด์จากขวา — แสดงรายชื่อผู้ใช้ออนไลน์
-- แต่ละรายการมี: จุดสี + ชื่อ + "หน้า X" + ปุ่ม "ตามดู"
-- ปุ่ม "ตามดู" → เปิด Follow Mode (สลับหน้าตามคนนั้น)
-
----
-
-### New Component — NameDialog
-
-#### [NEW] [NameDialog.jsx](file:///c:/test_ai/Whiteboard/Client/src/components/NameDialog.jsx)
-
-- Modal ป๊อปอัปเมื่อเข้าใช้ครั้งแรก
-- ช่องใส่ชื่อ + ปุ่มเข้าร่วม
-- ดีไซน์ glassmorphism ให้เข้ากับ UI เดิม
-- ถ้าไม่ใส่ชื่อ → ใช้ชื่อ default "ผู้ใช้ XXXX"
+- เพิ่ม state: `isOnScreen` (boolean) สำหรับ OnScreen mode
+- เพิ่ม state: `fontSize` สำหรับ Language mode presets
+- เพิ่ม mode `"onscreen"` ใน mode selector
+- เมื่อ `isOnScreen=true` → canvas background โปร่งใส + Toolbar เล็กลง
 
 ---
 
@@ -90,27 +90,22 @@
 
 #### [MODIFY] [index.css](file:///c:/test_ai/Whiteboard/Client/src/index.css)
 
-- สไตล์ NameDialog (modal glassmorphism)
-- สไตล์ UserPanel (slide-in จากขวา)
-- สไตล์ Remote Cursors (ทรง arrow + label ชื่อ)
-- สไตล์ Laser Pointer (วงกลมเรืองแสง + animation fade)
-- สไตล์ Follow Mode indicator
+- สไตล์ CompassOverlay, SetSquareOverlay
+- สไตล์ CalculatorPopup, TimerWidget
+- สไตล์ HandwritingGuide, VocabStamps
+- สไตล์ OnScreen mode (transparent bg, mini toolbar)
+- สไตล์ Highlighter strokes (semi-transparent)
 
 ---
 
-## Verification Plan
+## Verification
 
-### Build Verification
-```
+```bash
 cd c:\test_ai\Whiteboard\Client && npx vite build
 ```
-ต้องผ่าน 0 errors
 
-### Manual Browser Testing
-
-1. เปิด `http://localhost:5173/`
-2. **Name Dialog** — ป๊อปอัปขึ้นให้ใส่ชื่อ → พิมพ์ชื่อ → กด "เข้าร่วม" → ป๊อปอัปหายไป
-3. **User Panel** — กดปุ่ม 👥 → แผงเลื่อนออกมาจากขวา → เห็นชื่อตัวเอง + หน้าที่กำลังดูอยู่
-4. **Live Cursors** — เปิดเบราว์เซอร์ 2 แท็บ → เลื่อนเมาส์ในแท็บหนึ่ง → เห็น cursor ขึ้นในอีกแท็บพร้อมชื่อ
-5. **Laser Pointer** — เลือก tool 🔴 → เลื่อนเมาส์บน canvas → เห็นจุดแดงเรืองแสง → คนอื่นเห็นด้วย
-6. **Follow Mode** — กด "ตามดู" ข้างชื่อคนอื่นใน User Panel → เปลี่ยนหน้าในแท็บนั้น → หน้าของเราเปลี่ยนตาม
+Build ผ่าน 0 errors + ทดสอบ:
+1. **Math** — เปิดวงเวียน/สามเหลี่ยม/เครื่องคิดเลข/กราฟ
+2. **Science** — ใช้ตารางธาตุเต็ม + Timer
+3. **Language** — เห็นเส้นคัดลายมือ + เลือก font size
+4. **OnScreen** — canvas โปร่งใส + วาดทับได้

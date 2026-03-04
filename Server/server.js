@@ -83,6 +83,18 @@ function getNextColor() {
 }
 
 // ────────────────────────────────────────────────────────────
+// API Route: แสดงสถานะ Server
+// ────────────────────────────────────────────────────────────
+app.get("/", (req, res) => {
+  res.json({
+    status: "✅ Whiteboard Server กำลังทำงาน",
+    connectedUsers,
+    totalPages: pages.length,
+    uptime: `${Math.floor(process.uptime())} วินาที`,
+  });
+});
+
+// ────────────────────────────────────────────────────────────
 // Production Mode: serve ไฟล์ React build
 // ────────────────────────────────────────────────────────────
 // เมื่อ deploy จริง ให้ build React แล้ว set NODE_ENV=production
@@ -104,7 +116,9 @@ io.on("connection", (socket) => {
   console.log(`✅ ผู้ใช้เชื่อมต่อ: ${socket.id} (ทั้งหมด: ${connectedUsers})`);
 
   // ── ส่งข้อมูลเริ่มต้น ──────────────────────────────────
-  socket.emit("server-url", `http://${ip}:${PORT}`);  // URL สำหรับ QR Code
+  // Dev mode → ชี้ไป Client (Vite port 5173) | Production → ใช้ port เดียวกับ server
+  const CLIENT_PORT = process.env.NODE_ENV === "production" ? PORT : 5173;
+  socket.emit("server-url", `http://${ip}:${CLIENT_PORT}`);  // URL สำหรับ QR Code
   socket.emit("init-state", { pages });                 // สถานะกระดาน
   io.emit("user-count", connectedUsers);                 // จำนวนผู้ใช้
 

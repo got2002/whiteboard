@@ -1,4 +1,4 @@
-# EClass-style Whiteboard — Phase 1-7
+# EClass-style Whiteboard — Phase 1-8
 
 ## Phase 1 — Core Drawing Tools
 - [x] Pen tool with color picker (12 colors)
@@ -42,16 +42,16 @@
 
 ## Phase 7 — Real-time Collaboration Enhancements
 - [x] Server: user tracking (name, color, pageIndex, cursor)
-- [x] NameDialog component (ป๊อปอัปตั้งชื่อ)
-- [x] Live Cursors (เห็น cursor คนอื่น + ชื่อ)
-- [x] Laser Pointer tool (จุดแดงเรืองแสง)
-- [x] UserPanel component (รายชื่อผู้ใช้ออนไลน์)
-- [x] Follow Mode (สลับหน้าตามคนอื่น)
-- [x] CSS สำหรับฟีเจอร์ใหม่ทั้งหมด
+- [x] NameDialog component
+- [x] Live Cursors
+- [x] Laser Pointer tool
+- [x] UserPanel component
+- [x] Follow Mode
 - [x] Build verification
 
-## Styling
-- [x] Full CSS for all features (1500+ lines)
-
-## Remaining Phases
-- [ ] Phase 8 — Deployment
+## Phase 8 — Electron App (Desktop)
+- [x] สร้าง Electron wrapper
+- [x] main.js — Electron main process (รัน server + เปิด window)
+- [x] รวม Server ไว้ภายใน Electron
+- [x] OnScreen Mode (transparent window + always-on-top)
+- [x] Build & Test (.exe distribution)
