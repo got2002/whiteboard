@@ -1,23 +1,17 @@
 // ============================================================
-// Canvas.jsx — พื้นที่วาดรูป (รองรับ pen, eraser, shapes, text,
-//              stamp, remote cursors, laser pointer)
+// Canvas.jsx — พื้นที่วาดรูป (EClass-style)
 // ============================================================
 //
-// Component นี้รับผิดชอบ:
-//  1. Setup canvas ให้รองรับจอ high-DPI (Retina)
-//  2. วาดเส้น pen/eraser แบบ freehand
-//  3. วาด shapes (line, rect, circle, arrow) พร้อม live preview
-//  4. render text และ stamp (emoji) ที่เก็บเป็น stroke
-//  5. redraw ทุกอย่างเมื่อสลับหน้า/resize หน้าจอ
-//  6. รับเส้น real-time จากผู้ใช้อื่นผ่าน Socket.IO
-//  7. [Phase 7] แสดง remote cursors ของผู้ใช้อื่น (ชื่อ + สี)
-//  8. [Phase 7] แสดง laser pointer (วงกลมเรืองแสง)
+// รองรับ: pen, highlighter, eraser, shapes, text, stamp, select,
+//          image, remote cursors, laser pointer
 //
-// โครงสร้าง stroke:
-//  - pen/eraser: { id, tool, color, size, points: [{x,y}...] }
-//  - shape:      { id, type:"shape", shapeType, startX/Y, endX/Y, color, size }
-//  - text:       { id, type:"text", text, x, y, color, fontSize }
-//  - stamp:      { id, type:"stamp", stamp(emoji), x, y, fontSize }
+// Stroke types:
+//  - pen/eraser:     { id, tool, color, size, points: [{x,y}...] }
+//  - highlighter:    { id, tool:"highlighter", color, size, points: [{x,y}...] }
+//  - shape:          { id, type:"shape", shapeType, startX/Y, endX/Y, color, size }
+//  - text:           { id, type:"text", text, x, y, color, fontSize }
+//  - stamp:          { id, type:"stamp", stamp(emoji), x, y, fontSize }
+//  - image:          { id, type:"image", dataURL, x, y, width, height }
 //
 // ============================================================
 
@@ -27,63 +21,76 @@ import {
     useCallback,
     useImperativeHandle,
     forwardRef,
+    useState,
 } from "react";
 
 // รายชื่อ tool ที่ถือเป็น "shape" (ใช้ rubber-band preview)
 const SHAPE_TOOLS = ["line", "rect", "circle", "arrow"];
+
+// cache สำหรับ Image objects (เก็บ dataURL → HTMLImageElement)
+const imageCache = {};
 
 const Canvas = forwardRef(function Canvas(
     {
         page, tool, color, penSize, mode,
         onStrokeComplete, onDraw, onTextRequest, socket,
         // ── Phase 7 Props ──
-        onCursorMove,     // callback: ส่งตำแหน่ง cursor กลับ App (x, y)
-        remoteCursors,    // { id: { x, y, name, color, pageIndex } }
-        laserPointers,    // [{ id, x, y, name, color, pageIndex }]
-        currentPageIndex, // หน้าปัจจุบันของเรา (ใช้กรอง cursor/laser)
+        onCursorMove,
+        remoteCursors,
+        laserPointers,
+        currentPageIndex,
+        // ── EClass: Select + Move ──
+        onStrokeUpdate,   // callback: อัปเดต stroke หลังย้าย
+        // ── Role ──
+        userRole,         // "host" | "contributor" | "viewer"
     },
     ref
 ) {
     // ──────────────────────────────────────────────────────────
     // Refs
     // ──────────────────────────────────────────────────────────
-    const canvasRef = useRef(null);          // อ้างอิง <canvas> element
-    const ctxRef = useRef(null);              // อ้างอิง 2D context ของ canvas
-    const isDrawing = useRef(false);          // สถานะ: กำลังวาดอยู่หรือไม่
-    const currentStroke = useRef(null);        // stroke ที่กำลังวาด (pen/eraser)
-    const prevX = useRef(0);                   // พิกัด X ก่อนหน้า
-    const prevY = useRef(0);                   // พิกัด Y ก่อนหน้า
-    const shapeStart = useRef(null);           // จุดเริ่มต้นของ shape {x, y}
-    const previewCanvasRef = useRef(null);     // canvas สำรอง (สำหรับ snapshot ก่อนวาด shape)
+    const canvasRef = useRef(null);
+    const ctxRef = useRef(null);
+    const isDrawing = useRef(false);
+    const currentStroke = useRef(null);
+    const prevX = useRef(0);
+    const prevY = useRef(0);
+    const shapeStart = useRef(null);
+    const previewCanvasRef = useRef(null);
 
-    // เปิดให้ parent (App) เข้าถึง canvas element ได้ (สำหรับ export PNG)
+    // Select tool refs
+    const [selectedStrokeId, setSelectedStrokeId] = useState(null);
+    const selectDragStart = useRef(null);
+
+    // Pan / Camera refs
+    const panOffset = useRef({ x: 0, y: 0 });
+    const zoom = useRef(1); // เพิ่มตัวแปร zoom
+    const activePointers = useRef(new Map());
+    const lastPanPoint = useRef(null);
+    const lastPinchDistance = useRef(null); // เพิ่มตัวแปรเก็บระยะจุด 2 นิ้ว
+
     useImperativeHandle(ref, () => canvasRef.current);
 
     // ============================================================
-    // [A] Setup Canvas — ตั้งค่ารองรับ High-DPI
+    // [A] Setup Canvas — High-DPI
     // ============================================================
-    // ขยาย pixel ตาม devicePixelRatio เพื่อให้ภาพคมชัดบนจอ Retina
-    // สร้าง preview canvas (offscreen) สำหรับเก็บ snapshot ก่อนวาด shape
     const setupCanvas = useCallback(() => {
         const canvas = canvasRef.current;
         if (!canvas) return;
         const ctx = canvas.getContext("2d");
         const dpr = window.devicePixelRatio || 1;
 
-        // กำหนดขนาด canvas ตาม pixel จริง (คูณ dpr)
         canvas.width = window.innerWidth * dpr;
         canvas.height = window.innerHeight * dpr;
         canvas.style.width = window.innerWidth + "px";
         canvas.style.height = window.innerHeight + "px";
 
-        // ตั้งค่า transform + scale ให้รองรับ DPI
         ctx.setTransform(1, 0, 0, 1, 0, 0);
         ctx.scale(dpr, dpr);
-        ctx.lineCap = "round";    // ปลายเส้นมน
-        ctx.lineJoin = "round";   // จุดต่อเส้นมน
+        ctx.lineCap = "round";
+        ctx.lineJoin = "round";
         ctxRef.current = ctx;
 
-        // สร้าง/ตั้งค่า canvas สำรองสำหรับ shape preview
         let preview = previewCanvasRef.current;
         if (!preview) {
             preview = document.createElement("canvas");
@@ -94,9 +101,8 @@ const Canvas = forwardRef(function Canvas(
     }, []);
 
     // ============================================================
-    // [B] วาดเส้นตรง 1 segment (จุด A → จุด B)
+    // [B] วาดเส้นตรง 1 segment
     // ============================================================
-    // ใช้สำหรับ pen/eraser ขณะวาด real-time (แต่ละ pointermove)
     const drawSegment = useCallback(
         (fromX, fromY, toX, toY, sColor, sSize, sTool) => {
             const ctx = ctxRef.current;
@@ -104,10 +110,15 @@ const Canvas = forwardRef(function Canvas(
 
             ctx.save();
             if (sTool === "eraser") {
-                // Eraser ใช้ composite mode "destination-out" = ลบ pixel ที่ทับ
                 ctx.globalCompositeOperation = "destination-out";
                 ctx.strokeStyle = "rgba(0,0,0,1)";
-                ctx.lineWidth = sSize * 5; // ยางลบใหญ่กว่าปากกา 5 เท่า
+                ctx.lineWidth = sSize * 5;
+            } else if (sTool === "highlighter") {
+                // Highlighter: semi-transparent, wider stroke
+                ctx.globalCompositeOperation = "source-over";
+                ctx.strokeStyle = sColor;
+                ctx.globalAlpha = 0.3;
+                ctx.lineWidth = sSize * 6;
             } else {
                 ctx.globalCompositeOperation = "source-over";
                 ctx.strokeStyle = sColor;
@@ -123,9 +134,8 @@ const Canvas = forwardRef(function Canvas(
     );
 
     // ============================================================
-    // [C] วาด Shape บน Context ที่กำหนด
+    // [C] วาด Shape บน Context
     // ============================================================
-    // ใช้ทั้ง preview (ขณะลาก) และ redraw (วาดซ้ำจาก stroke data)
     const drawShapeOnCtx = useCallback((ctx, shape) => {
         const { shapeType, startX, startY, endX, endY, color: sColor, size: sSize } = shape;
         ctx.save();
@@ -136,24 +146,17 @@ const Canvas = forwardRef(function Canvas(
         ctx.lineJoin = "round";
 
         if (shapeType === "line") {
-            // เส้นตรง: จุด A → จุด B
             ctx.beginPath();
             ctx.moveTo(startX, startY);
             ctx.lineTo(endX, endY);
             ctx.stroke();
-
         } else if (shapeType === "rect") {
-            // สี่เหลี่ยม: ใช้มุมซ้ายบนสุด + ความกว้าง/สูง
             ctx.beginPath();
             ctx.strokeRect(
-                Math.min(startX, endX),
-                Math.min(startY, endY),
-                Math.abs(endX - startX),
-                Math.abs(endY - startY)
+                Math.min(startX, endX), Math.min(startY, endY),
+                Math.abs(endX - startX), Math.abs(endY - startY)
             );
-
         } else if (shapeType === "circle") {
-            // วงรี/วงกลม: ใช้จุดกลาง + รัศมี X/Y
             const cx = (startX + endX) / 2;
             const cy = (startY + endY) / 2;
             const rx = Math.abs(endX - startX) / 2;
@@ -161,19 +164,13 @@ const Canvas = forwardRef(function Canvas(
             ctx.beginPath();
             ctx.ellipse(cx, cy, rx, ry, 0, 0, Math.PI * 2);
             ctx.stroke();
-
         } else if (shapeType === "arrow") {
-            // ลูกศร: เส้นตรง + หัวลูกศร (2 เส้นเฉียง)
             const angle = Math.atan2(endY - startY, endX - startX);
-            const headLen = Math.max(15, sSize * 4); // ความยาวหัวลูกศร
-
-            // เส้นลำตัว
+            const headLen = Math.max(15, sSize * 4);
             ctx.beginPath();
             ctx.moveTo(startX, startY);
             ctx.lineTo(endX, endY);
             ctx.stroke();
-
-            // หัวลูกศร (เปิดแบบ < )
             ctx.beginPath();
             ctx.moveTo(endX, endY);
             ctx.lineTo(
@@ -191,7 +188,7 @@ const Canvas = forwardRef(function Canvas(
     }, []);
 
     // ============================================================
-    // [D] วาดข้อความ (Text) บน Context
+    // [D] วาดข้อความ (Text)
     // ============================================================
     const drawTextOnCtx = useCallback((ctx, textStroke) => {
         ctx.save();
@@ -204,26 +201,46 @@ const Canvas = forwardRef(function Canvas(
     }, []);
 
     // ============================================================
+    // [D2] วาดรูปภาพ (Image)
+    // ============================================================
+    const drawImageOnCtx = useCallback((ctx, imgStroke) => {
+        // ใช้ cache เพื่อไม่ต้องโหลดซ้ำ
+        let img = imageCache[imgStroke.id];
+        if (!img) {
+            img = new Image();
+            img.src = imgStroke.dataURL;
+            imageCache[imgStroke.id] = img;
+            // ถ้ายังโหลดไม่เสร็จ → รอโหลดแล้ววาด
+            if (!img.complete) {
+                img.onload = () => {
+                    ctx.drawImage(img, imgStroke.x, imgStroke.y, imgStroke.width, imgStroke.height);
+                };
+                return;
+            }
+        }
+        ctx.drawImage(img, imgStroke.x, imgStroke.y, imgStroke.width, imgStroke.height);
+    }, []);
+
+    // ============================================================
     // [E] วาด Stroke ทั้งก้อน (dispatch ตาม type)
     // ============================================================
-    // ฟังก์ชันกลางที่ตรวจว่า stroke เป็นประเภทอะไร แล้ววาดตามนั้น
     const drawStroke = useCallback((stroke) => {
         const ctx = ctxRef.current;
         if (!ctx) return;
 
-        // Shape (line, rect, circle, arrow)
+        // Shape
         if (stroke.type === "shape") {
             drawShapeOnCtx(ctx, stroke);
             return;
         }
 
-        // ข้อความ
+        // Text
         if (stroke.type === "text") {
             drawTextOnCtx(ctx, stroke);
             return;
         }
 
-        // Stamp (emoji)
+        // Stamp
         if (stroke.type === "stamp") {
             ctx.save();
             ctx.font = `${stroke.fontSize || 40}px sans-serif`;
@@ -234,13 +251,24 @@ const Canvas = forwardRef(function Canvas(
             return;
         }
 
-        // Pen / Eraser (freehand lines)
+        // Image
+        if (stroke.type === "image") {
+            drawImageOnCtx(ctx, stroke);
+            return;
+        }
+
+        // Pen / Eraser / Highlighter
         if (!stroke.points || stroke.points.length < 2) return;
         ctx.save();
         if (stroke.tool === "eraser") {
             ctx.globalCompositeOperation = "destination-out";
             ctx.strokeStyle = "rgba(0,0,0,1)";
             ctx.lineWidth = stroke.size * 5;
+        } else if (stroke.tool === "highlighter") {
+            ctx.globalCompositeOperation = "source-over";
+            ctx.strokeStyle = stroke.color;
+            ctx.globalAlpha = 0.3;
+            ctx.lineWidth = stroke.size * 6;
         } else {
             ctx.globalCompositeOperation = "source-over";
             ctx.strokeStyle = stroke.color;
@@ -255,29 +283,38 @@ const Canvas = forwardRef(function Canvas(
         }
         ctx.stroke();
         ctx.restore();
-    }, [drawShapeOnCtx, drawTextOnCtx]);
+    }, [drawShapeOnCtx, drawTextOnCtx, drawImageOnCtx]);
 
     // ============================================================
-    // [F] Redraw All — วาดซ้ำ strokes ทั้งหมดของหน้าปัจจุบัน
+    // [F] Redraw All
     // ============================================================
-    // ใช้เมื่อ: สลับหน้า, resize, undo/redo
     const redrawAll = useCallback(() => {
         const ctx = ctxRef.current;
         if (!ctx) return;
+        const dpr = window.devicePixelRatio || 1;
         ctx.save();
-        ctx.globalCompositeOperation = "source-over";
-        ctx.clearRect(0, 0, window.innerWidth, window.innerHeight);
-        ctx.restore();
+        ctx.setTransform(1, 0, 0, 1, 0, 0);
+        ctx.clearRect(0, 0, window.innerWidth * dpr, window.innerHeight * dpr);
+        ctx.scale(dpr, dpr);
+
+        // เลื่อนและซูม
+        ctx.translate(panOffset.current.x, panOffset.current.y);
+        ctx.scale(zoom.current, zoom.current);
+
         if (page?.strokes) {
             page.strokes.forEach(drawStroke);
+        }
+        ctx.restore();
+
+        // Update background CSS
+        if (canvasRef.current && canvasRef.current.parentElement) {
+            canvasRef.current.parentElement.style.backgroundPosition = `${panOffset.current.x}px ${panOffset.current.y}px`;
         }
     }, [page?.strokes, drawStroke]);
 
     // ============================================================
     // [G] Effects: Setup + Redraw
     // ============================================================
-
-    // ตั้งค่า canvas + วาดซ้ำเมื่อ mount หรือ resize
     useEffect(() => {
         setupCanvas();
         redrawAll();
@@ -286,16 +323,15 @@ const Canvas = forwardRef(function Canvas(
         return () => window.removeEventListener("resize", handleResize);
     }, [setupCanvas, redrawAll]);
 
-    // วาดซ้ำเมื่อสลับหน้าหรือจำนวน stroke เปลี่ยน
     useEffect(() => {
         redrawAll();
     }, [page?.id, page?.strokes?.length, redrawAll]);
 
-    // รับเส้น real-time จากผู้ใช้อื่น (สำหรับ pen/eraser เท่านั้น)
+    // รับเส้น real-time จากผู้ใช้อื่น
     useEffect(() => {
         const handleRemoteDraw = (data) => {
             if (data.pageId === page?.id) {
-                if (data.type === "shape-preview") return; // ไม่แสดง preview shape ของคนอื่น
+                if (data.type === "shape-preview") return;
                 drawSegment(data.prevX, data.prevY, data.x, data.y, data.color, data.size, data.tool);
             }
         };
@@ -304,50 +340,143 @@ const Canvas = forwardRef(function Canvas(
     }, [page?.id, socket, drawSegment]);
 
     // ============================================================
-    // [H] Pointer Events — จัดการการวาดด้วย mouse/touch/stylus
+    // [H1] Select Tool — หา stroke ที่ใกล้จุดคลิกมากที่สุด
+    // ============================================================
+    const findStrokeAt = useCallback((x, y) => {
+        if (!page?.strokes) return null;
+        const threshold = 15;
+
+        // วนกลับจากท้ายสุด (ล่าสุดอยู่ข้างบน)
+        for (let i = page.strokes.length - 1; i >= 0; i--) {
+            const s = page.strokes[i];
+
+            // Pen / Eraser / Highlighter — เช็คระยะจากจุด
+            if (s.points && s.points.length > 0) {
+                for (const p of s.points) {
+                    if (Math.abs(p.x - x) < threshold && Math.abs(p.y - y) < threshold) {
+                        return s;
+                    }
+                }
+            }
+
+            // Shape — เช็คว่าอยู่ใน bounding box
+            if (s.type === "shape") {
+                const minX = Math.min(s.startX, s.endX) - threshold;
+                const maxX = Math.max(s.startX, s.endX) + threshold;
+                const minY = Math.min(s.startY, s.endY) - threshold;
+                const maxY = Math.max(s.startY, s.endY) + threshold;
+                if (x >= minX && x <= maxX && y >= minY && y <= maxY) return s;
+            }
+
+            // Text
+            if (s.type === "text") {
+                const textW = (s.text?.length || 1) * (s.fontSize || 20) * 0.6;
+                if (x >= s.x - 5 && x <= s.x + textW && y >= s.y - 5 && y <= s.y + (s.fontSize || 20) + 5) return s;
+            }
+
+            // Stamp
+            if (s.type === "stamp") {
+                if (Math.abs(s.x - x) < 30 && Math.abs(s.y - y) < 30) return s;
+            }
+
+            // Image
+            if (s.type === "image") {
+                if (x >= s.x && x <= s.x + s.width && y >= s.y && y <= s.y + s.height) return s;
+            }
+        }
+        return null;
+    }, [page?.strokes]);
+
+    // ============================================================
+    // [H] Pointer Events
     // ============================================================
 
     /** เริ่มวาด — กดลงบน canvas */
     const handlePointerDown = (e) => {
-        // Text tool → ขอช่องพิมพ์ที่ตำแหน่งคลิก
-        if (tool === "text") {
-            const rect = canvasRef.current.getBoundingClientRect();
-            onTextRequest?.(e.clientX - rect.left, e.clientY - rect.top);
+        // ── Viewer: ไม่อนุญาตให้วาด แต่ยัง track cursor ได้ ──
+        if (userRole === "viewer") return;
+
+        activePointers.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
+
+        // ── Panning & Zooming (2 นิ้ว หรือ เลือกเครื่องมือ Pan) ──
+        if (tool === "pan" || activePointers.current.size >= 2) {
+            e.target.setPointerCapture(e.pointerId);
+            isDrawing.current = false; // ยกเลิกการวาดชั่วคราว
+
+            if (activePointers.current.size === 2) {
+                const pts = Array.from(activePointers.current.values());
+                const dist = Math.hypot(pts[0].x - pts[1].x, pts[0].y - pts[1].y);
+                lastPinchDistance.current = dist;
+            } else {
+                lastPinchDistance.current = null;
+            }
+
+            let cx = 0, cy = 0;
+            activePointers.current.forEach(p => { cx += p.x; cy += p.y; });
+            cx /= activePointers.current.size;
+            cy /= activePointers.current.size;
+            lastPanPoint.current = { x: cx, y: cy };
             return;
         }
 
-        // Stamp tool → จัดการโดย App.jsx (ผ่าน onClick)
+        // Text tool
+        if (tool === "text") {
+            const rect = canvasRef.current.getBoundingClientRect();
+            onTextRequest?.(
+                (e.clientX - rect.left - panOffset.current.x) / zoom.current,
+                (e.clientY - rect.top - panOffset.current.y) / zoom.current
+            );
+            return;
+        }
+
+        // Stamp tool
         if (tool === "stamp") return;
 
-        // Laser pointer → ไม่วาดอะไร (จัดการผ่าน cursor-move event)
+        // Laser pointer
         if (tool === "laser") return;
 
+        // ── Select tool ──
+        if (tool === "select") {
+            const rect = canvasRef.current.getBoundingClientRect();
+            const x = (e.clientX - rect.left - panOffset.current.x) / zoom.current;
+            const y = (e.clientY - rect.top - panOffset.current.y) / zoom.current;
+            const found = findStrokeAt(x, y);
+            if (found) {
+                setSelectedStrokeId(found.id);
+                selectDragStart.current = { x, y, strokeId: found.id };
+                e.target.setPointerCapture(e.pointerId);
+                isDrawing.current = true;
+            } else {
+                setSelectedStrokeId(null);
+                selectDragStart.current = null;
+            }
+            return;
+        }
+
         const isShapeTool = SHAPE_TOOLS.includes(tool);
-        const isPenOrEraser = tool === "pen" || tool === "eraser";
-        if (!isShapeTool && !isPenOrEraser) return;
+        const isPenLike = tool === "pen" || tool === "eraser" || tool === "highlighter";
+        if (!isShapeTool && !isPenLike) return;
 
         e.target.setPointerCapture(e.pointerId);
         isDrawing.current = true;
 
         const rect = canvasRef.current.getBoundingClientRect();
-        const x = e.clientX - rect.left;
-        const y = e.clientY - rect.top;
+        const x = (e.clientX - rect.left - panOffset.current.x) / zoom.current;
+        const y = (e.clientY - rect.top - panOffset.current.y) / zoom.current;
         prevX.current = x;
         prevY.current = y;
 
         if (isShapeTool) {
-            // Shape: เก็บจุดเริ่มต้น + ถ่ายภาพ canvas ปัจจุบัน (snapshot)
-            // เพื่อใช้ restore ก่อนวาด preview ใหม่ทุกครั้ง
             shapeStart.current = { x, y };
             const preview = previewCanvasRef.current;
             const pCtx = preview.getContext("2d");
             pCtx.clearRect(0, 0, preview.width, preview.height);
-            pCtx.drawImage(canvasRef.current, 0, 0); // snapshot!
+            pCtx.drawImage(canvasRef.current, 0, 0);
         } else {
-            // Pen/Eraser: สร้าง stroke ใหม่ เริ่มเก็บจุด
+            // Pen/Eraser/Highlighter
             currentStroke.current = {
                 id: Date.now().toString(36) + Math.random().toString(36).substr(2),
-                tool,
+                tool, // "pen" | "eraser" | "highlighter"
                 color: tool === "eraser" ? "#000" : color,
                 size: penSize,
                 points: [{ x, y }],
@@ -357,23 +486,75 @@ const Canvas = forwardRef(function Canvas(
 
     /** ลากวาด — เลื่อนนิ้ว/เมาส์ */
     const handlePointerMove = (e) => {
+        if (activePointers.current.has(e.pointerId)) {
+            activePointers.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
+        }
+
+        // ── Panning & Zoom Logic ──
+        if (tool === "pan" || activePointers.current.size >= 2) {
+            if (!lastPanPoint.current) return;
+
+            // 1) Panning (เลื่อนกระดาน)
+            let cx = 0, cy = 0;
+            activePointers.current.forEach(p => { cx += p.x; cy += p.y; });
+            cx /= activePointers.current.size;
+            cy /= activePointers.current.size;
+
+            const dx = cx - lastPanPoint.current.x;
+            const dy = cy - lastPanPoint.current.y;
+
+            panOffset.current.x += dx;
+            panOffset.current.y += dy;
+            lastPanPoint.current = { x: cx, y: cy };
+
+            // 2) ซูม (Pinch-to-zoom) ถ้ามี 2 นิ้ว
+            if (activePointers.current.size === 2 && lastPinchDistance.current) {
+                const pts = Array.from(activePointers.current.values());
+                const dist = Math.hypot(pts[0].x - pts[1].x, pts[0].y - pts[1].y);
+
+                // คำนวณอัตราซูม
+                const zoomFactor = dist / lastPinchDistance.current;
+
+                // ปรับ zoom พร้อมยึดจุดกึ่งกลาง (cx, cy) ให้อยู่กับที่
+                const newZoom = Math.min(Math.max(0.1, zoom.current * zoomFactor), 10);
+
+                // คำนวณ offset ใหม่เพื่อให้ซูมตรงจุดกึ่งกลางนิ้ว
+                panOffset.current.x = cx - (cx - panOffset.current.x) * (newZoom / zoom.current);
+                panOffset.current.y = cy - (cy - panOffset.current.y) * (newZoom / zoom.current);
+
+                zoom.current = newZoom;
+                lastPinchDistance.current = dist;
+            }
+
+            redrawAll();
+            return;
+        }
+
         const rect = canvasRef.current?.getBoundingClientRect();
         if (!rect) return;
-        const x = e.clientX - rect.left;
-        const y = e.clientY - rect.top;
+        const x = (e.clientX - rect.left - panOffset.current.x) / zoom.current;
+        const y = (e.clientY - rect.top - panOffset.current.y) / zoom.current;
 
-        // ── [Phase 7] ส่งตำแหน่ง cursor ให้ App ทุก pointermove ──
+        // ส่งตำแหน่ง cursor
         onCursorMove?.(x, y);
 
-        // ถ้าไม่ได้กำลังวาด → ไม่ต้องทำอะไรเพิ่ม
         if (!isDrawing.current) return;
+
+        // ── Select tool: ลาก stroke ──
+        if (tool === "select" && selectDragStart.current) {
+            const dx = x - selectDragStart.current.x;
+            const dy = y - selectDragStart.current.y;
+            if (Math.abs(dx) > 1 || Math.abs(dy) > 1) {
+                selectDragStart.current.x = x;
+                selectDragStart.current.y = y;
+                onStrokeUpdate?.(selectDragStart.current.strokeId, dx, dy);
+            }
+            return;
+        }
 
         const isShapeTool = SHAPE_TOOLS.includes(tool);
 
         if (isShapeTool && shapeStart.current) {
-            // Rubber-band preview:
-            // 1. restore snapshot (ลบ preview เดิม)
-            // 2. วาด shape ใหม่ตามตำแหน่งเมาส์ปัจจุบัน
             const ctx = ctxRef.current;
             const dpr = window.devicePixelRatio || 1;
             const preview = previewCanvasRef.current;
@@ -381,29 +562,29 @@ const Canvas = forwardRef(function Canvas(
             ctx.save();
             ctx.setTransform(1, 0, 0, 1, 0, 0);
             ctx.clearRect(0, 0, canvasRef.current.width, canvasRef.current.height);
-            ctx.drawImage(preview, 0, 0); // restore snapshot
-            ctx.setTransform(1, 0, 0, 1, 0, 0);
+            ctx.drawImage(preview, 0, 0);
             ctx.scale(dpr, dpr);
-            ctx.restore();
+            ctx.translate(panOffset.current.x, panOffset.current.y);
+            ctx.scale(zoom.current, zoom.current);
 
-            // วาด shape preview
             drawShapeOnCtx(ctx, {
                 shapeType: tool,
                 startX: shapeStart.current.x,
                 startY: shapeStart.current.y,
-                endX: x,
-                endY: y,
-                color,
-                size: penSize,
+                endX: x, endY: y,
+                color, size: penSize,
             });
+            ctx.restore();
         } else {
-            // Pen/Eraser: วาดเส้นสดไปเรื่อยๆ + ส่งให้คนอื่น real-time
+            // Pen/Eraser/Highlighter
             const sColor = tool === "eraser" ? "#000" : color;
             drawSegment(prevX.current, prevY.current, x, y, sColor, penSize, tool);
+
             onDraw({
                 prevX: prevX.current, prevY: prevY.current,
                 x, y, color: sColor, size: penSize, tool,
             });
+
             currentStroke.current?.points.push({ x, y });
             prevX.current = x;
             prevY.current = y;
@@ -412,18 +593,37 @@ const Canvas = forwardRef(function Canvas(
 
     /** หยุดวาด — ปล่อยนิ้ว/เมาส์ */
     const handlePointerUp = (e) => {
+        activePointers.current.delete(e.pointerId);
+
+        if (activePointers.current.size === 0) {
+            lastPanPoint.current = null;
+            lastPinchDistance.current = null;
+        } else if (activePointers.current.size === 1) {
+            // ถ้าหลุดจาก 2 นิ้วเหลือ 1 นิ้ว, รีเซ็ต lastPanPoint ใหม่เพื่อให้กระดานไม่กระตุก
+            let cx = 0, cy = 0;
+            activePointers.current.forEach(p => { cx += p.x; cy += p.y; });
+            lastPanPoint.current = { x: cx, y: cy };
+            lastPinchDistance.current = null;
+        }
+
         if (!isDrawing.current) return;
 
         e.target.releasePointerCapture(e.pointerId);
         isDrawing.current = false;
+
+        // Select tool: เสร็จสิ้นการลาก
+        if (tool === "select") {
+            selectDragStart.current = null;
+            return;
+        }
+
         const isShapeTool = SHAPE_TOOLS.includes(tool);
 
         if (isShapeTool && shapeStart.current) {
             const rect = canvasRef.current.getBoundingClientRect();
-            const x = e.clientX - rect.left;
-            const y = e.clientY - rect.top;
+            const x = (e.clientX - rect.left - panOffset.current.x) / zoom.current;
+            const y = (e.clientY - rect.top - panOffset.current.y) / zoom.current;
 
-            // สร้าง shape เฉพาะเมื่อลากไกลพอ (>3px) เพื่อกันคลิกผิด
             const dx = Math.abs(x - shapeStart.current.x);
             const dy = Math.abs(y - shapeStart.current.y);
             if (dx > 3 || dy > 3) {
@@ -440,7 +640,6 @@ const Canvas = forwardRef(function Canvas(
             }
             shapeStart.current = null;
         } else {
-            // Pen/Eraser: stroke เสร็จสมบูรณ์
             if (currentStroke.current && currentStroke.current.points.length > 1) {
                 onStrokeComplete(currentStroke.current);
             }
@@ -449,17 +648,51 @@ const Canvas = forwardRef(function Canvas(
     };
 
     // ============================================================
-    // [I] Cursor — เปลี่ยน cursor ตาม tool ที่เลือก
+    // [H2] Mouse Wheel Zoom
     // ============================================================
-    let cursorStyle = "default";
-    if (tool === "pen") cursorStyle = "crosshair";       // ปากกา
-    else if (tool === "eraser") cursorStyle = "cell";     // ยางลบ
-    else if (tool === "text") cursorStyle = "text";        // ข้อความ
-    else if (tool === "laser") cursorStyle = "none";        // laser → ซ่อน cursor ปกติ
-    else if (SHAPE_TOOLS.includes(tool)) cursorStyle = "crosshair"; // shapes
+    useEffect(() => {
+        const canvas = canvasRef.current;
+        if (!canvas) return;
+
+        const handleWheel = (e) => {
+            if (e.ctrlKey || e.metaKey || tool === "pan") {
+                e.preventDefault();
+                const rect = canvas.getBoundingClientRect();
+                const mouseX = e.clientX - rect.left;
+                const mouseY = e.clientY - rect.top;
+
+                // Zoom factor (scroll up = zoom in, scroll down = zoom out)
+                const zoomFactor = e.deltaY < 0 ? 1.1 : 0.9;
+                const newZoom = Math.min(Math.max(0.1, zoom.current * zoomFactor), 10);
+
+                // ปรับ offset เพื่อซูมตรงจุดเมาส์
+                panOffset.current.x = mouseX - (mouseX - panOffset.current.x) * (newZoom / zoom.current);
+                panOffset.current.y = mouseY - (mouseY - panOffset.current.y) * (newZoom / zoom.current);
+
+                zoom.current = newZoom;
+                redrawAll();
+            }
+        };
+
+        canvas.addEventListener("wheel", handleWheel, { passive: false });
+        return () => canvas.removeEventListener("wheel", handleWheel);
+    }, [redrawAll, tool]);
 
     // ============================================================
-    // [J] กรอง Remote Cursors / Laser ที่อยู่หน้าเดียวกับเรา
+    // [I] Cursor style
+    // ============================================================
+    let cursorStyle = "default";
+    if (tool === "pen") cursorStyle = "crosshair";
+    else if (tool === "highlighter") cursorStyle = "crosshair";
+    else if (tool === "eraser") cursorStyle = "cell";
+    else if (tool === "text") cursorStyle = "text";
+    else if (tool === "laser") cursorStyle = "none";
+    else if (tool === "select") cursorStyle = selectedStrokeId ? "move" : "pointer";
+    else if (tool === "pan") cursorStyle = activePointers.current.size > 0 ? "grabbing" : "grab";
+    else if (SHAPE_TOOLS.includes(tool)) cursorStyle = "crosshair";
+
+    // ============================================================
+    // [J] กรอง Remote Cursors / Laser
     // ============================================================
     const visibleCursors = Object.entries(remoteCursors || {}).filter(
         ([, data]) => data.pageIndex === currentPageIndex
@@ -483,18 +716,19 @@ const Canvas = forwardRef(function Canvas(
                 style={{ cursor: cursorStyle }}
             />
 
-            {/* ── [Phase 7] Remote Cursors — เคอร์เซอร์ของผู้ใช้อื่น ── */}
+            {/* Remote Cursors (ต้องบวก offset และคูณ zoom เพื่อแสดงให้ถูกตำแหน่งบนจอ) */}
             {visibleCursors.map(([id, data]) => (
                 <div
                     key={id}
                     className="remote-cursor"
                     style={{
-                        left: data.x + "px",
-                        top: data.y + "px",
+                        left: (data.x * zoom.current + panOffset.current.x) + "px",
+                        top: (data.y * zoom.current + panOffset.current.y) + "px",
                         "--cursor-color": data.color,
+                        transform: `scale(${zoom.current})`,
+                        transformOrigin: "top left"
                     }}
                 >
-                    {/* ลูกศร cursor (SVG) */}
                     <svg className="remote-cursor-arrow" viewBox="0 0 24 24" width="20" height="20">
                         <path
                             d="M4 2 L4 20 L9 15 L14 22 L17 20 L12 13 L19 13 Z"
@@ -503,7 +737,6 @@ const Canvas = forwardRef(function Canvas(
                             strokeWidth="1.5"
                         />
                     </svg>
-                    {/* ชื่อผู้ใช้ */}
                     <span
                         className="remote-cursor-label"
                         style={{ backgroundColor: data.color }}
@@ -513,15 +746,16 @@ const Canvas = forwardRef(function Canvas(
                 </div>
             ))}
 
-            {/* ── [Phase 7] Laser Pointers — จุดแดงเรืองแสง ── */}
+            {/* Laser Pointers */}
             {visibleLasers.map((lp, i) => (
                 <div
                     key={`laser-${lp.id}-${i}`}
                     className="laser-pointer"
                     style={{
-                        left: lp.x + "px",
-                        top: lp.y + "px",
+                        left: (lp.x * zoom.current + panOffset.current.x) + "px",
+                        top: (lp.y * zoom.current + panOffset.current.y) + "px",
                         "--laser-color": lp.color,
+                        transform: `translate(-50%, -50%) scale(${zoom.current})`
                     }}
                 />
             ))}

@@ -56,8 +56,19 @@ let pages = [
 ];
 
 // ข้อมูลผู้ใช้ที่เชื่อมต่ออยู่
-// Structure: { socketId: { name, color, pageIndex } }
+// Structure: { socketId: { name, color, pageIndex, role } }
+// role: "host" | "contributor" | "viewer"
 const users = {};
+
+// ────────────────────────────────────────────────────────────
+// Helper — ตรวจสอบสิทธิ์ตาม role
+// ────────────────────────────────────────────────────────────
+const ROLE_LEVELS = { host: 3, contributor: 2, viewer: 1 };
+function hasPermission(socketId, minRole) {
+  const user = users[socketId];
+  if (!user) return false;
+  return (ROLE_LEVELS[user.role] || 0) >= (ROLE_LEVELS[minRole] || 99);
+}
 
 // จำนวนผู้ใช้ที่เชื่อมต่อ
 let connectedUsers = 0;
@@ -129,19 +140,22 @@ io.on("connection", (socket) => {
   // [Phase 7] ตั้งชื่อผู้ใช้
   // ============================================================
   // รับชื่อจาก client → กำหนดสี → เก็บข้อมูล → broadcast ให้คนอื่น
-  socket.on("set-user", ({ name }) => {
+  socket.on("set-user", ({ name, role }) => {
     const color = getNextColor();
-    users[socket.id] = { name, color, pageIndex: 0 };
+    // Validate role — ถ้าไม่ถูกต้องให้เป็น viewer
+    const validRoles = ["host", "contributor", "viewer"];
+    const userRole = validRoles.includes(role) ? role : "viewer";
+    users[socket.id] = { name, color, pageIndex: 0, role: userRole };
 
-    // ส่งข้อมูลกลับให้ตัวผู้ใช้เอง (เพื่อรับ color ที่ได้)
-    socket.emit("user-confirmed", { id: socket.id, name, color });
+    // ส่งข้อมูลกลับให้ตัวผู้ใช้เอง (เพื่อรับ color + role ที่ได้)
+    socket.emit("user-confirmed", { id: socket.id, name, color, role: userRole });
 
     // แจ้งคนอื่นว่ามีผู้ใช้ใหม่เข้ามา
     socket.broadcast.emit("user-joined", {
-      id: socket.id, name, color, pageIndex: 0,
+      id: socket.id, name, color, pageIndex: 0, role: userRole,
     });
 
-    console.log(`👤 ตั้งชื่อ: ${name} (${color}) — ${socket.id}`);
+    console.log(`👤 ตั้งชื่อ: ${name} (${color}) role=${userRole} — ${socket.id}`);
   });
 
   // ============================================================
@@ -187,12 +201,15 @@ io.on("connection", (socket) => {
 
   // Live drawing: ส่งเส้นระหว่างวาด (preview) ไปให้คนอื่น
   // ไม่เก็บใน state — ใช้แค่แสดง real-time
+  // Guard: ต้องเป็น contributor ขึ้นไปถึงจะวาดได้
   socket.on("draw", (data) => {
+    if (!hasPermission(socket.id, "contributor")) return;
     socket.broadcast.emit("draw", data);
   });
 
   // Stroke เสร็จสมบูรณ์: เก็บใน state + broadcast
   socket.on("stroke-complete", ({ pageId, stroke }) => {
+    if (!hasPermission(socket.id, "contributor")) return;
     const page = pages.find((p) => p.id === pageId);
     if (page) page.strokes.push(stroke);
     socket.broadcast.emit("stroke-complete", { pageId, stroke });
@@ -200,6 +217,7 @@ io.on("connection", (socket) => {
 
   // Undo: ลบ stroke ที่ระบุออกจาก state + broadcast
   socket.on("undo", ({ pageId, strokeId }) => {
+    if (!hasPermission(socket.id, "contributor")) return;
     const page = pages.find((p) => p.id === pageId);
     if (page) {
       page.strokes = page.strokes.filter((s) => s.id !== strokeId);
@@ -209,6 +227,7 @@ io.on("connection", (socket) => {
 
   // Redo: เพิ่ม stroke กลับเข้า state + broadcast
   socket.on("redo", ({ pageId, stroke }) => {
+    if (!hasPermission(socket.id, "contributor")) return;
     const page = pages.find((p) => p.id === pageId);
     if (page) page.strokes.push(stroke);
     socket.broadcast.emit("redo", { pageId, stroke });
@@ -216,6 +235,7 @@ io.on("connection", (socket) => {
 
   // Clear: ลบ strokes ทั้งหน้า + broadcast
   socket.on("clear-page", ({ pageId }) => {
+    if (!hasPermission(socket.id, "contributor")) return;
     const page = pages.find((p) => p.id === pageId);
     if (page) page.strokes = [];
     socket.broadcast.emit("clear-page", { pageId });
@@ -225,7 +245,9 @@ io.on("connection", (socket) => {
   // [Phase 6] โหลดโปรเจกต์จาก JSON
   // ============================================================
   // เมื่อ client โหลดไฟล์ JSON → แทนที่ pages ทั้งหมด + broadcast ให้คนอื่น
+  // Guard: ต้องเป็น host เท่านั้นถึงจะ load project ได้
   socket.on("load-project", ({ pages: newPages }) => {
+    if (!hasPermission(socket.id, "host")) return;
     if (newPages && Array.isArray(newPages) && newPages.length > 0) {
       pages = newPages;
       socket.broadcast.emit("init-state", { pages });
@@ -237,13 +259,16 @@ io.on("connection", (socket) => {
   // ============================================================
 
   // เพิ่มหน้าใหม่
+  // Guard: ต้องเป็น host เท่านั้นถึงจะจัดการหน้าได้
   socket.on("add-page", ({ page }) => {
+    if (!hasPermission(socket.id, "host")) return;
     pages.push(page);
     socket.broadcast.emit("add-page", { page });
   });
 
   // ลบหน้า (ต้องเหลืออย่างน้อย 1 หน้า)
   socket.on("delete-page", ({ pageId }) => {
+    if (!hasPermission(socket.id, "host")) return;
     if (pages.length > 1) {
       pages = pages.filter((p) => p.id !== pageId);
       socket.broadcast.emit("delete-page", { pageId });
@@ -252,6 +277,7 @@ io.on("connection", (socket) => {
 
   // เปลี่ยนพื้นหลังหน้า
   socket.on("change-background", ({ pageId, background }) => {
+    if (!hasPermission(socket.id, "host")) return;
     const page = pages.find((p) => p.id === pageId);
     if (page) page.background = background;
     socket.broadcast.emit("change-background", { pageId, background });

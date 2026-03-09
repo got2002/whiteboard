@@ -23,6 +23,7 @@
 
 import {
     useRef,
+    useState,
     useEffect,
     useCallback,
     useImperativeHandle,
@@ -41,6 +42,7 @@ const Canvas = forwardRef(function Canvas(
         remoteCursors,    // { id: { x, y, name, color, pageIndex } }
         laserPointers,    // [{ id, x, y, name, color, pageIndex }]
         currentPageIndex, // หน้าปัจจุบันของเรา (ใช้กรอง cursor/laser)
+        userRole,         // "host" | "contributor" | "viewer"
     },
     ref
 ) {
@@ -55,6 +57,13 @@ const Canvas = forwardRef(function Canvas(
     const prevY = useRef(0);                   // พิกัด Y ก่อนหน้า
     const shapeStart = useRef(null);           // จุดเริ่มต้นของ shape {x, y}
     const previewCanvasRef = useRef(null);     // canvas สำรอง (สำหรับ snapshot ก่อนวาด shape)
+
+    // ── Pan & Zoom State ──────────────────────────────────────
+    const [viewTransform, setViewTransform] = useState({ x: 0, y: 0, scale: 1 });
+    const isPanning = useRef(false);           // กำลัง pan/zoom อยู่หรือไม่
+    const lastTouchDist = useRef(0);           // ระยะห่าง 2 นิ้วก่อนหน้า
+    const lastTouchMid = useRef({ x: 0, y: 0 }); // จุดกลาง 2 นิ้วก่อนหน้า
+    const touchCount = useRef(0);              // จำนวนนิ้วที่แตะอยู่
 
     // เปิดให้ parent (App) เข้าถึง canvas element ได้ (สำหรับ export PNG)
     useImperativeHandle(ref, () => canvasRef.current);
@@ -304,15 +313,101 @@ const Canvas = forwardRef(function Canvas(
     }, [page?.id, socket, drawSegment]);
 
     // ============================================================
+    // [H-0] Coordinate Mapping — แปลงพิกัดจาก screen → canvas
+    // ============================================================
+    // เมื่อมี pan/zoom ต้องแปลงพิกัดก่อนใช้วาด
+    const mapCoords = useCallback((clientX, clientY) => {
+        const rect = canvasRef.current.getBoundingClientRect();
+        // หา position relative to canvas element (ซึ่งถูก transform แล้ว)
+        const x = (clientX - rect.left) / viewTransform.scale;
+        const y = (clientY - rect.top) / viewTransform.scale;
+        return { x, y };
+    }, [viewTransform.scale]);
+
+    // ============================================================
+    // [H-1] Touch Events — Pan & Pinch-to-Zoom (2 นิ้ว)
+    // ============================================================
+    const handleTouchStart = useCallback((e) => {
+        touchCount.current = e.touches.length;
+        if (e.touches.length >= 2) {
+            // เริ่ม pan/zoom → ยกเลิกการวาดถ้ากำลังวาดอยู่
+            isPanning.current = true;
+            isDrawing.current = false;
+            currentStroke.current = null;
+            shapeStart.current = null;
+
+            const t1 = e.touches[0];
+            const t2 = e.touches[1];
+            lastTouchDist.current = Math.hypot(t2.clientX - t1.clientX, t2.clientY - t1.clientY);
+            lastTouchMid.current = {
+                x: (t1.clientX + t2.clientX) / 2,
+                y: (t1.clientY + t2.clientY) / 2,
+            };
+        }
+    }, []);
+
+    const handleTouchMove = useCallback((e) => {
+        if (e.touches.length >= 2 && isPanning.current) {
+            e.preventDefault();
+            const t1 = e.touches[0];
+            const t2 = e.touches[1];
+
+            // คำนวณ distance & midpoint ใหม่
+            const newDist = Math.hypot(t2.clientX - t1.clientX, t2.clientY - t1.clientY);
+            const newMid = {
+                x: (t1.clientX + t2.clientX) / 2,
+                y: (t1.clientY + t2.clientY) / 2,
+            };
+
+            // Delta pan
+            const dx = newMid.x - lastTouchMid.current.x;
+            const dy = newMid.y - lastTouchMid.current.y;
+
+            // Scale ratio
+            const scaleRatio = lastTouchDist.current > 0 ? newDist / lastTouchDist.current : 1;
+
+            setViewTransform((prev) => {
+                const newScale = Math.min(3, Math.max(0.3, prev.scale * scaleRatio));
+                return {
+                    x: prev.x + dx,
+                    y: prev.y + dy,
+                    scale: newScale,
+                };
+            });
+
+            lastTouchDist.current = newDist;
+            lastTouchMid.current = newMid;
+        }
+    }, []);
+
+    const handleTouchEnd = useCallback((e) => {
+        touchCount.current = e.touches.length;
+        if (e.touches.length < 2) {
+            isPanning.current = false;
+        }
+    }, []);
+
+    /** Reset view กลับ default */
+    const handleResetView = useCallback(() => {
+        setViewTransform({ x: 0, y: 0, scale: 1 });
+    }, []);
+
+    // ============================================================
     // [H] Pointer Events — จัดการการวาดด้วย mouse/touch/stylus
     // ============================================================
 
     /** เริ่มวาด — กดลงบน canvas */
     const handlePointerDown = (e) => {
+        // ── Viewer: ไม่อนุญาตให้วาดรูปลงกระดาน แต่ยังเห็น cursor ได้ ──
+        if (userRole === "viewer") return;
+
+        // ถ้ากำลัง pan/zoom อยู่ → ไม่ต้องวาด
+        if (isPanning.current || touchCount.current >= 2) return;
+
         // Text tool → ขอช่องพิมพ์ที่ตำแหน่งคลิก
         if (tool === "text") {
-            const rect = canvasRef.current.getBoundingClientRect();
-            onTextRequest?.(e.clientX - rect.left, e.clientY - rect.top);
+            const { x, y } = mapCoords(e.clientX, e.clientY);
+            onTextRequest?.(x, y);
             return;
         }
 
@@ -329,15 +424,12 @@ const Canvas = forwardRef(function Canvas(
         e.target.setPointerCapture(e.pointerId);
         isDrawing.current = true;
 
-        const rect = canvasRef.current.getBoundingClientRect();
-        const x = e.clientX - rect.left;
-        const y = e.clientY - rect.top;
+        const { x, y } = mapCoords(e.clientX, e.clientY);
         prevX.current = x;
         prevY.current = y;
 
         if (isShapeTool) {
             // Shape: เก็บจุดเริ่มต้น + ถ่ายภาพ canvas ปัจจุบัน (snapshot)
-            // เพื่อใช้ restore ก่อนวาด preview ใหม่ทุกครั้ง
             shapeStart.current = { x, y };
             const preview = previewCanvasRef.current;
             const pCtx = preview.getContext("2d");
@@ -357,10 +449,11 @@ const Canvas = forwardRef(function Canvas(
 
     /** ลากวาด — เลื่อนนิ้ว/เมาส์ */
     const handlePointerMove = (e) => {
-        const rect = canvasRef.current?.getBoundingClientRect();
-        if (!rect) return;
-        const x = e.clientX - rect.left;
-        const y = e.clientY - rect.top;
+        // ถ้ากำลัง pan/zoom → ไม่ต้องวาด
+        if (isPanning.current || touchCount.current >= 2) return;
+
+        if (!canvasRef.current) return;
+        const { x, y } = mapCoords(e.clientX, e.clientY);
 
         // ── [Phase 7] ส่งตำแหน่ง cursor ให้ App ทุก pointermove ──
         onCursorMove?.(x, y);
@@ -372,8 +465,6 @@ const Canvas = forwardRef(function Canvas(
 
         if (isShapeTool && shapeStart.current) {
             // Rubber-band preview:
-            // 1. restore snapshot (ลบ preview เดิม)
-            // 2. วาด shape ใหม่ตามตำแหน่งเมาส์ปัจจุบัน
             const ctx = ctxRef.current;
             const dpr = window.devicePixelRatio || 1;
             const preview = previewCanvasRef.current;
@@ -381,12 +472,11 @@ const Canvas = forwardRef(function Canvas(
             ctx.save();
             ctx.setTransform(1, 0, 0, 1, 0, 0);
             ctx.clearRect(0, 0, canvasRef.current.width, canvasRef.current.height);
-            ctx.drawImage(preview, 0, 0); // restore snapshot
+            ctx.drawImage(preview, 0, 0);
             ctx.setTransform(1, 0, 0, 1, 0, 0);
             ctx.scale(dpr, dpr);
             ctx.restore();
 
-            // วาด shape preview
             drawShapeOnCtx(ctx, {
                 shapeType: tool,
                 startX: shapeStart.current.x,
@@ -419,9 +509,7 @@ const Canvas = forwardRef(function Canvas(
         const isShapeTool = SHAPE_TOOLS.includes(tool);
 
         if (isShapeTool && shapeStart.current) {
-            const rect = canvasRef.current.getBoundingClientRect();
-            const x = e.clientX - rect.left;
-            const y = e.clientY - rect.top;
+            const { x, y } = mapCoords(e.clientX, e.clientY);
 
             // สร้าง shape เฉพาะเมื่อลากไกลพอ (>3px) เพื่อกันคลิกผิด
             const dx = Math.abs(x - shapeStart.current.x);
@@ -471,17 +559,43 @@ const Canvas = forwardRef(function Canvas(
     // ============================================================
     // [K] Render
     // ============================================================
+    // ── Style สำหรับ transform (pan/zoom) ──
+    const transformStyle = {
+        transform: `translate(${viewTransform.x}px, ${viewTransform.y}px) scale(${viewTransform.scale})`,
+        transformOrigin: '0 0',
+    };
+
+    const isZoomed = viewTransform.scale !== 1 || viewTransform.x !== 0 || viewTransform.y !== 0;
+
     return (
-        <div className={`canvas-bg bg-${page?.background || "white"}`}>
-            <canvas
-                ref={canvasRef}
-                onPointerDown={handlePointerDown}
-                onPointerMove={handlePointerMove}
-                onPointerUp={handlePointerUp}
-                onPointerLeave={handlePointerUp}
-                className="drawing-canvas"
-                style={{ cursor: cursorStyle }}
-            />
+        <div
+            className={`canvas-bg bg-${page?.background || "white"}`}
+            onTouchStart={handleTouchStart}
+            onTouchMove={handleTouchMove}
+            onTouchEnd={handleTouchEnd}
+        >
+            <div className="canvas-transform-wrapper" style={transformStyle}>
+                <canvas
+                    ref={canvasRef}
+                    onPointerDown={handlePointerDown}
+                    onPointerMove={handlePointerMove}
+                    onPointerUp={handlePointerUp}
+                    onPointerLeave={handlePointerUp}
+                    className="drawing-canvas"
+                    style={{ cursor: cursorStyle }}
+                />
+            </div>
+
+            {/* ── ปุ่ม Reset View (แสดงเมื่อ zoom/pan อยู่) ── */}
+            {isZoomed && (
+                <button
+                    className="reset-view-btn"
+                    onClick={handleResetView}
+                    title="Reset View"
+                >
+                    ⟲ Reset
+                </button>
+            )}
 
             {/* ── [Phase 7] Remote Cursors — เคอร์เซอร์ของผู้ใช้อื่น ── */}
             {visibleCursors.map(([id, data]) => (
@@ -494,7 +608,6 @@ const Canvas = forwardRef(function Canvas(
                         "--cursor-color": data.color,
                     }}
                 >
-                    {/* ลูกศร cursor (SVG) */}
                     <svg className="remote-cursor-arrow" viewBox="0 0 24 24" width="20" height="20">
                         <path
                             d="M4 2 L4 20 L9 15 L14 22 L17 20 L12 13 L19 13 Z"
@@ -503,7 +616,6 @@ const Canvas = forwardRef(function Canvas(
                             strokeWidth="1.5"
                         />
                     </svg>
-                    {/* ชื่อผู้ใช้ */}
                     <span
                         className="remote-cursor-label"
                         style={{ backgroundColor: data.color }}

@@ -1,111 +1,30 @@
-# Enhanced EClass Modes + OnScreen Mode
+# Goal Description
+We are switching the offline handwriting recognition (Tesseract.js) to the **Google Cloud Vision API** to achieve near-instantaneous and highly accurate Thai handwriting OCR. We will implement this by creating a proxy endpoint on the Node.js server to securely hide the Google API key, and updating the client to send strokes directly to this new `/api/ocr` endpoint.
 
-## ภาพรวม
-
-เสริมฟีเจอร์ 3 โหมดพิเศษ (คณิตศาสตร์/วิทยาศาสตร์/ภาษา) ให้เทียบเท่า EClass และเพิ่ม OnScreen Mode ใหม่ โค้ดจะเขียนให้สะอาด อ่านง่าย มี comment ทุกส่วน
-
-## สิ่งที่แต่ละโหมดมีอยู่ vs จะเพิ่ม
-
-### 🧮 Math Mode (คณิตศาสตร์)
-| มีแล้ว | จะเพิ่มใหม่ |
-|---|---|
-| ไม้บรรทัด (ลาก+หมุน) | วงเวียน (Compass) — วาดวงกลมตามรัศมี |
-| โปรแทรกเตอร์ (ครึ่งวงกลม) | สามเหลี่ยมมุมฉาก (Set Square) — วัดมุม 45°/60° |
-| Grid background | เครื่องคิดเลข popup (Calculator) |
-| | กราฟพิกัด X-Y (Coordinate Grid overlay) |
-
-### 🔬 Science Mode (วิทยาศาสตร์)
-| มีแล้ว | จะเพิ่มใหม่ |
-|---|---|
-| 16 lab stamps (emoji) | Timer/Stopwatch — จับเวลาทดลอง |
-| ตารางธาตุ (1-20) | ตารางธาตุเต็ม (118 ธาตุ) — จัดตาม Period/Group |
-| | แม่เหล็กไฟฟ้า diagram stamps (วงจรไฟฟ้า) |
-| | หลอดทดลองแบบ interactive (เปลี่ยนสี/ระดับ) |
-
-### 📖 Language Mode (ภาษา)
-| มีแล้ว | จะเพิ่มใหม่ |
-|---|---|
-| แถบแนะนำ (banner) | เส้นคัดลายมือ 4 เส้น (Handwriting guide lines) |
-| Lined background | Font size quick presets (หัวข้อ/ข้อความ/หมายเหตุ) |
-| Text tool | ตัวอักษรตัวด้น (Bold), ขีดเส้นใต้ (Underline) |
-| | Sticker คำศัพท์ (vocabulary stamps) |
-| | เส้นประสำหรับลากหัดเขียน (dotted guide) |
-
-### 🖥️ OnScreen Mode (ใหม่!)
-| ฟีเจอร์ |
-|---|
-| ทำ canvas โปร่งใส — วาดทับหน้าจอ Desktop ได้ |
-| แสดง Toolbar ลอยเล็กๆ มุมจอ |
-| ปิด OnScreen → กลับกระดานปกติ |
-
-> **OnScreen Mode ทำได้ในเว็บ** โดยการทำ canvas background เป็น transparent + window ขยายเต็มจอ ผู้ใช้จะเห็นเว็บพื้นหลังทะลุผ่านได้ แต่จะวาดทับ Desktop จริงได้ต้องเป็น Desktop App (Electron) ซึ่งสามารถทำเพิ่มทีหลังได้
-
----
+## User Review Required
+> [!IMPORTANT]
+> To use this feature, you will need a valid **Google Cloud Vision API Key**. I have created a file at `c:\test_ai\Whiteboard\Server\.env`. You must edit this file and replace `your_google_cloud_api_key_here` with your actual API key, then restart the server.
 
 ## Proposed Changes
 
-### Component: ModePanel
+### Server
+#### [MODIFY] c:\test_ai\Whiteboard\Server\server.js
+- Apply `cors` middleware to allow requests from the client.
+- Create a new POST endpoint at `/api/ocr`.
+- Receive base64 image from the client, call the Google Cloud Vision API (`https://vision.googleapis.com/v1/images:annotate`), and return the parsed text.
+- Use `dotenv` to safely load the `GOOGLE_VISION_API_KEY`.
 
-#### [MODIFY] [ModePanel.jsx](file:///c:/test_ai/Whiteboard/Client/src/components/ModePanel.jsx)
+### Client
+#### [MODIFY] c:\test_ai\Whiteboard\Client\src\components\Canvas.jsx
+- Import `axios`.
+- Inside `processMagicStrokes`, extract the `dataUrl`, slice off `data:image/png;base64,`, and send it via `POST` to `http://localhost:3000/api/ocr`.
+- Handle the text response from the server and convert it into a Text stroke on the canvas.
 
-**Math Mode เพิ่ม:**
-- `CompassOverlay` — วงเวียน SVG ลาก+หมุน+ปรับรัศมี
-- `SetSquareOverlay` — สามเหลี่ยมมุมฉาก SVG ลากได้
-- `CalculatorPopup` — เครื่องคิดเลขลอย (+-×÷ พื้นฐาน)
-- `CoordinateGridOverlay` — กราฟแกน X-Y ทับ canvas
-
-**Science Mode เพิ่ม:**
-- `TimerWidget` — จับเวลา start/stop/reset
-- ขยายตารางธาตุเป็น 118 ธาตุ พร้อม color coding
-- เพิ่ม circuit diagram stamps (วงจรไฟฟ้า)
-
-**Language Mode เพิ่ม:**
-- `HandwritingGuide` — เส้นคัดลายมือ 4 เส้น overlay
-- `FontSizePresets` — ปุ่มเลือกขนาด (หัวข้อ/ข้อความ)
-- `VocabStamps` — sticker คำศัพท์พื้นฐาน
-
----
-
-### Component: Toolbar
-
-#### [MODIFY] [Toolbar.jsx](file:///c:/test_ai/Whiteboard/Client/src/components/Toolbar.jsx)
-
-- เพิ่มปุ่ม OnScreen Mode 🖥️ ในกลุ่ม Mode
-- เพิ่มปุ่ม Highlighter 🖍️ ในกลุ่ม Drawing Tools
-
----
-
-### Component: App
-
-#### [MODIFY] [App.jsx](file:///c:/test_ai/Whiteboard/Client/src/App.jsx)
-
-- เพิ่ม state: `isOnScreen` (boolean) สำหรับ OnScreen mode
-- เพิ่ม state: `fontSize` สำหรับ Language mode presets
-- เพิ่ม mode `"onscreen"` ใน mode selector
-- เมื่อ `isOnScreen=true` → canvas background โปร่งใส + Toolbar เล็กลง
-
----
-
-### Styles
-
-#### [MODIFY] [index.css](file:///c:/test_ai/Whiteboard/Client/src/index.css)
-
-- สไตล์ CompassOverlay, SetSquareOverlay
-- สไตล์ CalculatorPopup, TimerWidget
-- สไตล์ HandwritingGuide, VocabStamps
-- สไตล์ OnScreen mode (transparent bg, mini toolbar)
-- สไตล์ Highlighter strokes (semi-transparent)
-
----
-
-## Verification
-
-```bash
-cd c:\test_ai\Whiteboard\Client && npx vite build
-```
-
-Build ผ่าน 0 errors + ทดสอบ:
-1. **Math** — เปิดวงเวียน/สามเหลี่ยม/เครื่องคิดเลข/กราฟ
-2. **Science** — ใช้ตารางธาตุเต็ม + Timer
-3. **Language** — เห็นเส้นคัดลายมือ + เลือก font size
-4. **OnScreen** — canvas โปร่งใส + วาดทับได้
+## Verification Plan
+### Automated Tests
+- Server and Client will build correctly.
+### Manual Verification
+1. User provides a valid Google API Key in `Server/.env`.
+2. Restart the backend server.
+3. Draw a Thai word with the Magic Pen.
+4. Wait 1 second, verify that the strokes are replaced almost instantly with highly accurate typed text.

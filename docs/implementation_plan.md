@@ -1,69 +1,99 @@
-# Whiteboard → Electron App Conversion
+# เพิ่มระบบ Role-Based Authorization (Viewer / Contributor / Host)
 
-ครูลง Electron App บนคอมพิวเตอร์ → เปิดสอน → นักเรียนสแกน QR Code เข้าร่วมผ่านมือถือ
+ปัจจุบันทุก Client ที่เชื่อมต่อเข้ามามีสิทธิ์เท่ากันหมด ไม่แยกแยะระหว่าง Teacher, นักเรียนที่วาดได้ (Contributor) หรือผู้ดูอย่างเดียว (Viewer) ต้องเพิ่มระบบ Role เพื่อให้ตรงกับ Architecture Diagram ที่กำหนดไว้
 
-## Concept
+## สิทธิ์ของแต่ละ Role
 
-```
-┌─────────────────────────────────┐
-│  Electron App (ครู)              │
-│  ┌───────────┐  ┌─────────────┐ │
-│  │  Server   │  │  React UI   │ │
-│  │  (3000)   │  │  (Renderer) │ │
-│  └───────────┘  └─────────────┘ │
-└─────────────────────────────────┘
-         ↕ Socket.IO (LAN)
-   ┌──────────┐  ┌──────────┐
-   │ 📱Student │  │ 📱Student │
-   │ (Browser) │  │ (Browser) │
-   └──────────┘  └──────────┘
-```
-
-- **Electron** เปิดหน้าต่าง Whiteboard + รัน Server อยู่ภายในตัว
-- **นักเรียน** สแกน QR Code → เปิด Browser เข้าถึงผ่าน LAN (ไม่ต้องลง app)
-- **Server ฝังอยู่ใน Electron** → เปิดแอปตัวเดียวได้เลย ไม่ต้องรัน command แยก
+| ความสามารถ | Host (Teacher) | Contributor | Viewer |
+|---|:---:|:---:|:---:|
+| ดูกระดาน | ✅ | ✅ | ✅ |
+| วาด/พิมพ์/ลบเส้น | ✅ | ✅ | ❌ |
+| Undo/Redo/Clear | ✅ | ✅ | ❌ |
+| เพิ่ม/ลบหน้า | ✅ | ❌ | ❌ |
+| เปลี่ยนพื้นหลัง | ✅ | ❌ | ❌ |
+| Load/Save Project | ✅ | ❌ | ❌ |
+| เปลี่ยนโหมด (Math/Science) | ✅ | ❌ | ❌ |
+| เห็น Toolbar | ✅ | ✅ (จำกัด) | ❌ |
+| Laser Pointer | ✅ | ✅ | ❌ |
 
 ## Proposed Changes
 
-### Root Level — Electron Setup
+### Server
 
-#### [NEW] package.json (root)
-- รวม `Client` + `Server` ภายใต้ root เดียว
-- เพิ่ม `electron`, `electron-builder` เป็น devDependencies
-- Scripts: `electron:dev` (dev mode), `build` (production), `dist` (สร้างไฟล์ .exe)
+#### [MODIFY] [server.js](file:///c:/test_ai/Whiteboard/Server/server.js)
+- เพิ่ม `role` field ใน `users` map (`{ name, color, pageIndex, role }`)
+- แก้ event `set-user` ให้รับ `role` จาก client: `{ name, role }`
+- **เพิ่ม Guard** ที่ event ต่อไปนี้เพื่อป้องกัน Viewer:
+  - `draw`, `stroke-complete`, `undo`, `redo`, `clear-page` → ต้องเป็น `host` หรือ `contributor`
+  - `add-page`, `delete-page`, `change-background`, `load-project` → ต้องเป็น `host` เท่านั้น
+- ส่ง `role` กลับไปใน `user-confirmed` event
 
-#### [NEW] electron/main.js
-- **Electron main process** ที่ทำงานดังนี้:
-  1. Start Express+Socket.IO server (จาก `Server/server.js`)
-  2. รอ server พร้อม → เปิด `BrowserWindow` โหลด React UI
-  3. Dev mode → โหลดจาก `http://localhost:5173`
-  4. Production → serve ไฟล์ React build ผ่าน Express แล้วโหลดจาก `http://localhost:3000`
-
----
-
-### Server Changes
-
-#### [MODIFY] Server/server.js
-- เปลี่ยนให้ export `startServer()` function แทนที่จะ auto-listen
-- Electron main process จะเรียก `startServer()` เอง
-- Production mode: serve React build จาก `Client/dist/`
+#### [MODIFY] [server.js](file:///c:/test_ai/Whiteboard/WhiteboardApp/server/server.js)
+- เปลี่ยนเหมือนกันกับ `Server/server.js` ข้างต้น (ไฟล์นี้คือ server สำหรับ Electron)
 
 ---
 
-### Client Changes
+### Client (Browser — ใช้กับทุก Role)
 
-#### [MODIFY] Client/src/App.jsx
-- ปรับ `SOCKET_URL` ให้รองรับทั้ง Electron + Browser ของนักเรียน
+#### [MODIFY] [NameDialog.jsx](file:///c:/test_ai/Whiteboard/Client/src/components/NameDialog.jsx)
+- เพิ่มปุ่มเลือก Role (3 ปุ่ม: 👨‍🏫 Teacher / ✏️ Contributor / 👁️ Viewer)
+- ส่ง `{ name, role }` กลับผ่าน `onSubmit`
 
-#### [MODIFY] Client/vite.config.js
-- เพิ่ม `base: './'` เพื่อให้ Electron โหลดไฟล์ static ได้ถูก path
+#### [MODIFY] [App.jsx](file:///c:/test_ai/Whiteboard/Client/src/App.jsx)
+- เพิ่ม state `userRole` (default: `"viewer"`)
+- ส่ง `role` ไปกับ `set-user` event
+- รับ `role` กลับจาก `user-confirmed`
+- **Viewer Mode**: ซ่อน `Toolbar`, `SideToolbar`, `FloatingPalette`, `ModePanel` เมื่อ `role === "viewer"`
+- **Contributor Mode**: ซ่อนปุ่ม host-only ใน Toolbar (เพิ่ม/ลบหน้า, เปลี่ยนพื้นหลัง, Load/Save)
+- ส่ง `userRole` ลงไปที่ Canvas เพื่อปิด pointer events สำหรับ Viewer
+
+#### [MODIFY] [Canvas.jsx](file:///c:/test_ai/Whiteboard/Client/src/components/Canvas.jsx)
+- รับ prop `userRole`
+- ถ้า `userRole === "viewer"` → ไม่ประมวลผล pointer events (ปิดการวาด)
+
+#### [MODIFY] [Toolbar.jsx](file:///c:/test_ai/Whiteboard/Client/src/components/Toolbar.jsx)
+- รับ prop `userRole`
+- ซ่อนปุ่มที่ไม่มีสิทธิ์ตาม Role
+
+#### [MODIFY] [index.css](file:///c:/test_ai/Whiteboard/Client/src/index.css)
+- เพิ่ม CSS สำหรับ Role Selector ใน NameDialog
+- เพิ่ม CSS สำหรับ "Viewer Mode" indicator (แถบแสดงสถานะ)
+
+---
+
+### WhiteboardApp (Electron — Teacher/Contributor)
+
+#### [MODIFY] [NameDialog.jsx](file:///c:/test_ai/Whiteboard/WhiteboardApp/Client/src/components/NameDialog.jsx)
+- เพิ่มปุ่มเลือก Role เหมือนกับ Client
+
+#### [MODIFY] [App.jsx](file:///c:/test_ai/Whiteboard/WhiteboardApp/Client/src/App.jsx)
+- เพิ่มระบบ Role เหมือนกับใน `Client/src/App.jsx`
+
+#### [MODIFY] [Canvas.jsx](file:///c:/test_ai/Whiteboard/WhiteboardApp/Client/src/components/Canvas.jsx)
+- เพิ่ม `userRole` prop เหมือนกับ Client
+
+#### [MODIFY] [Toolbar.jsx](file:///c:/test_ai/Whiteboard/WhiteboardApp/Client/src/components/Toolbar.jsx)
+- เพิ่ม `userRole` prop เหมือนกับ Client
 
 ---
 
 ## Verification Plan
 
-### Manual Verification
-1. **Dev mode**: รัน `npm run electron:dev` → Electron เปิดหน้าต่าง Whiteboard
-2. **QR Code**: ตรวจสอบ QR Code แสดง URL ที่ถูกต้อง
-3. **มือถือสแกน**: สแกน QR Code จากมือถือ → เปิดหน้า Whiteboard ใน Browser ได้
-4. **วาดรูป**: ครูวาดบนคอม → นักเรียนเห็น real-time บนมือถือ
+### Browser Testing (หลักๆ)
+ทดสอบผ่าน Browser โดยเปิด Server แล้วเชื่อมต่อจาก Client:
+
+1. **เปิด Server**: `cd c:\test_ai\Whiteboard\Server && node server.js`
+2. **เปิด Client**: `cd c:\test_ai\Whiteboard\Client && npm run dev`
+3. **ทดสอบ Viewer**:
+   - เปิดเบราว์เซอร์ไปที่ `http://localhost:5173`
+   - กรอกชื่อและเลือก Role เป็น "Viewer"
+   - ตรวจสอบว่า: **ไม่มี Toolbar**, **ไม่สามารถวาดบน Canvas ได้**, **เห็นเส้นที่คนอื่นวาดแบบ real-time**
+4. **ทดสอบ Contributor**:
+   - เปิดแท็บใหม่ เลือก Role เป็น "Contributor"
+   - ตรวจสอบว่า: **วาดได้**, **ไม่มีปุ่มเพิ่ม/ลบหน้า**, **ไม่มีปุ่ม Load/Save**
+5. **ทดสอบ Host**:
+   - เปิดแท็บใหม่ เลือก Role เป็น "Host"
+   - ตรวจสอบว่า: **วาดได้**, **มีปุ่มทุกอย่าง**, **เพิ่ม/ลบหน้าได้**
+
+### Manual Testing
+- ขอให้ user ทดสอบเปิด 2-3 แท็บพร้อมกันเพื่อยืนยันว่าการ sync ยังใช้ได้ปกติ และ role แต่ละคนต่างกันจริง

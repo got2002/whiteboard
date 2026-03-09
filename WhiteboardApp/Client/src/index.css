@@ -48,6 +48,38 @@ body,
   touch-action: none;
 }
 
+/* Pan & Zoom wrapper */
+.canvas-transform-wrapper {
+  width: 100%;
+  height: 100%;
+  will-change: transform;
+}
+
+/* Reset View button */
+.reset-view-btn {
+  position: fixed;
+  top: 60px;
+  left: 16px;
+  padding: 6px 14px;
+  background: rgba(15, 15, 26, 0.8);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 10px;
+  color: rgba(255, 255, 255, 0.85);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  z-index: 50;
+  transition: all 0.15s ease;
+  font-family: 'Inter', sans-serif;
+}
+
+.reset-view-btn:hover {
+  background: rgba(99, 102, 241, 0.35);
+  color: #a5b4fc;
+  transform: scale(1.05);
+}
+
 /* --- Background modes --- */
 .canvas-bg.bg-white {
   background: #ffffff;

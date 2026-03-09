@@ -72,7 +72,9 @@ function Toolbar({
     onSaveProject, onLoadProject, onExportAll,
     onPrevPage, onNextPage, onTogglePages,
     onToggleUserPanel,  // [Phase 7] เปิด/ปิดแผงผู้ใช้ออนไลน์
+    userRole,           // "host" | "contributor" | "viewer"
 }) {
+    const isHost = userRole === "host";
     // state ควบคุมเมนูเลือกโหมด (popup)
     const [showModeMenu, setShowModeMenu] = useState(false);
     // state ควบคุมเมนูไฟล์ (popup)
@@ -81,44 +83,46 @@ function Toolbar({
     return (
         <div className="toolbar">
 
-            {/* ─── [1] เลือกโหมดการสอน ─── */}
-            <div className="toolbar-group">
-                <div className="mode-selector-wrap">
-                    {/* ปุ่มหลัก: แสดง emoji ของโหมดปัจจุบัน */}
-                    <button
-                        className="tool-btn mode-trigger"
-                        onClick={() => setShowModeMenu((v) => !v)}
-                        title={`โหมด: ${mode}`}
-                    >
-                        {MODES.find((m) => m.id === mode)?.label || "🎨"}
-                    </button>
+            {/* ─── [1] เลือกโหมดการสอน — Host only ─── */}
+            {isHost && (
+                <div className="toolbar-group">
+                    <div className="mode-selector-wrap">
+                        {/* ปุ่มหลัก: แสดง emoji ของโหมดปัจจุบัน */}
+                        <button
+                            className="tool-btn mode-trigger"
+                            onClick={() => setShowModeMenu((v) => !v)}
+                            title={`โหมด: ${mode}`}
+                        >
+                            {MODES.find((m) => m.id === mode)?.label || "🎨"}
+                        </button>
 
-                    {/* เมนู dropdown: แสดงโหมดทั้ง 4 ให้เลือก */}
-                    {showModeMenu && (
-                        <div className="mode-menu">
-                            {MODES.map((m) => (
-                                <button
-                                    key={m.id}
-                                    className={`mode-menu-item ${mode === m.id ? "active" : ""}`}
-                                    onClick={() => {
-                                        onModeChange(m.id);
-                                        setShowModeMenu(false);
-                                    }}
-                                >
-                                    <span className="mode-menu-icon">{m.label}</span>
-                                    <span className="mode-menu-text">{m.title}</span>
-                                </button>
-                            ))}
-                        </div>
-                    )}
+                        {/* เมนู dropdown: แสดงโหมดทั้ง 4 ให้เลือก */}
+                        {showModeMenu && (
+                            <div className="mode-menu">
+                                {MODES.map((m) => (
+                                    <button
+                                        key={m.id}
+                                        className={`mode-menu-item ${mode === m.id ? "active" : ""}`}
+                                        onClick={() => {
+                                            onModeChange(m.id);
+                                            setShowModeMenu(false);
+                                        }}
+                                    >
+                                        <span className="mode-menu-icon">{m.label}</span>
+                                        <span className="mode-menu-text">{m.title}</span>
+                                    </button>
+                                ))}
+                            </div>
+                        )}
+                    </div>
                 </div>
-            </div>
+            )}
 
-            <div className="toolbar-divider" />
+            {isHost && <div className="toolbar-divider" />}
 
             {/* ─── [2] สลับหน้ากระดาน ─── */}
             <div className="toolbar-group">
-                <button className="tool-btn" onClick={onTogglePages} title="จัดการหน้า">📄</button>
+                {isHost && <button className="tool-btn" onClick={onTogglePages} title="จัดการหน้า">📄</button>}
                 <button className="tool-btn" onClick={onPrevPage} disabled={currentPageIndex <= 0} title="หน้าก่อนหน้า">◀</button>
                 <span className="page-indicator">{currentPageIndex + 1}/{totalPages}</span>
                 <button className="tool-btn" onClick={onNextPage} disabled={currentPageIndex >= totalPages - 1} title="หน้าถัดไป">▶</button>
@@ -181,21 +185,23 @@ function Toolbar({
 
             <div className="toolbar-divider" />
 
-            {/* ─── [7] พื้นหลัง ─── */}
-            <div className="toolbar-group">
-                {BACKGROUNDS.map((bg) => (
-                    <button
-                        key={bg.id}
-                        className={`tool-btn ${background === bg.id ? "active" : ""}`}
-                        onClick={() => onBackgroundChange(bg.id)}
-                        title={bg.title}
-                    >
-                        {bg.label}
-                    </button>
-                ))}
-            </div>
+            {/* ─── [7] พื้นหลัง — Host only ─── */}
+            {isHost && (
+                <div className="toolbar-group">
+                    {BACKGROUNDS.map((bg) => (
+                        <button
+                            key={bg.id}
+                            className={`tool-btn ${background === bg.id ? "active" : ""}`}
+                            onClick={() => onBackgroundChange(bg.id)}
+                            title={bg.title}
+                        >
+                            {bg.label}
+                        </button>
+                    ))}
+                </div>
+            )}
 
-            <div className="toolbar-divider" />
+            {isHost && <div className="toolbar-divider" />}
 
             {/* ─── [8] ปุ่มดำเนินการ ─── */}
             <div className="toolbar-group">
@@ -206,40 +212,42 @@ function Toolbar({
 
             <div className="toolbar-divider" />
 
-            {/* ─── [9] Phase 6: เมนูไฟล์ (Save/Load/Export) ─── */}
-            <div className="toolbar-group">
-                <div className="mode-selector-wrap">
-                    <button
-                        className="tool-btn"
-                        onClick={() => setShowFileMenu((v) => !v)}
-                        title="ไฟล์"
-                    >📁</button>
+            {/* ─── [9] Phase 6: เมนูไฟล์ (Save/Load/Export) — Host only ─── */}
+            {isHost && (
+                <div className="toolbar-group">
+                    <div className="mode-selector-wrap">
+                        <button
+                            className="tool-btn"
+                            onClick={() => setShowFileMenu((v) => !v)}
+                            title="ไฟล์"
+                        >📁</button>
 
-                    {/* เมนู dropdown: Save / Load / Export */}
-                    {showFileMenu && (
-                        <div className="mode-menu">
-                            <button className="mode-menu-item" onClick={() => { onSaveProject(); setShowFileMenu(false); }}>
-                                <span className="mode-menu-icon">💾</span>
-                                <span className="mode-menu-text">บันทึกโปรเจกต์</span>
-                            </button>
-                            <button className="mode-menu-item" onClick={() => { onLoadProject(); setShowFileMenu(false); }}>
-                                <span className="mode-menu-icon">📂</span>
-                                <span className="mode-menu-text">โหลดโปรเจกต์</span>
-                            </button>
-                            <button className="mode-menu-item" onClick={() => { onExport(); setShowFileMenu(false); }}>
-                                <span className="mode-menu-icon">🖼️</span>
-                                <span className="mode-menu-text">ส่งออกหน้านี้ (PNG)</span>
-                            </button>
-                            <button className="mode-menu-item" onClick={() => { onExportAll(); setShowFileMenu(false); }}>
-                                <span className="mode-menu-icon">📦</span>
-                                <span className="mode-menu-text">ส่งออกทุกหน้า (PNG)</span>
-                            </button>
-                        </div>
-                    )}
+                        {/* เมนู dropdown: Save / Load / Export */}
+                        {showFileMenu && (
+                            <div className="mode-menu">
+                                <button className="mode-menu-item" onClick={() => { onSaveProject(); setShowFileMenu(false); }}>
+                                    <span className="mode-menu-icon">💾</span>
+                                    <span className="mode-menu-text">บันทึกโปรเจกต์</span>
+                                </button>
+                                <button className="mode-menu-item" onClick={() => { onLoadProject(); setShowFileMenu(false); }}>
+                                    <span className="mode-menu-icon">📂</span>
+                                    <span className="mode-menu-text">โหลดโปรเจกต์</span>
+                                </button>
+                                <button className="mode-menu-item" onClick={() => { onExport(); setShowFileMenu(false); }}>
+                                    <span className="mode-menu-icon">🖼️</span>
+                                    <span className="mode-menu-text">ส่งออกหน้านี้ (PNG)</span>
+                                </button>
+                                <button className="mode-menu-item" onClick={() => { onExportAll(); setShowFileMenu(false); }}>
+                                    <span className="mode-menu-icon">📦</span>
+                                    <span className="mode-menu-text">ส่งออกทุกหน้า (PNG)</span>
+                                </button>
+                            </div>
+                        )}
+                    </div>
                 </div>
-            </div>
+            )}
 
-            <div className="toolbar-divider" />
+            {isHost && <div className="toolbar-divider" />}
 
             {/* ─── [10] Phase 7: ปุ่มเปิดแผงผู้ใช้ออนไลน์ ─── */}
             <div className="toolbar-group">

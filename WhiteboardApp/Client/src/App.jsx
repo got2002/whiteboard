@@ -110,7 +110,8 @@ function App() {
   const [showNameDialog, setShowNameDialog] = useState(true);  // แสดงป๊อปอัปตั้งชื่อ?
   const [username, setUsername] = useState("");                  // ชื่อตัวเอง
   const [userColor, setUserColor] = useState("#3b82f6");        // สีตัวเอง
-  const [remoteUsers, setRemoteUsers] = useState({});           // ข้อมูลผู้ใช้อื่น { id: { name, color, pageIndex } }
+  const [userRole, setUserRole] = useState("viewer");           // "host" | "contributor" | "viewer"
+  const [remoteUsers, setRemoteUsers] = useState({});           // ข้อมูลผู้ใช้อื่น { id: { name, color, pageIndex, role } }
   const [remoteCursors, setRemoteCursors] = useState({});       // ตำแหน่ง cursor { id: { x, y, name, color, pageIndex } }
   const [laserPointers, setLaserPointers] = useState([]);       // laser ที่กำลังแสดง [{ id, x, y, ... }]
   const [showUserPanel, setShowUserPanel] = useState(false);    // แสดงแผงผู้ใช้?
@@ -220,8 +221,9 @@ function App() {
     });
 
     // ยืนยันว่า server กำหนดสีให้เราแล้ว
-    socket.on("user-confirmed", ({ color: myColor }) => {
+    socket.on("user-confirmed", ({ color: myColor, role: myRole }) => {
       setUserColor(myColor);
+      if (myRole) setUserRole(myRole);
     });
 
     // ผู้ใช้ใหม่เข้ามา
@@ -850,10 +852,11 @@ function App() {
   // [14] Phase 7 — ตั้งชื่อผู้ใช้
   // ============================================================
   /** เมื่อกด "เข้าร่วม" → ส่งชื่อไป server + ซ่อน dialog */
-  const handleNameSubmit = useCallback((name) => {
+  const handleNameSubmit = useCallback((name, role) => {
     setUsername(name);
+    setUserRole(role || "viewer");
     setShowNameDialog(false);
-    socket.emit("set-user", { name });
+    socket.emit("set-user", { name, role: role || "viewer" });
   }, []);
 
   // ============================================================
@@ -952,6 +955,7 @@ function App() {
         remoteCursors={remoteCursors}
         laserPointers={laserPointers}
         currentPageIndex={currentPageIndex}
+        userRole={userRole}
       />
 
       {/* ─── ช่องพิมพ์ข้อความ (แสดงเมื่อคลิก text tool บน canvas) ─── */}
@@ -977,39 +981,44 @@ function App() {
         </div>
       )}
 
-      {/* ─── Overlay ของ Mode พิเศษ (ไม้บรรทัด, stamps, etc.) ─── */}
-      <ModePanel
-        mode={mode}
-        activeStamp={activeStamp}
-        onStampSelect={handleStampSelect}
-      />
+      {/* ─── Overlay ของ Mode พิเศษ (ไม้บรรทัด, stamps, etc.) — Host Only ─── */}
+      {userRole === "host" && (
+        <ModePanel
+          mode={mode}
+          activeStamp={activeStamp}
+          onStampSelect={handleStampSelect}
+        />
+      )}
 
-      {/* ─── แถบเครื่องมือด้านล่าง ─── */}
-      <Toolbar
-        tool={tool}
-        color={color}
-        penSize={penSize}
-        background={currentPage?.background || "white"}
-        mode={mode}
-        currentPageIndex={currentPageIndex}
-        totalPages={pages.length}
-        onToolChange={(t) => { setTool(t); if (t !== "stamp") setActiveStamp(null); }}
-        onColorChange={setColor}
-        onPenSizeChange={setPenSize}
-        onBackgroundChange={handleBackgroundChange}
-        onModeChange={handleModeChange}
-        onUndo={handleUndo}
-        onRedo={handleRedo}
-        onClear={handleClear}
-        onExport={handleExport}
-        onSaveProject={handleSaveProject}
-        onLoadProject={handleLoadProject}
-        onExportAll={handleExportAll}
-        onPrevPage={handlePrevPage}
-        onNextPage={handleNextPage}
-        onTogglePages={() => setShowPagePanel((v) => !v)}
-        onToggleUserPanel={() => setShowUserPanel((v) => !v)}
-      />
+      {/* ─── แถบเครื่องมือด้านล่าง — Host/Contributor Only ─── */}
+      {userRole !== "viewer" && (
+        <Toolbar
+          tool={tool}
+          color={color}
+          penSize={penSize}
+          background={currentPage?.background || "white"}
+          mode={mode}
+          currentPageIndex={currentPageIndex}
+          totalPages={pages.length}
+          onToolChange={(t) => { setTool(t); if (t !== "stamp") setActiveStamp(null); }}
+          onColorChange={setColor}
+          onPenSizeChange={setPenSize}
+          onBackgroundChange={handleBackgroundChange}
+          onModeChange={handleModeChange}
+          onUndo={handleUndo}
+          onRedo={handleRedo}
+          onClear={handleClear}
+          onExport={handleExport}
+          onSaveProject={handleSaveProject}
+          onLoadProject={handleLoadProject}
+          onExportAll={handleExportAll}
+          onPrevPage={handlePrevPage}
+          onNextPage={handleNextPage}
+          onTogglePages={() => setShowPagePanel((v) => !v)}
+          onToggleUserPanel={() => setShowUserPanel((v) => !v)}
+          userRole={userRole}
+        />
+      )}
 
       {/* ─── แผงจัดการหน้ากระดาน (สไลด์จากซ้าย) ─── */}
       <PagePanel
@@ -1050,6 +1059,13 @@ function App() {
           >
             ✕ หยุด
           </button>
+        </div>
+      )}
+
+      {/* ─── Viewer Mode Indicator ─── */}
+      {userRole === "viewer" && (
+        <div className="viewer-mode-indicator">
+          <span>👁️ โหมดดูอย่างเดียว (View Only)</span>
         </div>
       )}
 

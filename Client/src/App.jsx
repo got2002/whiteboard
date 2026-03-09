@@ -3,25 +3,15 @@
 // ============================================================
 //
 // ไฟล์นี้เป็น Component หลักที่รวม "ทุกอย่าง" เข้าด้วยกัน:
-//  - Canvas         → พื้นที่วาดรูป
-//  - Toolbar         → แถบเครื่องมือด้านล่าง
-//  - PagePanel       → แผงจัดการหน้ากระดาน (เพิ่ม/ลบ/สลับ)
-//  - ModePanel       → Overlay สำหรับ Mode พิเศษ (Math/Science/Language)
-//  - QR Code Panel   → QR Code ให้นักเรียนสแกนเข้าร่วม
-//  - NameDialog      → [Phase 7] ป๊อปอัปตั้งชื่อผู้ใช้
-//  - UserPanel       → [Phase 7] แผงรายชื่อผู้ใช้ออนไลน์
-//
-// State ที่จัดการ:
-//  - pages[]         → รายการหน้ากระดาน (แต่ละหน้ามี strokes)
-//  - tool            → เครื่องมือปัจจุบัน (pen/eraser/line/rect/circle/arrow/text/stamp/laser)
-//  - color, penSize  → สีและขนาดปากกา
-//  - mode            → โหมดการสอน (standard/math/science/language)
-//  - undoStackRef    → สแตกสำหรับ Redo (เก็บ strokes ที่ถูก undo)
-//  - username        → [Phase 7] ชื่อผู้ใช้
-//  - userColor       → [Phase 7] สีประจำตัว
-//  - remoteUsers     → [Phase 7] ข้อมูลผู้ใช้อื่น
-//  - remoteCursors   → [Phase 7] ตำแหน่ง cursor ผู้ใช้อื่น
-//  - followUserId    → [Phase 7] id ของผู้ใช้ที่กำลัง follow
+//  - Canvas           → พื้นที่วาดรูป
+//  - Toolbar          → แถบเครื่องมือด้านล่าง (EClass-style)
+//  - PagePanel        → แผงจัดการหน้ากระดาน
+//  - ModePanel        → Overlay สำหรับ Mode พิเศษ
+//  - SideToolbar      → แถบเครื่องมือด้านซ้าย (EClass-style)
+//  - FloatingPalette  → วงกลมเครื่องมือลอย (EClass-style)
+//  - QR Code Panel    → QR Code แชร์
+//  - NameDialog       → ป๊อปอัปตั้งชื่อผู้ใช้
+//  - UserPanel        → แผงรายชื่อผู้ใช้ออนไลน์
 //
 // ============================================================
 
@@ -34,31 +24,21 @@ import PagePanel from "./components/PagePanel";
 import ModePanel from "./components/ModePanel";
 import NameDialog from "./components/NameDialog";
 import UserPanel from "./components/UserPanel";
+import SideToolbar from "./components/SideToolbar";
+import FloatingPalette from "./components/FloatingPalette";
 
 // ============================================================
 // [1] เชื่อมต่อ Socket.IO
 // ============================================================
-// ใช้ IP เดียวกับที่ user เปิดเว็บ (รองรับ LAN)
-// ถ้าเปิดจาก localhost → ใช้ localhost:3000
-// ถ้าเปิดจาก IP อื่น   → ใช้ IP นั้น:3000
-// const SOCKET_URL =
-//   window.location.hostname === "localhost"
-//     ? "http://localhost:3000"
-//     : `http://${window.location.hostname}:3000`;
-
 const SOCKET_URL = import.meta.env.MODE === "development"
-    ? "http://localhost:3000"
-    : undefined;
+  ? `http://${window.location.hostname}:3000`
+  : undefined;
 
 const socket = io(SOCKET_URL);
 
 // ============================================================
 // [2] Helper — สร้างหน้ากระดานเปล่าใหม่
 // ============================================================
-// ทุกหน้ามี:
-//  - id         → รหัสไม่ซ้ำ (ใช้ timestamp + random)
-//  - background → สีพื้นหลัง ("white" | "black" | "grid" | "lined")
-//  - strokes[]  → รายการเส้นที่วาด (pen, shape, text, stamp)
 function createPage(bg = "white") {
   return {
     id: Date.now().toString(36) + Math.random().toString(36).substr(2),
@@ -68,6 +48,11 @@ function createPage(bg = "white") {
 }
 
 // ============================================================
+// [2.1] Auto Save key สำหรับ localStorage
+// ============================================================
+const AUTO_SAVE_KEY = "whiteboard-autosave";
+
+// ============================================================
 // [3] App Component หลัก
 // ============================================================
 function App() {
@@ -75,82 +60,123 @@ function App() {
   // ──────────────────────────────────────────────────────────
   // State: หน้ากระดาน
   // ──────────────────────────────────────────────────────────
-  const [pages, setPages] = useState([createPage()]);         // รายการหน้าทั้งหมด
-  const [currentPageIndex, setCurrentPageIndex] = useState(0); // index หน้าที่กำลังแสดง
+  const [pages, setPages] = useState(() => {
+    // ลองโหลดจาก localStorage ก่อน (Auto Save)
+    try {
+      const saved = localStorage.getItem(AUTO_SAVE_KEY);
+      if (saved) {
+        const data = JSON.parse(saved);
+        if (data.pages && data.pages.length > 0) return data.pages;
+      }
+    } catch { /* ignore */ }
+    return [createPage()];
+  });
+  const [currentPageIndex, setCurrentPageIndex] = useState(0);
 
   // ──────────────────────────────────────────────────────────
   // State: เครื่องมือวาด
   // ──────────────────────────────────────────────────────────
-  const [tool, setTool] = useState("pen");       // เครื่องมือปัจจุบัน
-  const [color, setColor] = useState("#000000");  // สีที่เลือก
-  const [penSize, setPenSize] = useState(2);       // ขนาดปากกา (2=S, 4=M, 8=L)
+  const [tool, setTool] = useState("pen");
+  const [color, setColor] = useState("#000000");
+  const [penSize, setPenSize] = useState(2);
 
   // ──────────────────────────────────────────────────────────
   // State: โหมดการสอน + Stamp
   // ──────────────────────────────────────────────────────────
-  const [mode, setMode] = useState("standard");   // โหมด: standard/math/science/language
-  const [activeStamp, setActiveStamp] = useState(null); // stamp (emoji) ที่เลือกไว้
+  const [mode, setMode] = useState("standard");
+  const [activeStamp, setActiveStamp] = useState(null);
 
   // ──────────────────────────────────────────────────────────
-  // State: Text Input (ช่องพิมพ์ข้อความลอยบน canvas)
+  // State: Text Input
   // ──────────────────────────────────────────────────────────
-  const [textInput, setTextInput] = useState(null); // { x, y, value } หรือ null
+  const [textInput, setTextInput] = useState(null);
 
   // ──────────────────────────────────────────────────────────
   // State: UI ทั่วไป
   // ──────────────────────────────────────────────────────────
-  const [showPagePanel, setShowPagePanel] = useState(false); // แสดงแผงจัดการหน้า?
-  const [serverUrl, setServerUrl] = useState("");             // URL สำหรับ QR Code
-  const [userCount, setUserCount] = useState(0);               // จำนวนผู้ใช้ออนไลน์
-  const [showQR, setShowQR] = useState(false);                 // แสดง QR Code?
+  const [showPagePanel, setShowPagePanel] = useState(false);
+  const [serverUrl, setServerUrl] = useState("");
+  const [userCount, setUserCount] = useState(0);
+  const [showQR, setShowQR] = useState(false);
 
   // ──────────────────────────────────────────────────────────
-  // State: [Phase 7] Collaboration
+  // State: EClass features
   // ──────────────────────────────────────────────────────────
-  const [showNameDialog, setShowNameDialog] = useState(true);  // แสดงป๊อปอัปตั้งชื่อ?
-  const [username, setUsername] = useState("");                  // ชื่อตัวเอง
-  const [userColor, setUserColor] = useState("#3b82f6");        // สีตัวเอง
-  const [remoteUsers, setRemoteUsers] = useState({});           // ข้อมูลผู้ใช้อื่น { id: { name, color, pageIndex } }
-  const [remoteCursors, setRemoteCursors] = useState({});       // ตำแหน่ง cursor { id: { x, y, name, color, pageIndex } }
-  const [laserPointers, setLaserPointers] = useState([]);       // laser ที่กำลังแสดง [{ id, x, y, ... }]
-  const [showUserPanel, setShowUserPanel] = useState(false);    // แสดงแผงผู้ใช้?
-  const [followUserId, setFollowUserId] = useState(null);       // id ของผู้ใช้ที่ follow
-  const followUserIdRef = useRef(null);                          // ref สำหรับ follow (ใช้ใน callback)
+  const [autoSave, setAutoSave] = useState(() => {
+    try { return localStorage.getItem("whiteboard-autosave-enabled") === "true"; } catch { return false; }
+  });
+
+  // ──────────────────────────────────────────────────────────
+  // State: Collaboration
+  // ──────────────────────────────────────────────────────────
+  const [showNameDialog, setShowNameDialog] = useState(true);
+  const [username, setUsername] = useState("");
+  const [userColor, setUserColor] = useState("#3b82f6");
+  const [userRole, setUserRole] = useState("viewer"); // "host" | "contributor" | "viewer"
+  const [remoteUsers, setRemoteUsers] = useState({});
+  const [remoteCursors, setRemoteCursors] = useState({});
+  const [laserPointers, setLaserPointers] = useState([]);
+  const [showUserPanel, setShowUserPanel] = useState(false);
+  const [followUserId, setFollowUserId] = useState(null);
+  const followUserIdRef = useRef(null);
 
   // ──────────────────────────────────────────────────────────
   // Refs
   // ──────────────────────────────────────────────────────────
-  const undoStackRef = useRef({}); // { pageId: [stroke ที่ถูก undo...] } — ใช้สำหรับ Redo
-  const canvasRef = useRef(null);   // อ้างอิง <canvas> element (จาก Canvas component)
-  const textInputRef = useRef(null); // อ้างอิง <input> ข้อความ
-  const fileInputRef = useRef(null);  // อ้างอิง <input type=file> สำหรับ Load project
+  const undoStackRef = useRef({});
+  const canvasRef = useRef(null);
+  const textInputRef = useRef(null);
+  const fileInputRef = useRef(null);
+  const imageInputRef = useRef(null); // สำหรับ Insert Image
 
-  // หน้าปัจจุบัน (shortcut)
+  // หน้าปัจจุบัน
   const currentPage = pages[currentPageIndex];
+
+  // ============================================================
+  // [3.1] Auto Save Effect
+  // ============================================================
+  useEffect(() => {
+    if (!autoSave) return;
+    try {
+      localStorage.setItem(AUTO_SAVE_KEY, JSON.stringify({
+        version: 1,
+        pages,
+        currentPageIndex,
+      }));
+    } catch { /* storage full — ignore */ }
+  }, [autoSave, pages, currentPageIndex]);
 
   // ============================================================
   // [4] Socket.IO Listeners
   // ============================================================
-  // ฟัง event จาก Server เพื่อ sync ข้อมูลแบบ real-time
-  // ทำงานครั้งเดียวตอน mount (dependency = [])
   useEffect(() => {
-    // ── เดิม (Phase 1-6) ──────────────────────────────────
-
-    // รับ URL ของ server (สำหรับสร้าง QR Code)
     socket.on("server-url", (url) => setServerUrl(url));
-
-    // รับจำนวนผู้ใช้ออนไลน์
     socket.on("user-count", (count) => setUserCount(count));
-
-    // รับสถานะเริ่มต้น (หน้าทั้งหมด + strokes) สำหรับ client ที่เข้ามาใหม่
     socket.on("init-state", ({ pages: serverPages }) => {
+      // ถ้ากระดาน server เป็นหน้าเปล่าแผ่นเดียว แล้วเรามี auto-save อยู่ 
+      // → ให้ดัน auto-save ของเราขึ้นไปเป็นหลัก
+      if (serverPages?.length === 1 && serverPages[0].strokes?.length === 0) {
+        try {
+          const saved = localStorage.getItem(AUTO_SAVE_KEY);
+          if (saved) {
+            const data = JSON.parse(saved);
+            if (data.pages && data.pages.length > 0) {
+              setPages(data.pages);
+              setCurrentPageIndex(data.currentPageIndex || 0);
+              socket.emit("load-project", { pages: data.pages });
+              return;
+            }
+          }
+        } catch { /* ignore */ }
+      }
+
+      // นอกนั้นให้ใช้ข้อมูลจาก server ตามปกติ
       if (serverPages && serverPages.length > 0) {
         setPages(serverPages);
         setCurrentPageIndex(0);
       }
     });
 
-    // คนอื่นวาดเส้นเสร็จ → เพิ่ม stroke เข้าหน้าที่ตรงกัน
     socket.on("stroke-complete", ({ pageId, stroke }) => {
       setPages((prev) =>
         prev.map((p) =>
@@ -159,7 +185,6 @@ function App() {
       );
     });
 
-    // คนอื่นกด Undo → ลบ stroke ที่ตรงกัน
     socket.on("undo", ({ pageId, strokeId }) => {
       setPages((prev) =>
         prev.map((p) =>
@@ -170,7 +195,6 @@ function App() {
       );
     });
 
-    // คนอื่นกด Redo → เพิ่ม stroke กลับมา
     socket.on("redo", ({ pageId, stroke }) => {
       setPages((prev) =>
         prev.map((p) =>
@@ -179,19 +203,16 @@ function App() {
       );
     });
 
-    // คนอื่นกด Clear → ลบ strokes ของหน้านั้นทั้งหมด
     socket.on("clear-page", ({ pageId }) => {
       setPages((prev) =>
         prev.map((p) => (p.id === pageId ? { ...p, strokes: [] } : p))
       );
     });
 
-    // คนอื่นเพิ่มหน้าใหม่
     socket.on("add-page", ({ page }) => {
       setPages((prev) => [...prev, page]);
     });
 
-    // คนอื่นลบหน้า
     socket.on("delete-page", ({ pageId }) => {
       setPages((prev) => {
         const filtered = prev.filter((p) => p.id !== pageId);
@@ -200,26 +221,19 @@ function App() {
       setCurrentPageIndex((idx) => Math.min(idx, pages.length - 2));
     });
 
-    // คนอื่นเปลี่ยนพื้นหลัง
     socket.on("change-background", ({ pageId, background }) => {
       setPages((prev) =>
         prev.map((p) => (p.id === pageId ? { ...p, background } : p))
       );
     });
 
-    // ── Phase 7: Collaboration Events ─────────────────────
-
-    // รับรายชื่อผู้ใช้ทั้งหมดที่ออนไลน์อยู่ (ตอนเข้ามาใหม่)
-    socket.on("user-list", (userMap) => {
-      setRemoteUsers(userMap || {});
-    });
-
-    // ยืนยันว่า server กำหนดสีให้เราแล้ว
-    socket.on("user-confirmed", ({ color: myColor }) => {
+    // Collaboration
+    socket.on("user-list", (userMap) => setRemoteUsers(userMap || {}));
+    socket.on("user-confirmed", ({ color: myColor, role: myRole }) => {
       setUserColor(myColor);
+      if (myRole) setUserRole(myRole);
     });
 
-    // ผู้ใช้ใหม่เข้ามา
     socket.on("user-joined", ({ id, name, color: uColor, pageIndex }) => {
       setRemoteUsers((prev) => ({
         ...prev,
@@ -227,39 +241,33 @@ function App() {
       }));
     });
 
-    // ผู้ใช้ออกไป
     socket.on("user-left", ({ id }) => {
       setRemoteUsers((prev) => {
         const next = { ...prev };
         delete next[id];
         return next;
       });
-      // ลบ cursor ของผู้ใช้ที่ออกไป
       setRemoteCursors((prev) => {
         const next = { ...prev };
         delete next[id];
         return next;
       });
-      // ยกเลิก follow ถ้าคนที่ follow ออกไป
       if (followUserIdRef.current === id) {
         setFollowUserId(null);
         followUserIdRef.current = null;
       }
     });
 
-    // ผู้ใช้อื่นเปลี่ยนหน้า → อัปเดตใน remoteUsers + Follow Mode
     socket.on("user-page-change", ({ id, pageIndex }) => {
       setRemoteUsers((prev) => ({
         ...prev,
         [id]: { ...prev[id], pageIndex },
       }));
-      // Follow Mode: ถ้าเรา follow คนนี้อยู่ → สลับหน้าตาม
       if (followUserIdRef.current === id) {
         setCurrentPageIndex(pageIndex);
       }
     });
 
-    // ผู้ใช้อื่นขยับ cursor
     socket.on("cursor-move", ({ id, x, y, pageIndex }) => {
       setRemoteCursors((prev) => ({
         ...prev,
@@ -271,21 +279,17 @@ function App() {
       }));
     });
 
-    // ผู้ใช้อื่นใช้ laser pointer
     socket.on("laser", ({ id, x, y, pageIndex, name, color: lColor }) => {
       const laser = { id, x, y, pageIndex, name, color: lColor };
       setLaserPointers((prev) => {
-        // เก็บ laser ล่าสุดของแต่ละ user (แทนที่ตัวเก่า)
         const filtered = prev.filter((lp) => lp.id !== id);
         return [...filtered, laser];
       });
-      // ลบ laser อัตโนมัติหลัง 1.5 วินาที (fade out)
       setTimeout(() => {
         setLaserPointers((prev) => prev.filter((lp) => lp !== laser));
       }, 1500);
     });
 
-    // ── Cleanup ───────────────────────────────────────────
     return () => {
       socket.off("server-url");
       socket.off("user-count");
@@ -297,7 +301,6 @@ function App() {
       socket.off("add-page");
       socket.off("delete-page");
       socket.off("change-background");
-      // Phase 7
       socket.off("user-list");
       socket.off("user-confirmed");
       socket.off("user-joined");
@@ -308,7 +311,7 @@ function App() {
     };
   }, []);
 
-  // ── อัปเดตชื่อ/สีใน remoteCursors เมื่อ remoteUsers เปลี่ยน ──
+  // อัปเดตชื่อ/สีใน remoteCursors
   useEffect(() => {
     setRemoteCursors((prev) => {
       const next = { ...prev };
@@ -328,13 +331,6 @@ function App() {
   // ============================================================
   // [5] Callbacks: การวาด
   // ============================================================
-
-  /**
-   * เมื่อวาด stroke เสร็จ (ปล่อยนิ้ว/เมาส์)
-   * 1. เพิ่ม stroke ลงใน state ของหน้าปัจจุบัน
-   * 2. ล้าง redo stack (เพราะวาดอันใหม่แล้ว redo เดิมใช้ไม่ได้)
-   * 3. ส่งให้ server broadcast ไปให้คนอื่น
-   */
   const handleStrokeComplete = useCallback(
     (stroke) => {
       const pageId = currentPage.id;
@@ -343,16 +339,12 @@ function App() {
           p.id === pageId ? { ...p, strokes: [...p.strokes, stroke] } : p
         )
       );
-      undoStackRef.current[pageId] = []; // ล้าง redo stack
+      undoStackRef.current[pageId] = [];
       socket.emit("stroke-complete", { pageId, stroke });
     },
     [currentPage?.id]
   );
 
-  /**
-   * ขณะวาด (ทุก pointermove) → ส่งข้อมูลเส้น real-time ให้คนอื่น
-   * (สำหรับ pen/eraser เท่านั้น — shape ไม่ส่ง preview)
-   */
   const handleDraw = useCallback(
     (data) => {
       socket.emit("draw", { ...data, pageId: currentPage.id });
@@ -361,22 +353,57 @@ function App() {
   );
 
   // ============================================================
-  // [6] Text Tool — ช่องพิมพ์ข้อความลอย
+  // [5.1] Select Tool — ย้าย stroke
   // ============================================================
+  const handleStrokeUpdate = useCallback(
+    (strokeId, dx, dy) => {
+      setPages((prev) =>
+        prev.map((p) => {
+          if (p.id !== currentPage?.id) return p;
+          return {
+            ...p,
+            strokes: p.strokes.map((s) => {
+              if (s.id !== strokeId) return s;
 
-  /** เมื่อคลิกบน canvas ด้วย text tool → แสดงช่องพิมพ์ที่ตำแหน่งนั้น */
+              // ย้ายตามประเภท stroke
+              if (s.points) {
+                return {
+                  ...s,
+                  points: s.points.map((pt) => ({ x: pt.x + dx, y: pt.y + dy })),
+                };
+              }
+              if (s.type === "shape") {
+                return {
+                  ...s,
+                  startX: s.startX + dx, startY: s.startY + dy,
+                  endX: s.endX + dx, endY: s.endY + dy,
+                };
+              }
+              if (s.type === "text" || s.type === "stamp" || s.type === "image") {
+                return { ...s, x: s.x + dx, y: s.y + dy };
+              }
+              return s;
+            }),
+          };
+        })
+      );
+    },
+    [currentPage?.id]
+  );
+
+  // ============================================================
+  // [6] Text Tool
+  // ============================================================
   const handleTextRequest = useCallback((x, y) => {
     setTextInput({ x, y, value: "" });
     setTimeout(() => textInputRef.current?.focus(), 50);
   }, []);
 
-  /** กด Enter → สร้าง text stroke แล้วเพิ่มลง canvas */
   const handleTextSubmit = useCallback(() => {
     if (!textInput || !textInput.value.trim()) {
       setTextInput(null);
       return;
     }
-    // คำนวณขนาดฟอนต์จากขนาดปากกา (S→22, M→34, L→58)
     const fontSize = penSize * 6 + 10;
     const textStroke = {
       id: Date.now().toString(36) + Math.random().toString(36).substr(2),
@@ -391,7 +418,6 @@ function App() {
     setTextInput(null);
   }, [textInput, color, penSize, handleStrokeComplete]);
 
-  /** จัดการ keyboard ในช่องพิมพ์: Enter = ยืนยัน, Esc = ยกเลิก */
   const handleTextKeyDown = useCallback(
     (e) => {
       if (e.key === "Enter") {
@@ -405,16 +431,13 @@ function App() {
   );
 
   // ============================================================
-  // [7] Stamp Tool — วาง Emoji ลงบน canvas (Science Mode)
+  // [7] Stamp Tool
   // ============================================================
-
-  /** เลือก stamp (กดซ้ำ = ยกเลิกเลือก) */
   const handleStampSelect = useCallback((emoji) => {
     setActiveStamp((prev) => (prev === emoji ? null : emoji));
     setTool("stamp");
   }, []);
 
-  /** คลิกบน canvas ขณะถือ stamp → วาง emoji ที่ตำแหน่งนั้น */
   const handleCanvasClick = useCallback(
     (e) => {
       if (tool === "stamp" && activeStamp) {
@@ -436,18 +459,17 @@ function App() {
   );
 
   // ============================================================
-  // [8] Mode Change — เปลี่ยนโหมดการสอน
+  // [8] Mode Change
   // ============================================================
   const handleModeChange = useCallback(
     (newMode) => {
       setMode(newMode);
-      // ตั้งค่าอัตโนมัติเมื่อเปลี่ยนโหมด
       if (newMode === "language") {
-        handleBackgroundChange("lined"); // เปิดกระดาษเส้น
-        setTool("text");                  // สลับไปเครื่องมือพิมพ์
+        handleBackgroundChange("lined");
+        setTool("text");
       }
       if (newMode === "math") {
-        handleBackgroundChange("grid");  // เปิดกระดาษตาราง
+        handleBackgroundChange("grid");
       }
     },
     []
@@ -456,34 +478,25 @@ function App() {
   // ============================================================
   // [9] Undo / Redo / Clear
   // ============================================================
-
-  /** Undo: ถอย 1 stroke → ย้ายไปเก็บใน redo stack */
   const handleUndo = useCallback(() => {
     const pageId = currentPage.id;
     setPages((prev) => {
       const page = prev.find((p) => p.id === pageId);
       if (!page || page.strokes.length === 0) return prev;
-
       const lastStroke = page.strokes[page.strokes.length - 1];
-
-      // เก็บ stroke ที่ถูก undo ไว้ใน redo stack
       if (!undoStackRef.current[pageId]) undoStackRef.current[pageId] = [];
       undoStackRef.current[pageId].push(lastStroke);
-
       socket.emit("undo", { pageId, strokeId: lastStroke.id });
-
       return prev.map((p) =>
         p.id === pageId ? { ...p, strokes: p.strokes.slice(0, -1) } : p
       );
     });
   }, [currentPage?.id]);
 
-  /** Redo: ดึง stroke จาก redo stack กลับมา */
   const handleRedo = useCallback(() => {
     const pageId = currentPage.id;
     const stack = undoStackRef.current[pageId];
     if (!stack || stack.length === 0) return;
-
     const stroke = stack.pop();
     setPages((prev) =>
       prev.map((p) =>
@@ -493,10 +506,9 @@ function App() {
     socket.emit("redo", { pageId, stroke });
   }, [currentPage?.id]);
 
-  /** Clear: ลบ strokes ทั้งหมดของหน้าปัจจุบัน */
   const handleClear = useCallback(() => {
     const pageId = currentPage.id;
-    undoStackRef.current[pageId] = []; // ล้าง redo stack ด้วย
+    undoStackRef.current[pageId] = [];
     setPages((prev) =>
       prev.map((p) => (p.id === pageId ? { ...p, strokes: [] } : p))
     );
@@ -520,8 +532,6 @@ function App() {
   // ============================================================
   // [11] จัดการหน้ากระดาน
   // ============================================================
-
-  /** เพิ่มหน้าใหม่ (ใช้พื้นหลังเดียวกับหน้าปัจจุบัน) */
   const handleAddPage = useCallback(() => {
     const newPage = createPage(currentPage?.background || "white");
     setPages((prev) => [...prev, newPage]);
@@ -529,14 +539,12 @@ function App() {
     socket.emit("add-page", { page: newPage });
   }, [currentPage?.background]);
 
-  /** ลบหน้า (ห้ามลบหน้าสุดท้าย) */
   const handleDeletePage = useCallback(
     (pageId) => {
       setPages((prev) => {
-        if (prev.length <= 1) return prev; // ต้องเหลืออย่างน้อย 1 หน้า
+        if (prev.length <= 1) return prev;
         const idx = prev.findIndex((p) => p.id === pageId);
         const filtered = prev.filter((p) => p.id !== pageId);
-        // ปรับ index ให้ถูกต้องหลังลบ
         if (currentPageIndex >= filtered.length) {
           setCurrentPageIndex(filtered.length - 1);
         } else if (idx <= currentPageIndex && currentPageIndex > 0) {
@@ -549,52 +557,109 @@ function App() {
     [currentPageIndex]
   );
 
-  /** ไปหน้าก่อนหน้า */
   const handlePrevPage = useCallback(() => {
     setCurrentPageIndex((i) => Math.max(0, i - 1));
   }, []);
 
-  /** ไปหน้าถัดไป */
   const handleNextPage = useCallback(() => {
     setCurrentPageIndex((i) => Math.min(pages.length - 1, i + 1));
   }, [pages.length]);
 
-  /** เลือกหน้าจาก PagePanel (คลิก thumbnail) */
   const handleSelectPage = useCallback((index) => {
     setCurrentPageIndex(index);
-    setShowPagePanel(false); // ปิดแผงหลังเลือก
+    setShowPagePanel(false);
   }, []);
 
-  // ── [Phase 7] แจ้ง server ทุกครั้งที่เปลี่ยนหน้า ──────────
   useEffect(() => {
     socket.emit("page-change", { pageIndex: currentPageIndex });
   }, [currentPageIndex]);
 
   // ============================================================
-  // [12] Export — บันทึกหน้าปัจจุบันเป็น PNG
+  // [11.1] EClass: New Board — สร้างกระดานใหม่ทั้งหมด
+  // ============================================================
+  const handleNewBoard = useCallback(() => {
+    if (!confirm("สร้างกระดานใหม่? ข้อมูลปัจจุบันจะถูกลบ")) return;
+    const newPage = createPage();
+    setPages([newPage]);
+    setCurrentPageIndex(0);
+    undoStackRef.current = {};
+    socket.emit("load-project", { pages: [newPage] });
+    // ล้าง Auto Save
+    try { localStorage.removeItem(AUTO_SAVE_KEY); } catch { /* ignore */ }
+  }, []);
+
+  // ============================================================
+  // [11.2] EClass: Insert Image
+  // ============================================================
+  const handleInsertImage = useCallback(() => {
+    imageInputRef.current?.click();
+  }, []);
+
+  const handleImageSelected = useCallback((e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (evt) => {
+      const dataURL = evt.target.result;
+      const img = new Image();
+      img.onload = () => {
+        // จำกัดขนาดสูงสุด 400px
+        let w = img.width;
+        let h = img.height;
+        const maxSize = 400;
+        if (w > maxSize || h > maxSize) {
+          const ratio = Math.min(maxSize / w, maxSize / h);
+          w = Math.round(w * ratio);
+          h = Math.round(h * ratio);
+        }
+
+        const imageStroke = {
+          id: Date.now().toString(36) + Math.random().toString(36).substr(2),
+          type: "image",
+          dataURL,
+          x: 100,
+          y: 100,
+          width: w,
+          height: h,
+        };
+        handleStrokeComplete(imageStroke);
+      };
+      img.src = dataURL;
+    };
+    reader.readAsDataURL(file);
+    e.target.value = "";
+  }, [handleStrokeComplete]);
+
+  // ============================================================
+  // [11.3] EClass: Toggle Auto Save
+  // ============================================================
+  const handleToggleAutoSave = useCallback(() => {
+    setAutoSave((prev) => {
+      const next = !prev;
+      try { localStorage.setItem("whiteboard-autosave-enabled", String(next)); } catch { /* ignore */ }
+      return next;
+    });
+  }, []);
+
+  // ============================================================
+  // [12] Export
   // ============================================================
   const handleExport = useCallback(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
 
-    // สร้าง canvas ชั่วคราว เพื่อวาดพื้นหลัง + เส้นรวมกัน
     const tempCanvas = document.createElement("canvas");
     tempCanvas.width = canvas.width;
     tempCanvas.height = canvas.height;
     const tempCtx = tempCanvas.getContext("2d");
 
-    // วาดพื้นหลังตามประเภท
     const bg = currentPage?.background || "white";
-    if (bg === "black") {
-      tempCtx.fillStyle = "#1a1a2e";
-    } else if (bg === "lined") {
-      tempCtx.fillStyle = "#fefcf3";
-    } else {
-      tempCtx.fillStyle = "#ffffff";
-    }
+    if (bg === "black") tempCtx.fillStyle = "#1a1a2e";
+    else if (bg === "lined") tempCtx.fillStyle = "#fefcf3";
+    else tempCtx.fillStyle = "#ffffff";
     tempCtx.fillRect(0, 0, tempCanvas.width, tempCanvas.height);
 
-    // วาดเส้นตาราง/เส้นบรรทัด ลงบนพื้นหลัง
     const dpr = window.devicePixelRatio || 1;
     if (bg === "grid") {
       tempCtx.strokeStyle = "rgba(0,0,0,0.1)";
@@ -618,10 +683,8 @@ function App() {
       }
     }
 
-    // วาง canvas (เส้นที่วาด) ทับบนพื้นหลัง
     tempCtx.drawImage(canvas, 0, 0);
 
-    // ดาวน์โหลดเป็นไฟล์ PNG
     const link = document.createElement("a");
     link.download = `whiteboard-page-${currentPageIndex + 1}.png`;
     link.href = tempCanvas.toDataURL("image/png");
@@ -629,9 +692,8 @@ function App() {
   }, [currentPage?.background, currentPageIndex]);
 
   // ============================================================
-  // [12.1] Phase 6 — Save Project (บันทึกโปรเจกต์เป็น JSON)
+  // [12.1] Save Project
   // ============================================================
-  // serialize ข้อมูลทุกหน้า (pages + strokes) เป็น JSON แล้วดาวน์โหลด
   const handleSaveProject = useCallback(() => {
     const projectData = {
       version: 1,
@@ -656,9 +718,8 @@ function App() {
   }, [pages, currentPageIndex]);
 
   // ============================================================
-  // [12.2] Phase 6 — Load Project (โหลดโปรเจกต์จาก JSON)
+  // [12.2] Load Project
   // ============================================================
-  // อ่านไฟล์ JSON → restore ข้อมูลทุกหน้า + sync ไปยัง server
   const handleLoadProject = useCallback(() => {
     fileInputRef.current?.click();
   }, []);
@@ -671,44 +732,31 @@ function App() {
     reader.onload = (evt) => {
       try {
         const data = JSON.parse(evt.target.result);
-
-        // ตรวจสอบว่าเป็นไฟล์ที่ถูกต้อง
         if (!data.pages || !Array.isArray(data.pages) || data.pages.length === 0) {
           alert("ไฟล์ไม่ถูกต้อง: ไม่พบข้อมูลหน้ากระดาน");
           return;
         }
-
-        // อัปเดต state
         setPages(data.pages);
         setCurrentPageIndex(data.currentPageIndex || 0);
-
-        // ล้าง undo stack ทั้งหมด
         undoStackRef.current = {};
-
-        // Sync ไปยัง server (ส่ง init ใหม่)
         socket.emit("load-project", { pages: data.pages });
-
       } catch (err) {
         alert("ไม่สามารถอ่านไฟล์ได้: " + err.message);
       }
     };
     reader.readAsText(file);
-
-    // Reset input เพื่อให้เลือกไฟล์เดิมได้อีก
     e.target.value = "";
   }, []);
 
   // ============================================================
-  // [12.3] Phase 6 — Export All Pages (ส่งออกทุกหน้าเป็น PNG)
+  // [12.3] Export All Pages
   // ============================================================
-  // วนลูปทุกหน้า → วาดพื้นหลัง + strokes ลง temp canvas → ดาวน์โหลดทีละไฟล์
   const handleExportAll = useCallback(() => {
     if (!canvasRef.current) return;
     const dpr = window.devicePixelRatio || 1;
     const w = canvasRef.current.width;
     const h = canvasRef.current.height;
 
-    // Helper: วาดพื้นหลังบน temp context
     const drawBg = (ctx, bg) => {
       if (bg === "black") ctx.fillStyle = "#1a1a2e";
       else if (bg === "lined") ctx.fillStyle = "#fefcf3";
@@ -735,7 +783,6 @@ function App() {
       }
     };
 
-    // Helper: วาด stroke บน temp context (เหมือน Canvas.drawStroke)
     const drawStrokeOnCtx = (ctx, stroke) => {
       ctx.save();
       ctx.scale(dpr, dpr);
@@ -780,6 +827,11 @@ function App() {
           ctx.globalCompositeOperation = "destination-out";
           ctx.strokeStyle = "rgba(0,0,0,1)";
           ctx.lineWidth = stroke.size * 5;
+        } else if (stroke.tool === "highlighter") {
+          ctx.globalCompositeOperation = "source-over";
+          ctx.strokeStyle = stroke.color;
+          ctx.globalAlpha = 0.3;
+          ctx.lineWidth = stroke.size * 6;
         } else {
           ctx.strokeStyle = stroke.color;
           ctx.lineWidth = stroke.size;
@@ -796,7 +848,6 @@ function App() {
       ctx.restore();
     };
 
-    // วนลูปทุกหน้า → render + download ทีละหน้า
     pages.forEach((page, idx) => {
       setTimeout(() => {
         const tempCanvas = document.createElement("canvas");
@@ -811,56 +862,59 @@ function App() {
         link.download = `whiteboard-page-${idx + 1}.png`;
         link.href = tempCanvas.toDataURL("image/png");
         link.click();
-      }, idx * 300); // หน่วงเวลา 300ms ระหว่างแต่ละหน้า เพื่อไม่ให้ browser block
+      }, idx * 300);
     });
   }, [pages]);
 
   // ============================================================
-  // [13] Keyboard Shortcuts — คีย์ลัด
+  // [12.4] EClass: Screenshot (เหมือน Export หน้าปัจจุบัน)
+  // ============================================================
+  const handleScreenshot = useCallback(() => {
+    handleExport();
+  }, [handleExport]);
+
+  // ============================================================
+  // [13] Keyboard Shortcuts
   // ============================================================
   useEffect(() => {
     const handleKeyDown = (e) => {
-      // ไม่ดักจับเมื่อกำลังพิมพ์ข้อความในช่อง text input
       if (textInput) return;
-      // ไม่ดักจับเมื่อ name dialog ยังเปิดอยู่
       if (showNameDialog) return;
 
       if (e.ctrlKey && e.key === "z") { e.preventDefault(); handleUndo(); }
       else if (e.ctrlKey && e.key === "y") { e.preventDefault(); handleRedo(); }
-      else if (e.ctrlKey && e.key === "s") { e.preventDefault(); handleSaveProject(); } // Ctrl+S = Save
-      else if (e.ctrlKey && e.key === "o") { e.preventDefault(); handleLoadProject(); } // Ctrl+O = Open
-      else if (e.key === "b" || e.key === "B") { setTool("pen"); }      // B = Brush (ปากกา)
-      else if (e.key === "e" || e.key === "E") { setTool("eraser"); }   // E = Eraser (ยางลบ)
-      else if (e.key === "t" || e.key === "T") { setTool("text"); }     // T = Text (ข้อความ)
-      else if (e.key === "l" || e.key === "L") { setTool("line"); }     // L = Line (เส้นตรง)
-      else if (e.key === "r" || e.key === "R") { setTool("rect"); }     // R = Rectangle (สี่เหลี่ยม)
-      else if (e.key === "c" || e.key === "C") { setTool("circle"); }   // C = Circle (วงกลม)
-      else if (e.key === "p" || e.key === "P") { setTool("laser"); }    // P = Pointer (เลเซอร์)
+      else if (e.ctrlKey && e.key === "s") { e.preventDefault(); handleSaveProject(); }
+      else if (e.ctrlKey && e.key === "o") { e.preventDefault(); handleLoadProject(); }
+      else if (e.key === "b" || e.key === "B") { setTool("pen"); }
+      else if (e.key === "h" || e.key === "H") { setTool("highlighter"); }  // ใหม่: H = Highlighter
+      else if (e.key === "e" || e.key === "E") { setTool("eraser"); }
+      else if (e.key === "t" || e.key === "T") { setTool("text"); }
+      else if (e.key === "l" || e.key === "L") { setTool("line"); }
+      else if (e.key === "r" || e.key === "R") { setTool("rect"); }
+      else if (e.key === "c" || e.key === "C") { setTool("circle"); }
+      else if (e.key === "p" || e.key === "P") { setTool("laser"); }
+      else if (e.key === "v" || e.key === "V") { setTool("select"); }  // ใหม่: V = Select
     };
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [handleUndo, handleRedo, textInput, showNameDialog]);
 
   // ============================================================
-  // [14] Phase 7 — ตั้งชื่อผู้ใช้
+  // [14] ตั้งชื่อผู้ใช้
   // ============================================================
-  /** เมื่อกด "เข้าร่วม" → ส่งชื่อไป server + ซ่อน dialog */
-  const handleNameSubmit = useCallback((name) => {
+  const handleNameSubmit = useCallback((name, role) => {
     setUsername(name);
+    setUserRole(role || "viewer");
     setShowNameDialog(false);
-    socket.emit("set-user", { name });
+    socket.emit("set-user", { name, role: role || "viewer" });
   }, []);
 
   // ============================================================
-  // [15] Phase 7 — Cursor Move → ส่งตำแหน่งไป server
+  // [15] Cursor Move
   // ============================================================
-  /** callback จาก Canvas: ส่งตำแหน่ง cursor ให้คนอื่นเห็น */
   const handleCursorMove = useCallback(
     (x, y) => {
-      // ส่ง cursor (throttle ที่ server ทำอยู่แล้ว — ส่งตรงๆ)
       socket.emit("cursor-move", { x, y, pageIndex: currentPageIndex });
-
-      // ถ้าเป็น laser tool → ส่ง laser event ด้วย
       if (tool === "laser") {
         socket.emit("laser", { x, y, pageIndex: currentPageIndex });
       }
@@ -869,15 +923,12 @@ function App() {
   );
 
   // ============================================================
-  // [16] Phase 7 — Follow Mode
+  // [16] Follow Mode
   // ============================================================
-  /** กด follow/unfollow ผู้ใช้อื่น */
   const handleFollow = useCallback((userId) => {
     setFollowUserId((prev) => {
       const next = prev === userId ? null : userId;
       followUserIdRef.current = next;
-
-      // ถ้าเริ่ม follow → สลับไปหน้าที่เขาดูอยู่ทันที
       if (next && remoteUsers[next]) {
         setCurrentPageIndex(remoteUsers[next].pageIndex || 0);
       }
@@ -886,17 +937,17 @@ function App() {
   }, [remoteUsers]);
 
   // ============================================================
-  // [17] Render — โครงสร้าง UI ทั้งหมด
+  // [17] Render
   // ============================================================
   return (
     <div className="app" onClick={tool === "stamp" ? handleCanvasClick : undefined}>
 
-      {/* ─── [Phase 7] Name Dialog (แสดงครั้งแรกก่อนเริ่มใช้งาน) ─── */}
+      {/* Name Dialog */}
       {showNameDialog && (
         <NameDialog onSubmit={handleNameSubmit} />
       )}
 
-      {/* ─── Hidden file input สำหรับ Load Project (Phase 6) ─── */}
+      {/* Hidden file inputs */}
       <input
         ref={fileInputRef}
         type="file"
@@ -904,8 +955,15 @@ function App() {
         style={{ display: "none" }}
         onChange={handleFileSelected}
       />
+      <input
+        ref={imageInputRef}
+        type="file"
+        accept="image/*"
+        style={{ display: "none" }}
+        onChange={handleImageSelected}
+      />
 
-      {/* ─── พื้นที่วาดรูป ─── */}
+      {/* Canvas */}
       <Canvas
         ref={canvasRef}
         page={currentPage}
@@ -917,14 +975,15 @@ function App() {
         onDraw={handleDraw}
         onTextRequest={handleTextRequest}
         socket={socket}
-        // Phase 7 props
         onCursorMove={handleCursorMove}
         remoteCursors={remoteCursors}
         laserPointers={laserPointers}
         currentPageIndex={currentPageIndex}
+        onStrokeUpdate={handleStrokeUpdate}
+        userRole={userRole}
       />
 
-      {/* ─── ช่องพิมพ์ข้อความ (แสดงเมื่อคลิก text tool บน canvas) ─── */}
+      {/* Text Input Overlay */}
       {textInput && (
         <div
           className="text-input-overlay"
@@ -947,41 +1006,66 @@ function App() {
         </div>
       )}
 
-      {/* ─── Overlay ของ Mode พิเศษ (ไม้บรรทัด, stamps, etc.) ─── */}
-      <ModePanel
-        mode={mode}
-        activeStamp={activeStamp}
-        onStampSelect={handleStampSelect}
-      />
+      {/* Mode Panel — host only */}
+      {userRole === "host" && (
+        <ModePanel
+          mode={mode}
+          activeStamp={activeStamp}
+          onStampSelect={handleStampSelect}
+        />
+      )}
 
-      {/* ─── แถบเครื่องมือด้านล่าง ─── */}
-      <Toolbar
-        tool={tool}
-        color={color}
-        penSize={penSize}
-        background={currentPage?.background || "white"}
-        mode={mode}
-        currentPageIndex={currentPageIndex}
-        totalPages={pages.length}
-        onToolChange={(t) => { setTool(t); if (t !== "stamp") setActiveStamp(null); }}
-        onColorChange={setColor}
-        onPenSizeChange={setPenSize}
-        onBackgroundChange={handleBackgroundChange}
-        onModeChange={handleModeChange}
-        onUndo={handleUndo}
-        onRedo={handleRedo}
-        onClear={handleClear}
-        onExport={handleExport}
-        onSaveProject={handleSaveProject}
-        onLoadProject={handleLoadProject}
-        onExportAll={handleExportAll}
-        onPrevPage={handlePrevPage}
-        onNextPage={handleNextPage}
-        onTogglePages={() => setShowPagePanel((v) => !v)}
-        onToggleUserPanel={() => setShowUserPanel((v) => !v)}
-      />
+      {/* EClass: Side Toolbar — host/contributor */}
+      {userRole !== "viewer" && (
+        <SideToolbar
+          onScreenshot={handleScreenshot}
+        />
+      )}
 
-      {/* ─── แผงจัดการหน้ากระดาน (สไลด์จากซ้าย) ─── */}
+      {/* EClass: Floating Palette — host/contributor */}
+      {userRole !== "viewer" && (
+        <FloatingPalette
+          tool={tool}
+          onToolChange={(t) => { setTool(t); if (t !== "stamp") setActiveStamp(null); }}
+        />
+      )}
+
+      {/* Toolbar (ด้านล่าง) — host/contributor */}
+      {userRole !== "viewer" && (
+        <Toolbar
+          tool={tool}
+          color={color}
+          penSize={penSize}
+          background={currentPage?.background || "white"}
+          mode={mode}
+          currentPageIndex={currentPageIndex}
+          totalPages={pages.length}
+          onToolChange={(t) => { setTool(t); if (t !== "stamp") setActiveStamp(null); }}
+          onColorChange={setColor}
+          onPenSizeChange={setPenSize}
+          onBackgroundChange={handleBackgroundChange}
+          onModeChange={handleModeChange}
+          onUndo={handleUndo}
+          onRedo={handleRedo}
+          onClear={handleClear}
+          onExport={handleExport}
+          onSaveProject={handleSaveProject}
+          onLoadProject={handleLoadProject}
+          onExportAll={handleExportAll}
+          onPrevPage={handlePrevPage}
+          onNextPage={handleNextPage}
+          onTogglePages={() => setShowPagePanel((v) => !v)}
+          onToggleUserPanel={() => setShowUserPanel((v) => !v)}
+          // EClass new props
+          onNewBoard={handleNewBoard}
+          onInsertImage={handleInsertImage}
+          autoSave={autoSave}
+          onToggleAutoSave={handleToggleAutoSave}
+          userRole={userRole}
+        />
+      )}
+
+      {/* Page Panel */}
       <PagePanel
         pages={pages}
         currentPageIndex={currentPageIndex}
@@ -992,7 +1076,7 @@ function App() {
         onDeletePage={handleDeletePage}
       />
 
-      {/* ─── [Phase 7] แผงผู้ใช้ออนไลน์ (สไลด์จากขวา) ─── */}
+      {/* User Panel */}
       <UserPanel
         show={showUserPanel}
         onToggle={() => setShowUserPanel(false)}
@@ -1004,13 +1088,13 @@ function App() {
         onFollow={handleFollow}
       />
 
-      {/* ─── จำนวนผู้ใช้ออนไลน์ (มุมซ้ายบน) ─── */}
+      {/* จำนวนผู้ใช้ออนไลน์ */}
       <div className="user-count" title="ผู้ใช้ที่เชื่อมต่อ">
         <span className="user-dot" />
         {userCount} ออนไลน์
       </div>
 
-      {/* ─── [Phase 7] Follow Mode Indicator (แถบด้านบน) ─── */}
+      {/* Follow Indicator */}
       {followUserId && remoteUsers[followUserId] && (
         <div className="follow-indicator">
           <span>👁️ กำลังตามดู: {remoteUsers[followUserId].name}</span>
@@ -1023,7 +1107,14 @@ function App() {
         </div>
       )}
 
-      {/* ─── ปุ่มเปิด QR Code (มุมขวาบน) ─── */}
+      {/* Viewer Mode Indicator */}
+      {userRole === "viewer" && (
+        <div className="viewer-mode-indicator">
+          <span>👁️ โหมดดูอย่างเดียว (View Only)</span>
+        </div>
+      )}
+
+      {/* QR Code */}
       <button
         className="qr-toggle"
         onClick={() => setShowQR((v) => !v)}
@@ -1032,7 +1123,6 @@ function App() {
         📱
       </button>
 
-      {/* ─── QR Code Panel ─── */}
       {showQR && serverUrl && (
         <div className="qr-container">
           <div className="qr-header">
