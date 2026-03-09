@@ -34,6 +34,7 @@ import PagePanel from "./components/PagePanel";
 import ModePanel from "./components/ModePanel";
 import NameDialog from "./components/NameDialog";
 import UserPanel from "./components/UserPanel";
+import { createPage } from "./utils/pageFactory";
 
 // ============================================================
 // [1] เชื่อมต่อ Socket.IO
@@ -41,6 +42,8 @@ import UserPanel from "./components/UserPanel";
 // ใช้ IP เดียวกับที่ user เปิดเว็บ (รองรับ LAN)
 // ถ้าเปิดจาก localhost → ใช้ localhost:3000
 // ถ้าเปิดจาก IP อื่น   → ใช้ IP นั้น:3000
+
+
 // const SOCKET_URL =
 //   window.location.hostname === "localhost"
 //     ? "http://localhost:3000"
@@ -59,13 +62,13 @@ const socket = io(SOCKET_URL);
 //  - id         → รหัสไม่ซ้ำ (ใช้ timestamp + random)
 //  - background → สีพื้นหลัง ("white" | "black" | "grid" | "lined")
 //  - strokes[]  → รายการเส้นที่วาด (pen, shape, text, stamp)
-function createPage(bg = "white") {
-  return {
-    id: Date.now().toString(36) + Math.random().toString(36).substr(2),
-    background: bg,
-    strokes: [],
-  };
-}
+// function createPage(bg = "white") {
+//   return {
+//     id: Date.now().toString(36) + Math.random().toString(36).substr(2),
+//     background: bg,
+//     strokes: [],
+//   };
+//}
 
 // ============================================================
 // [3] App Component หลัก
