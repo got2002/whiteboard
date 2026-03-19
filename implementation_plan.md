@@ -1,30 +1,43 @@
-# Goal Description
-We are switching the offline handwriting recognition (Tesseract.js) to the **Google Cloud Vision API** to achieve near-instantaneous and highly accurate Thai handwriting OCR. We will implement this by creating a proxy endpoint on the Node.js server to securely hide the Google API key, and updating the client to send strokes directly to this new `/api/ocr` endpoint.
+# Screen Recording Feature Plan
+
+## Goal Description
+The user wants to add a screen recording and playback feature to the Whiteboard web application. This will allow users to record their drawing sessions (both video and audio) and playback or download the resulting video within the application.
 
 ## User Review Required
-> [!IMPORTANT]
-> To use this feature, you will need a valid **Google Cloud Vision API Key**. I have created a file at `c:\test_ai\Whiteboard\Server\.env`. You must edit this file and replace `your_google_cloud_api_key_here` with your actual API key, then restart the server.
+- Is it acceptable to use the browser's `navigator.mediaDevices.getDisplayMedia()` which will prompt the user to choose which screen/window to record? This is the standard approach for screen recording on the web.
+- Currently, I plan to place the "Record / Stop" button in the `Toolbar` at the bottom right (next to the Users button). Is this placement okay?
 
 ## Proposed Changes
 
-### Server
-#### [MODIFY] c:\test_ai\Whiteboard\Server\server.js
-- Apply `cors` middleware to allow requests from the client.
-- Create a new POST endpoint at `/api/ocr`.
-- Receive base64 image from the client, call the Google Cloud Vision API (`https://vision.googleapis.com/v1/images:annotate`), and return the parsed text.
-- Use `dotenv` to safely load the `GOOGLE_VISION_API_KEY`.
+### Client Application
+#### [MODIFY] [App.jsx](file:///c:/test_ai/Whiteboard/Client/src/App.jsx)
+- **Add State:** `isRecording`, `recordedVideoUrl`, `showVideoModal`.
+- **Add Refs:** `mediaRecorderRef`, `recordedChunksRef`.
+- **Add Functions:** 
+  - `startRecording()`: Requests display media (screen/window) and audio, initializes `MediaRecorder`, and starts recording.
+  - `stopRecording()`: Stops the `MediaRecorder` and the media tracks, compiles the chunks into a Blob, and generates a URL for playback.
+- **Render:** Pass recording states and callbacks to `Toolbar`. Also render `VideoPlayerModal` when `showVideoModal` is true.
 
-### Client
-#### [MODIFY] c:\test_ai\Whiteboard\Client\src\components\Canvas.jsx
-- Import `axios`.
-- Inside `processMagicStrokes`, extract the `dataUrl`, slice off `data:image/png;base64,`, and send it via `POST` to `http://localhost:3000/api/ocr`.
-- Handle the text response from the server and convert it into a Text stroke on the canvas.
+#### [MODIFY] [Toolbar.jsx](file:///c:/test_ai/Whiteboard/Client/src/components/Toolbar.jsx)
+- **Add Props:** `isRecording` (boolean), `onStartRecord` (function), `onStopRecord` (function).
+- **Add UI:** A newly added record button ⏺️ (or stop button ⏹️) located in the toolbar group on the right side.
+
+#### [NEW] [VideoPlayerModal.jsx](file:///c:/test_ai/Whiteboard/Client/src/components/VideoPlayerModal.jsx)
+- A new modal component that takes `videoUrl` and `onClose` props.
+- Displays a `<video src={videoUrl} controls />` element for playback.
+- Includes a "Download" button to save the video as a `.webm` file.
+
+#### [MODIFY] [index.css](file:///c:/test_ai/Whiteboard/Client/src/index.css)
+- Add styling for the `.video-modal-overlay` and `.video-modal-content` elements to display the video player elegantly.
+- Add styling for the recording button (perhaps a pulsing red dot when recording).
 
 ## Verification Plan
-### Automated Tests
-- Server and Client will build correctly.
 ### Manual Verification
-1. User provides a valid Google API Key in `Server/.env`.
-2. Restart the backend server.
-3. Draw a Thai word with the Magic Pen.
-4. Wait 1 second, verify that the strokes are replaced almost instantly with highly accurate typed text.
+1. Open the application in the browser.
+2. Click the new "Record" button in the toolbar.
+3. Accept the browser prompt to share the screen/window.
+4. Draw on the canvas.
+5. Click the "Stop Recording" button.
+6. Verify that the Video Player Modal appears.
+7. Play the video to ensure it captured the screen and audio.
+8. Click "Download" to ensure the video saves correctly to the local device.

@@ -60,6 +60,14 @@ let pages = [
 // role: "host" | "contributor" | "viewer"
 const users = {};
 
+// ── Permission System ──
+let hostSocketId = null; // Socket ID ของครู (host)
+const pendingRequests = {}; // { socketId: { name, timestamp } }
+
+// ── Host Tool State ──
+let hostTool = "pen";
+let hostPenStyle = "pen";
+
 // ────────────────────────────────────────────────────────────
 // Helper — ตรวจสอบสิทธิ์ตาม role
 // ────────────────────────────────────────────────────────────
@@ -130,11 +138,14 @@ io.on("connection", (socket) => {
   // Dev mode → ชี้ไป Client (Vite port 5173) | Production → ใช้ port เดียวกับ server
   const CLIENT_PORT = process.env.NODE_ENV === "production" ? PORT : 5173;
   socket.emit("server-url", `http://${ip}:${CLIENT_PORT}`);  // URL สำหรับ QR Code
-  socket.emit("init-state", { pages });                 // สถานะกระดาน
+  socket.emit("init-state", { pages, hostTool, hostPenStyle }); // สถานะกระดาน + เครื่องมือของโฮสต์
   io.emit("user-count", connectedUsers);                 // จำนวนผู้ใช้
 
   // ส่งรายชื่อผู้ใช้ที่ออนไลน์อยู่ให้ client ใหม่
   socket.emit("user-list", users);
+
+  // ส่งสถานะว่ามี host (ครู) อยู่แล้วหรือยัง
+  socket.emit("host-exists", !!hostSocketId);
 
   // ============================================================
   // [Phase 7] ตั้งชื่อผู้ใช้
@@ -142,9 +153,20 @@ io.on("connection", (socket) => {
   // รับชื่อจาก client → กำหนดสี → เก็บข้อมูล → broadcast ให้คนอื่น
   socket.on("set-user", ({ name, role }) => {
     const color = getNextColor();
-    // Validate role — ถ้าไม่ถูกต้องให้เป็น viewer
-    const validRoles = ["host", "contributor", "viewer"];
-    const userRole = validRoles.includes(role) ? role : "viewer";
+
+    // ── Permission System: กำหนด role อัตโนมัติ ──
+    let userRole = "viewer"; // default = viewer
+    if (role === "host") {
+      // ถ้ายังไม่มี host → อนุญาต, ถ้ามีแล้ว → บังคับ viewer
+      if (!hostSocketId) {
+        userRole = "host";
+        hostSocketId = socket.id;
+      } else {
+        userRole = "viewer";
+      }
+    }
+    // student → viewer เสมอ (ต้องขอสิทธิ์ถึงจะเป็น contributor)
+
     users[socket.id] = { name, color, pageIndex: 0, role: userRole };
 
     // ส่งข้อมูลกลับให้ตัวผู้ใช้เอง (เพื่อรับ color + role ที่ได้)
@@ -154,6 +176,9 @@ io.on("connection", (socket) => {
     socket.broadcast.emit("user-joined", {
       id: socket.id, name, color, pageIndex: 0, role: userRole,
     });
+
+    // แจ้งทุกคน host-exists status
+    io.emit("host-exists", !!hostSocketId);
 
     console.log(`👤 ตั้งชื่อ: ${name} (${color}) role=${userRole} — ${socket.id}`);
   });
@@ -193,6 +218,17 @@ io.on("connection", (socket) => {
     socket.broadcast.emit("user-page-change", {
       id: socket.id, pageIndex,
     });
+  });
+
+  // ============================================================
+  // [Phase 7.1] อัปเดตเครื่องมือของโฮสต์ (เพื่อให้คนอื่นเห็นกริด/เส้นแบ่งกระดาน)
+  // ============================================================
+  socket.on("host-tool-update", ({ tool, penStyle }) => {
+    if (socket.id === hostSocketId) {
+      hostTool = tool;
+      hostPenStyle = penStyle;
+      socket.broadcast.emit("host-tool-update", { tool, penStyle });
+    }
   });
 
   // ============================================================
@@ -266,6 +302,13 @@ io.on("connection", (socket) => {
     socket.broadcast.emit("add-page", { page });
   });
 
+  // สลับตำแหน่งหน้า (Drag & Drop)
+  socket.on("reorder-pages", ({ pages: newPages }) => {
+    if (!hasPermission(socket.id, "host")) return;
+    pages = newPages;
+    socket.broadcast.emit("reorder-pages", { pages });
+  });
+
   // ลบหน้า (ต้องเหลืออย่างน้อย 1 หน้า)
   socket.on("delete-page", ({ pageId }) => {
     if (!hasPermission(socket.id, "host")) return;
@@ -284,12 +327,98 @@ io.on("connection", (socket) => {
   });
 
   // ============================================================
+  // [Permission] นักเรียนขอสิทธิ์เขียน
+  // ============================================================
+  socket.on("request-write", () => {
+    const user = users[socket.id];
+    if (!user || user.role !== "viewer") return;
+
+    // เก็บคำขอ
+    pendingRequests[socket.id] = { name: user.name, timestamp: Date.now() };
+
+    // ส่งคำขอไปให้ host
+    if (hostSocketId) {
+      io.to(hostSocketId).emit("permission-request", {
+        id: socket.id,
+        name: user.name,
+        color: user.color,
+      });
+    }
+    console.log(`🙋 ${user.name} ขอสิทธิ์เขียน`);
+  });
+
+  // ============================================================
+  // [Permission] ครูอนุมัติคำขอ
+  // ============================================================
+  socket.on("approve-request", ({ studentId }) => {
+    if (socket.id !== hostSocketId) return;
+    const student = users[studentId];
+    if (!student) return;
+
+    // เปลี่ยน role เป็น contributor
+    student.role = "contributor";
+    delete pendingRequests[studentId];
+
+    // แจ้ง student ว่าได้สิทธิ์แล้ว
+    io.to(studentId).emit("role-changed", { role: "contributor" });
+
+    // แจ้งทุกคนว่า role เปลี่ยน
+    io.emit("user-role-updated", { id: studentId, role: "contributor" });
+
+    console.log(`✅ ครูอนุมัติ: ${student.name} → contributor`);
+  });
+
+  // ============================================================
+  // [Permission] ครูปฏิเสธคำขอ
+  // ============================================================
+  socket.on("deny-request", ({ studentId }) => {
+    if (socket.id !== hostSocketId) return;
+    delete pendingRequests[studentId];
+
+    // แจ้ง student ว่าถูกปฏิเสธ
+    io.to(studentId).emit("request-denied");
+
+    const studentName = users[studentId]?.name || "?";
+    console.log(`❌ ครูปฏิเสธ: ${studentName}`);
+  });
+
+  // ============================================================
+  // [Permission] ครูถอนสิทธิ์
+  // ============================================================
+  socket.on("revoke-permission", ({ studentId }) => {
+    if (socket.id !== hostSocketId) return;
+    const student = users[studentId];
+    if (!student) return;
+
+    // เปลี่ยนกลับเป็น viewer
+    student.role = "viewer";
+
+    // แจ้ง student
+    io.to(studentId).emit("role-changed", { role: "viewer" });
+
+    // แจ้งทุกคน
+    io.emit("user-role-updated", { id: studentId, role: "viewer" });
+
+    console.log(`↩️ ครูถอนสิทธิ์: ${student.name} → viewer`);
+  });
+
+  // ============================================================
   // ผู้ใช้ disconnect
   // ============================================================
   socket.on("disconnect", () => {
     connectedUsers--;
     const userName = users[socket.id]?.name || "ไม่ทราบชื่อ";
     console.log(`❌ ผู้ใช้ออก: ${userName} (${socket.id}) — ทั้งหมด: ${connectedUsers}`);
+
+    // ถ้าคนที่ออกเป็น host → ล้าง hostSocketId
+    if (socket.id === hostSocketId) {
+      hostSocketId = null;
+      io.emit("host-exists", false);
+      console.log("⚠️ ครู (host) ออกแล้ว");
+    }
+
+    // ลบคำขอที่ค้าง
+    delete pendingRequests[socket.id];
 
     // ลบข้อมูลผู้ใช้ + แจ้งคนอื่น
     delete users[socket.id];

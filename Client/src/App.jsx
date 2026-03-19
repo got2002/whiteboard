@@ -25,7 +25,10 @@ import ModePanel from "./components/ModePanel";
 import NameDialog from "./components/NameDialog";
 import UserPanel from "./components/UserPanel";
 import SideToolbar from "./components/SideToolbar";
-import FloatingPalette from "./components/FloatingPalette";
+import PermissionButton from "./components/PermissionButton";
+import PermissionPanel from "./components/PermissionPanel";
+import VideoPlayerModal from "./components/VideoPlayerModal";
+import WebcamWidget from "./components/WebcamWidget";
 
 // ============================================================
 // [1] เชื่อมต่อ Socket.IO
@@ -78,7 +81,14 @@ function App() {
   // ──────────────────────────────────────────────────────────
   const [tool, setTool] = useState("pen");
   const [color, setColor] = useState("#000000");
-  const [penSize, setPenSize] = useState(2);
+  const [penSize, setPenSize] = useState(3);
+  const [penStyle, setPenStyle] = useState("pen");
+
+  // ──────────────────────────────────────────────────────────
+  // State: เครื่องมือของ Host (สำหรับใช้กับ Split Canvas mode ให้ผู้ชมเห็นเส้น)
+  // ──────────────────────────────────────────────────────────
+  const [hostTool, setHostTool] = useState("pen");
+  const [hostPenStyle, setHostPenStyle] = useState("pen");
 
   // ──────────────────────────────────────────────────────────
   // State: โหมดการสอน + Stamp
@@ -121,6 +131,94 @@ function App() {
   const followUserIdRef = useRef(null);
 
   // ──────────────────────────────────────────────────────────
+  // State: Permission System
+  // ──────────────────────────────────────────────────────────
+  const [hostExists, setHostExists] = useState(false);
+  const [hostStatusLoaded, setHostStatusLoaded] = useState(false); // รอรับสถานะจาก server ก่อนแสดง Dialog
+  const [pendingRequests, setPendingRequests] = useState([]);
+  const [requestStatus, setRequestStatus] = useState("idle"); // "idle" | "pending" | "denied"
+  const [showPermissionPanel, setShowPermissionPanel] = useState(false);
+
+  // ──────────────────────────────────────────────────────────
+  // State: Screen Recording & Webcam
+  // ──────────────────────────────────────────────────────────
+  const [isRecording, setIsRecording] = useState(false);
+  const [recordedVideoUrl, setRecordedVideoUrl] = useState(null);
+  const [showVideoModal, setShowVideoModal] = useState(false);
+  const mediaRecorderRef = useRef(null);
+  const recordedChunksRef = useRef([]);
+
+  const [showWebcam, setShowWebcam] = useState(false);
+
+  const startRecording = async () => {
+    try {
+      // 1. ขอสิทธิ์และเปิดดึงเสียงจากไมโครโฟน
+      const audioStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      
+      // 2. ดึงภาพจาก Canvas โดยตรง (30 FPS) (ใช้ภาพที่รวมพื้นหลังแล้ว)
+      const canvasElement = canvasRef.current;
+      if (!canvasElement) throw new Error("Canvas not found");
+      const canvasStream = canvasElement.captureStreamWithBg 
+          ? canvasElement.captureStreamWithBg(30) 
+          : canvasElement.captureStream(30);
+
+      // 3. จับมัดรวม (Merge) วิดีโอเส้นวาด และ เสียงพูด เข้าด้วยกัน
+      const combinedStream = new MediaStream([
+        ...canvasStream.getVideoTracks(),
+        ...audioStream.getAudioTracks()
+      ]);
+
+      recordedChunksRef.current = [];
+      const mimeType = MediaRecorder.isTypeSupported('video/webm; codecs=vp9')
+          ? 'video/webm; codecs=vp9'
+          : 'video/webm';
+      const recorder = new MediaRecorder(combinedStream, { mimeType });
+
+      recorder.ondataavailable = (e) => {
+        if (e.data && e.data.size > 0) {
+          recordedChunksRef.current.push(e.data);
+        }
+      };
+
+      recorder.onstop = () => {
+        const blob = new Blob(recordedChunksRef.current, { type: 'video/webm' });
+        const url = URL.createObjectURL(blob);
+        setRecordedVideoUrl(url);
+        setShowVideoModal(true);
+        setIsRecording(false);
+        
+        // แน่ใจว่าสั่งหยุดให้หมด ทั้งไมค์และวิดีโอ
+        combinedStream.getTracks().forEach(track => track.stop());
+        audioStream.getTracks().forEach(track => track.stop());
+        canvasStream.getTracks().forEach(track => track.stop());
+      };
+
+      recorder.start();
+      mediaRecorderRef.current = recorder;
+      setIsRecording(true);
+    } catch (err) {
+      console.error("Error starting canvas record:", err);
+      alert("ไม่สามารถบันทึกได้ กรุณาตรวจสอบสิทธิ์การใช้ไมโครโฟน");
+    }
+  };
+
+  const stopRecording = () => {
+    if (mediaRecorderRef.current && mediaRecorderRef.current.state === "recording") {
+      mediaRecorderRef.current.stop();
+    }
+  };
+
+  const handleDownloadVideo = () => {
+    if (!recordedVideoUrl) return;
+    const a = document.createElement("a");
+    a.href = recordedVideoUrl;
+    a.download = "whiteboard-recording.webm";
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+  };
+
+  // ──────────────────────────────────────────────────────────
   // Refs
   // ──────────────────────────────────────────────────────────
   const undoStackRef = useRef({});
@@ -152,7 +250,10 @@ function App() {
   useEffect(() => {
     socket.on("server-url", (url) => setServerUrl(url));
     socket.on("user-count", (count) => setUserCount(count));
-    socket.on("init-state", ({ pages: serverPages }) => {
+    socket.on("init-state", ({ pages: serverPages, hostTool: hT, hostPenStyle: hPS }) => {
+      if (hT) setHostTool(hT);
+      if (hPS) setHostPenStyle(hPS);
+
       // ถ้ากระดาน server เป็นหน้าเปล่าแผ่นเดียว แล้วเรามี auto-save อยู่ 
       // → ให้ดัน auto-save ของเราขึ้นไปเป็นหลัก
       if (serverPages?.length === 1 && serverPages[0].strokes?.length === 0) {
@@ -219,6 +320,10 @@ function App() {
         return filtered.length > 0 ? filtered : prev;
       });
       setCurrentPageIndex((idx) => Math.min(idx, pages.length - 2));
+    });
+
+    socket.on("reorder-pages", ({ pages: newPages }) => {
+      setPages(newPages);
     });
 
     socket.on("change-background", ({ pageId, background }) => {
@@ -290,6 +395,11 @@ function App() {
       }, 1500);
     });
 
+    socket.on("host-tool-update", ({ tool: hT, penStyle: hPS }) => {
+      setHostTool(hT);
+      setHostPenStyle(hPS);
+    });
+
     return () => {
       socket.off("server-url");
       socket.off("user-count");
@@ -300,6 +410,7 @@ function App() {
       socket.off("clear-page");
       socket.off("add-page");
       socket.off("delete-page");
+      socket.off("reorder-pages");
       socket.off("change-background");
       socket.off("user-list");
       socket.off("user-confirmed");
@@ -308,6 +419,63 @@ function App() {
       socket.off("user-page-change");
       socket.off("cursor-move");
       socket.off("laser");
+      socket.off("host-tool-update");
+    };
+  }, []);
+
+  // ============================================================
+  // [4.1] Permission Socket Listeners
+  // ============================================================
+  useEffect(() => {
+    // รับสถานะ host มีหรือยัง
+    socket.on("host-exists", (exists) => {
+      setHostExists(exists);
+      setHostStatusLoaded(true);
+    });
+
+    // [ครู] รับคำขอสิทธิ์จากนักเรียน
+    socket.on("permission-request", ({ id, name, color }) => {
+      setPendingRequests((prev) => {
+        if (prev.find((r) => r.id === id)) return prev;
+        return [...prev, { id, name, color }];
+      });
+      // เปิด panel อัตโนมัติเมื่อมีคำขอใหม่
+      setShowPermissionPanel(true);
+    });
+
+    // [นักเรียน] role เปลี่ยนแล้ว (อนุมัติ/ถอนสิทธิ์)
+    socket.on("role-changed", ({ role }) => {
+      setUserRole(role);
+      if (role === "contributor") {
+        setRequestStatus("idle");
+      } else if (role === "viewer") {
+        setRequestStatus("idle");
+      }
+    });
+
+    // [นักเรียน] คำขอถูกปฏิเสธ
+    socket.on("request-denied", () => {
+      setRequestStatus("denied");
+    });
+
+    // [ทุกคน] role update ของคนอื่น
+    socket.on("user-role-updated", ({ id, role }) => {
+      setRemoteUsers((prev) => ({
+        ...prev,
+        [id]: { ...prev[id], role },
+      }));
+      // ลบออกจาก pending ถ้าได้รับอนุมัติ
+      if (role === "contributor") {
+        setPendingRequests((prev) => prev.filter((r) => r.id !== id));
+      }
+    });
+
+    return () => {
+      socket.off("host-exists");
+      socket.off("permission-request");
+      socket.off("role-changed");
+      socket.off("request-denied");
+      socket.off("user-role-updated");
     };
   }, []);
 
@@ -327,6 +495,17 @@ function App() {
       return next;
     });
   }, [remoteUsers]);
+
+  // ============================================================
+  // [4.2] Broadcast Host Tool Update
+  // ============================================================
+  useEffect(() => {
+    if (userRole === "host") {
+      socket.emit("host-tool-update", { tool, penStyle });
+      setHostTool(tool);
+      setHostPenStyle(penStyle);
+    }
+  }, [tool, penStyle, userRole]);
 
   // ============================================================
   // [5] Callbacks: การวาด
@@ -570,6 +749,26 @@ function App() {
     setShowPagePanel(false);
   }, []);
 
+  const handleReorderPages = useCallback((fromIndex, toIndex) => {
+    setPages((prev) => {
+      const newPages = [...prev];
+      const [movedItem] = newPages.splice(fromIndex, 1);
+      newPages.splice(toIndex, 0, movedItem);
+
+      socket.emit("reorder-pages", { pages: newPages });
+      return newPages;
+    });
+
+    // Update currentPageIndex so user stays on the same physical page
+    setCurrentPageIndex((prevIndex) => {
+      let idx = prevIndex;
+      if (fromIndex === prevIndex) idx = toIndex;
+      else if (fromIndex < prevIndex && toIndex >= prevIndex) idx--;
+      else if (fromIndex > prevIndex && toIndex <= prevIndex) idx++;
+      return idx;
+    });
+  }, []);
+
   useEffect(() => {
     socket.emit("page-change", { pageIndex: currentPageIndex });
   }, [currentPageIndex]);
@@ -601,7 +800,7 @@ function App() {
 
     const reader = new FileReader();
     reader.onload = (evt) => {
-      const dataURL = evt.target.result;
+      const origDataURL = evt.target.result;
       const img = new Image();
       img.onload = () => {
         // จำกัดขนาดสูงสุด 400px
@@ -614,10 +813,21 @@ function App() {
           h = Math.round(h * ratio);
         }
 
+        // สร้าง canvas ชั่วคราวเพื่อย่อขนาดข้อมูลเบส 64
+        const tempCanvas = document.createElement("canvas");
+        tempCanvas.width = w;
+        tempCanvas.height = h;
+        const tempCtx = tempCanvas.getContext("2d");
+        
+        // ถ้าต้องการให้รองรับภาพ PNG โปร่งใส สามารถเปลี่ยนเป็น image/png แต่ไฟล์จะใหญ่กว่า
+        // ตรงนี้ใช้ image/png เพื่อความชัวร์เรื่องพื้นหลังโปร่งใส (เพราะอาจมีคนอัปโหลดไอคอน PNG มา)
+        tempCtx.drawImage(img, 0, 0, w, h);
+        const compressedDataURL = tempCanvas.toDataURL("image/png");
+
         const imageStroke = {
           id: Date.now().toString(36) + Math.random().toString(36).substr(2),
           type: "image",
-          dataURL,
+          dataURL: compressedDataURL,
           x: 100,
           y: 100,
           width: w,
@@ -625,7 +835,7 @@ function App() {
         };
         handleStrokeComplete(imageStroke);
       };
-      img.src = dataURL;
+      img.src = origDataURL;
     };
     reader.readAsDataURL(file);
     e.target.value = "";
@@ -910,6 +1120,28 @@ function App() {
   }, []);
 
   // ============================================================
+  // [14.1] Permission Handlers
+  // ============================================================
+  const handleRequestWrite = useCallback(() => {
+    setRequestStatus("pending");
+    socket.emit("request-write");
+  }, []);
+
+  const handleApproveRequest = useCallback((studentId) => {
+    socket.emit("approve-request", { studentId });
+    setPendingRequests((prev) => prev.filter((r) => r.id !== studentId));
+  }, []);
+
+  const handleDenyRequest = useCallback((studentId) => {
+    socket.emit("deny-request", { studentId });
+    setPendingRequests((prev) => prev.filter((r) => r.id !== studentId));
+  }, []);
+
+  const handleRevokePermission = useCallback((studentId) => {
+    socket.emit("revoke-permission", { studentId });
+  }, []);
+
+  // ============================================================
   // [15] Cursor Move
   // ============================================================
   const handleCursorMove = useCallback(
@@ -943,8 +1175,8 @@ function App() {
     <div className="app" onClick={tool === "stamp" ? handleCanvasClick : undefined}>
 
       {/* Name Dialog */}
-      {showNameDialog && (
-        <NameDialog onSubmit={handleNameSubmit} />
+      {showNameDialog && hostStatusLoaded && (
+        <NameDialog onSubmit={handleNameSubmit} hostExists={hostExists} />
       )}
 
       {/* Hidden file inputs */}
@@ -970,7 +1202,10 @@ function App() {
         tool={tool}
         color={color}
         penSize={penSize}
+        penStyle={penStyle}
         mode={mode}
+        hostTool={hostTool}
+        hostPenStyle={hostPenStyle}
         onStrokeComplete={handleStrokeComplete}
         onDraw={handleDraw}
         onTextRequest={handleTextRequest}
@@ -1022,13 +1257,6 @@ function App() {
         />
       )}
 
-      {/* EClass: Floating Palette — host/contributor */}
-      {userRole !== "viewer" && (
-        <FloatingPalette
-          tool={tool}
-          onToolChange={(t) => { setTool(t); if (t !== "stamp") setActiveStamp(null); }}
-        />
-      )}
 
       {/* Toolbar (ด้านล่าง) — host/contributor */}
       {userRole !== "viewer" && (
@@ -1036,6 +1264,7 @@ function App() {
           tool={tool}
           color={color}
           penSize={penSize}
+          penStyle={penStyle}
           background={currentPage?.background || "white"}
           mode={mode}
           currentPageIndex={currentPageIndex}
@@ -1043,6 +1272,7 @@ function App() {
           onToolChange={(t) => { setTool(t); if (t !== "stamp") setActiveStamp(null); }}
           onColorChange={setColor}
           onPenSizeChange={setPenSize}
+          onPenStyleChange={setPenStyle}
           onBackgroundChange={handleBackgroundChange}
           onModeChange={handleModeChange}
           onUndo={handleUndo}
@@ -1061,6 +1291,11 @@ function App() {
           onInsertImage={handleInsertImage}
           autoSave={autoSave}
           onToggleAutoSave={handleToggleAutoSave}
+          isRecording={isRecording}
+          onStartRecord={startRecording}
+          onStopRecord={stopRecording}
+          showWebcam={showWebcam}
+          onToggleWebcam={() => setShowWebcam((v) => !v)}
           userRole={userRole}
         />
       )}
@@ -1074,6 +1309,7 @@ function App() {
         onSelectPage={handleSelectPage}
         onAddPage={handleAddPage}
         onDeletePage={handleDeletePage}
+        onReorderPages={handleReorderPages}
       />
 
       {/* User Panel */}
@@ -1107,11 +1343,44 @@ function App() {
         </div>
       )}
 
-      {/* Viewer Mode Indicator */}
+      {/* Viewer Mode Indicator + Permission Button */}
       {userRole === "viewer" && (
-        <div className="viewer-mode-indicator">
-          <span>👁️ โหมดดูอย่างเดียว (View Only)</span>
-        </div>
+        <>
+          <div className="viewer-mode-indicator">
+            <span>👁️ โหมดดูอย่างเดียว (View Only)</span>
+          </div>
+          <PermissionButton
+            requestStatus={requestStatus}
+            onRequestWrite={handleRequestWrite}
+          />
+        </>
+      )}
+
+      {/* Permission Panel for Host */}
+      {userRole === "host" && (
+        <>
+          <button
+            className="permission-toggle-btn"
+            onClick={() => setShowPermissionPanel((v) => !v)}
+            title="จัดการสิทธิ์"
+          >
+            🔐
+            {pendingRequests.length > 0 && (
+              <span className="permission-toggle-badge">{pendingRequests.length}</span>
+            )}
+          </button>
+          <PermissionPanel
+            show={showPermissionPanel}
+            onToggle={() => setShowPermissionPanel(false)}
+            pendingRequests={pendingRequests}
+            contributors={Object.entries(remoteUsers)
+              .filter(([, u]) => u.role === "contributor")
+              .map(([id, u]) => ({ id, ...u }))}
+            onApprove={handleApproveRequest}
+            onDeny={handleDenyRequest}
+            onRevoke={handleRevokePermission}
+          />
+        </>
       )}
 
       {/* QR Code */}
@@ -1133,6 +1402,18 @@ function App() {
           <p className="qr-url">{serverUrl}</p>
         </div>
       )}
+
+      {/* Video Player Modal */}
+      {showVideoModal && (
+        <VideoPlayerModal
+          videoUrl={recordedVideoUrl}
+          onClose={() => setShowVideoModal(false)}
+          onDownload={handleDownloadVideo}
+        />
+      )}
+
+      {/* Webcam Widget */}
+      {showWebcam && <WebcamWidget />}
     </div>
   );
 }

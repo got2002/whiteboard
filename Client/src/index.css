@@ -110,12 +110,8 @@ body,
   z-index: 100;
   transition: opacity 0.3s, transform 0.3s;
   max-width: 95vw;
-  overflow-x: auto;
-  scrollbar-width: none;
-}
-
-.toolbar::-webkit-scrollbar {
-  display: none;
+  flex-wrap: wrap;
+  justify-content: center;
 }
 
 /* --- Toolbar group --- */
@@ -123,6 +119,7 @@ body,
   display: flex;
   align-items: center;
   gap: 3px;
+  position: relative;
 }
 
 .toolbar-group.colors {
@@ -232,37 +229,272 @@ body,
   border-color: #818cf8;
 }
 
-/* --- Pen size buttons --- */
-.size-btn {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 34px;
-  height: 34px;
-  border: none;
-  border-radius: 8px;
-  background: transparent;
+/* --- Color Picker (full spectrum) --- */
+.color-picker-wrap {
+  position: relative;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
   cursor: pointer;
+  flex-shrink: 0;
+  overflow: hidden;
+  border: 2px solid rgba(255, 255, 255, 0.2);
   transition: all 0.15s ease;
 }
 
-.size-btn:hover {
-  background: rgba(255, 255, 255, 0.1);
+.color-picker-wrap:hover {
+  transform: scale(1.25);
+  border-color: rgba(255, 255, 255, 0.4);
+  box-shadow: 0 0 10px rgba(255, 255, 255, 0.15);
 }
 
-.size-btn.active {
-  background: rgba(99, 102, 241, 0.3);
+.color-picker-input {
+  position: absolute;
+  inset: -8px;
+  width: 42px;
+  height: 42px;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  opacity: 0;
 }
 
-.size-dot {
+.color-picker-indicator {
   display: block;
+  width: 100%;
+  height: 100%;
   border-radius: 50%;
-  background: rgba(255, 255, 255, 0.8);
-  transition: transform 0.15s ease;
+  background: conic-gradient(
+    #ff0000, #ff8800, #ffff00, #00ff00,
+    #00ffff, #0000ff, #8800ff, #ff0088, #ff0000
+  );
+  pointer-events: none;
 }
 
-.size-btn.active .size-dot {
-  background: #a5b4fc;
+/* --- Pen indicator (small triangle) --- */
+.pen-indicator {
+  position: absolute;
+  bottom: 1px;
+  right: 4px;
+  width: 0;
+  height: 0;
+  border-left: 4px solid transparent;
+  border-right: 4px solid transparent;
+  border-bottom: 4px solid rgba(255, 255, 255, 0.4);
+}
+
+/* --- Pen Popup Panel --- */
+.pen-popup {
+  position: absolute;
+  bottom: 52px;
+  left: 0;
+  min-width: 260px;
+  background: rgba(15, 15, 26, 0.95);
+  backdrop-filter: blur(24px) saturate(1.8);
+  -webkit-backdrop-filter: blur(24px) saturate(1.8);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 16px;
+  padding: 14px;
+  box-shadow:
+    0 12px 40px rgba(0, 0, 0, 0.5),
+    0 0 0 1px rgba(255, 255, 255, 0.04) inset;
+  z-index: 120;
+  animation: penPopupIn 0.2s ease;
+}
+
+@keyframes penPopupIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px) scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.pen-popup-header {
+  display: flex;
+  align-items: center;
+  margin-bottom: 10px;
+}
+
+.pen-popup-title {
+  font-size: 13px;
+  font-weight: 700;
+  color: rgba(255, 255, 255, 0.85);
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+}
+
+/* --- Pen Grid (2×4) --- */
+.pen-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 6px;
+  margin-bottom: 12px;
+  max-height: 230px;
+  overflow-y: auto;
+  padding-right: 4px;
+}
+.pen-grid::-webkit-scrollbar {
+  width: 4px;
+}
+.pen-grid::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 2px;
+}
+
+/* --- Shape Grid (4x6 or auto) --- */
+.shape-popup {
+  min-width: 200px;
+}
+
+.shape-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 6px;
+  max-height: 200px;
+  overflow-y: auto;
+  padding-right: 4px;
+}
+.shape-grid::-webkit-scrollbar {
+  width: 4px;
+}
+.shape-grid::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 2px;
+}
+
+.pen-option {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  padding: 8px 4px;
+  border: 2px solid transparent;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.04);
+  color: rgba(255, 255, 255, 0.65);
+  cursor: pointer;
+  transition: all 0.15s ease;
+  font-family: inherit;
+}
+
+.pen-option:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: #ffffff;
+  transform: translateY(-1px);
+}
+
+.pen-option.active {
+  border-color: #818cf8;
+  background: rgba(99, 102, 241, 0.2);
+  color: #a5b4fc;
+  box-shadow: 0 0 12px rgba(99, 102, 241, 0.2);
+}
+
+.pen-option-icon {
+  font-size: 20px;
+  line-height: 1;
+}
+
+.pen-option-label {
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: 0.3px;
+  white-space: nowrap;
+}
+
+/* --- Pen Preview --- */
+.pen-preview-section {
+  background: rgba(255, 255, 255, 0.06);
+  border-radius: 10px;
+  padding: 6px;
+  margin-bottom: 12px;
+  display: flex;
+  justify-content: center;
+}
+
+.pen-preview-canvas {
+  border-radius: 6px;
+  width: 100%;
+  max-width: 230px;
+  height: 50px;
+}
+
+/* --- Pen Slider --- */
+.pen-slider-section {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 8px;
+}
+
+.pen-slider-label {
+  font-size: 11px;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.5);
+  min-width: 28px;
+}
+
+.pen-slider {
+  flex: 1;
+  -webkit-appearance: none;
+  appearance: none;
+  height: 6px;
+  border-radius: 3px;
+  background: rgba(255, 255, 255, 0.12);
+  outline: none;
+  cursor: pointer;
+}
+
+.pen-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: #818cf8;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  cursor: pointer;
+  box-shadow: 0 2px 8px rgba(99, 102, 241, 0.4);
+  transition: transform 0.1s ease;
+}
+
+.pen-slider::-webkit-slider-thumb:hover {
+  transform: scale(1.15);
+}
+
+.pen-slider::-moz-range-thumb {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: #818cf8;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  cursor: pointer;
+  box-shadow: 0 2px 8px rgba(99, 102, 241, 0.4);
+}
+
+.pen-slider-value {
+  font-size: 12px;
+  font-weight: 700;
+  color: #a5b4fc;
+  min-width: 22px;
+  text-align: center;
+}
+
+/* --- Pen size preview dot --- */
+.pen-size-preview {
+  display: flex;
+  justify-content: center;
+  padding: 4px 0;
+}
+
+.pen-size-dot {
+  border-radius: 50%;
+  transition: all 0.15s ease;
+  box-shadow: 0 0 8px rgba(99, 102, 241, 0.3);
 }
 
 /* ============================================================
@@ -363,6 +595,22 @@ body,
 .page-item.active {
   border-color: #818cf8;
   box-shadow: 0 0 16px rgba(99, 102, 241, 0.25);
+}
+
+.page-item.dragging {
+  opacity: 0.4;
+  transform: scale(0.95);
+  border-color: #94a3b8;
+}
+
+.page-item.drag-over-top {
+  box-shadow: 0 -4px 0 0 #3b82f6;
+  border-color: #3b82f6;
+}
+
+.page-item.drag-over-bottom {
+  box-shadow: 0 4px 0 0 #3b82f6;
+  border-color: #3b82f6;
 }
 
 .page-thumb {
@@ -627,9 +875,9 @@ body,
     height: 18px;
   }
 
-  .size-btn {
-    width: 30px;
-    height: 30px;
+  .pen-popup {
+    min-width: 220px;
+    padding: 10px;
   }
 
   .toolbar-divider {
@@ -1230,6 +1478,41 @@ body,
   color: rgba(255, 255, 255, 0.3);
   font-size: 11px;
   margin: 0;
+}
+
+/* --- Auto Role Badge --- */
+.auto-role-badge {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 12px 16px;
+  border-radius: 12px;
+  background: rgba(99, 102, 241, 0.12);
+  border: 1px solid rgba(99, 102, 241, 0.25);
+  margin: 4px 0;
+}
+
+.auto-role-icon {
+  font-size: 28px;
+  flex-shrink: 0;
+}
+
+.auto-role-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.auto-role-label {
+  color: #a5b4fc;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.auto-role-desc {
+  color: rgba(255, 255, 255, 0.4);
+  font-size: 11px;
 }
 
 /* ============================================================
@@ -1871,4 +2154,904 @@ body,
   .side-toolbar {
     display: none;
   }
+}
+
+/* ============================================================
+   Role Selector (NameDialog — ครู / นักเรียน)
+   ============================================================ */
+
+.role-selector {
+  width: 100%;
+  margin: 4px 0;
+}
+
+.role-selector-label {
+  color: rgba(255, 255, 255, 0.5);
+  font-size: 13px;
+  font-weight: 500;
+  margin: 0 0 8px;
+}
+
+.role-selector-options {
+  display: flex;
+  gap: 8px;
+}
+
+.role-selector-two {
+  gap: 10px;
+}
+
+.role-option {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 14px 10px;
+  border: 2px solid rgba(255, 255, 255, 0.1);
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.04);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.role-option:hover:not(:disabled) {
+  border-color: rgba(255, 255, 255, 0.2);
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.role-option-active {
+  border-color: #818cf8 !important;
+  background: rgba(99, 102, 241, 0.15) !important;
+  box-shadow: 0 0 20px rgba(99, 102, 241, 0.2);
+}
+
+.role-option-disabled {
+  opacity: 0.35;
+  cursor: not-allowed !important;
+}
+
+.role-option-icon {
+  font-size: 28px;
+}
+
+.role-option-label {
+  color: #e2e8f0;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.role-option-desc {
+  color: rgba(255, 255, 255, 0.4);
+  font-size: 11px;
+}
+
+.name-dialog-btn-disabled {
+  opacity: 0.4;
+  cursor: not-allowed !important;
+}
+
+.name-dialog-btn-disabled:hover {
+  transform: none !important;
+  box-shadow: none !important;
+}
+
+/* ============================================================
+   Viewer Mode Indicator
+   ============================================================ */
+
+.viewer-mode-indicator {
+  position: fixed;
+  bottom: 80px;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 10px 24px;
+  background: rgba(245, 158, 11, 0.15);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(245, 158, 11, 0.3);
+  border-radius: 12px;
+  color: #fbbf24;
+  font-size: 13px;
+  font-weight: 600;
+  z-index: 90;
+  user-select: none;
+  animation: fadeIn 0.3s ease;
+}
+
+/* ============================================================
+   Permission Button (นักเรียนขอสิทธิ์เขียน)
+   ============================================================ */
+
+.permission-btn-container {
+  position: fixed;
+  bottom: 24px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 95;
+  animation: fadeIn 0.3s ease;
+}
+
+.permission-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 14px 28px;
+  border: none;
+  border-radius: 16px;
+  background: linear-gradient(135deg, #6366f1 0%, #818cf8 100%);
+  color: #fff;
+  font-size: 15px;
+  font-weight: 600;
+  font-family: 'Inter', sans-serif;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 4px 20px rgba(99, 102, 241, 0.35);
+}
+
+.permission-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 28px rgba(99, 102, 241, 0.45);
+}
+
+.permission-btn-icon {
+  font-size: 20px;
+}
+
+.permission-btn-text {
+  white-space: nowrap;
+}
+
+.permission-btn-pending {
+  background: rgba(30, 30, 50, 0.85);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  cursor: default;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
+}
+
+.permission-btn-pending:hover {
+  transform: none;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
+}
+
+.permission-btn-spinner {
+  width: 18px;
+  height: 18px;
+  border: 2px solid rgba(255, 255, 255, 0.2);
+  border-top-color: #818cf8;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.permission-btn-denied-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+
+.permission-btn-denied-msg {
+  background: rgba(239, 68, 68, 0.15);
+  border: 1px solid rgba(239, 68, 68, 0.3);
+  color: #fca5a5;
+  cursor: default;
+  box-shadow: none;
+  font-size: 13px;
+}
+
+.permission-btn-denied-msg:hover {
+  transform: none;
+  box-shadow: none;
+}
+
+.permission-btn-retry {
+  padding: 10px 20px;
+  font-size: 13px;
+  background: rgba(30, 30, 50, 0.85);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+/* ============================================================
+   Permission Toggle Button (ครูเปิด/ปิดแผงสิทธิ์)
+   ============================================================ */
+
+.permission-toggle-btn {
+  position: fixed;
+  top: 16px;
+  right: 68px;
+  width: 42px;
+  height: 42px;
+  border: none;
+  border-radius: 12px;
+  background: rgba(15, 15, 26, 0.7);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  color: white;
+  font-size: 20px;
+  cursor: pointer;
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s ease;
+}
+
+.permission-toggle-btn:hover {
+  background: rgba(15, 15, 26, 0.9);
+  transform: scale(1.08);
+}
+
+.permission-toggle-badge {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  min-width: 18px;
+  height: 18px;
+  border-radius: 9px;
+  background: #ef4444;
+  color: #fff;
+  font-size: 10px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 4px;
+  animation: badgePop 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+  box-shadow: 0 2px 8px rgba(239, 68, 68, 0.4);
+}
+
+@keyframes badgePop {
+  from { transform: scale(0); }
+  to { transform: scale(1); }
+}
+
+/* ============================================================
+   Permission Panel (ครูจัดการสิทธิ์)
+   ============================================================ */
+
+.permission-panel {
+  position: fixed;
+  top: 0;
+  right: 0;
+  width: 300px;
+  height: 100%;
+  background: rgba(15, 15, 26, 0.95);
+  backdrop-filter: blur(20px);
+  border-left: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: -8px 0 32px rgba(0, 0, 0, 0.4);
+  z-index: 201;
+  display: flex;
+  flex-direction: column;
+  transform: translateX(100%);
+  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.permission-panel.open {
+  transform: translateX(0);
+}
+
+.permission-panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 20px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.permission-panel-header h3 {
+  color: #e2e8f0;
+  font-size: 15px;
+  font-weight: 600;
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.permission-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 20px;
+  height: 20px;
+  border-radius: 10px;
+  background: #ef4444;
+  color: #fff;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 0 6px;
+}
+
+.permission-panel-close {
+  width: 30px;
+  height: 30px;
+  border: none;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.06);
+  color: rgba(255, 255, 255, 0.5);
+  font-size: 14px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.15s;
+}
+
+.permission-panel-close:hover {
+  background: rgba(255, 255, 255, 0.12);
+  color: #fff;
+}
+
+.permission-section {
+  padding: 16px 20px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.permission-section-title {
+  color: rgba(255, 255, 255, 0.6);
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin: 0 0 12px;
+}
+
+.permission-empty {
+  color: rgba(255, 255, 255, 0.3);
+  font-size: 13px;
+  font-style: italic;
+  padding: 8px 0;
+}
+
+.permission-request-item,
+.permission-contributor-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.04);
+  margin-bottom: 6px;
+  transition: background 0.15s;
+}
+
+.permission-request-item:hover,
+.permission-contributor-item:hover {
+  background: rgba(255, 255, 255, 0.07);
+}
+
+.permission-request-item {
+  border-left: 3px solid #f59e0b;
+}
+
+.permission-contributor-item {
+  border-left: 3px solid #22c55e;
+}
+
+.permission-user-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.permission-user-name {
+  flex: 1;
+  color: #e2e8f0;
+  font-size: 13px;
+  font-weight: 500;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.permission-actions {
+  display: flex;
+  gap: 4px;
+}
+
+.permission-approve-btn,
+.permission-deny-btn {
+  width: 32px;
+  height: 32px;
+  border: none;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.06);
+  font-size: 16px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s ease;
+}
+
+.permission-approve-btn:hover {
+  background: rgba(34, 197, 94, 0.2);
+  transform: scale(1.1);
+}
+
+.permission-deny-btn:hover {
+  background: rgba(239, 68, 68, 0.2);
+  transform: scale(1.1);
+}
+
+.permission-revoke-btn {
+  padding: 4px 10px;
+  border: none;
+  border-radius: 6px;
+  background: rgba(239, 68, 68, 0.12);
+  color: #fca5a5;
+  font-size: 11px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s;
+  white-space: nowrap;
+}
+
+.permission-revoke-btn:hover {
+  background: rgba(239, 68, 68, 0.25);
+  color: #fff;
+}
+
+/* ============================================================
+   Follow indicator
+   ============================================================ */
+
+.follow-indicator {
+  position: fixed;
+  top: 56px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 16px;
+  background: rgba(15, 15, 26, 0.85);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 12px;
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 13px;
+  font-weight: 500;
+  z-index: 80;
+  animation: fadeIn 0.2s ease;
+}
+
+.follow-stop-btn {
+  padding: 4px 10px;
+  border: none;
+  border-radius: 6px;
+  background: rgba(239, 68, 68, 0.15);
+  color: #fca5a5;
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.follow-stop-btn:hover {
+  background: rgba(239, 68, 68, 0.3);
+}
+
+/* ============================================================
+   Responsive: Permission components
+   ============================================================ */
+
+@media (max-width: 768px) {
+  .permission-panel {
+    width: 260px;
+  }
+
+  .permission-btn {
+    padding: 12px 20px;
+    font-size: 13px;
+  }
+
+  .viewer-mode-indicator {
+    font-size: 12px;
+    padding: 8px 16px;
+    bottom: 60px;
+  }
+}
+
+/* ============================================================
+   Video Player Modal
+   ============================================================ */
+.video-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.7);
+  backdrop-filter: blur(8px);
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+
+.video-modal-content {
+  background: #1a1a2e;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 16px;
+  width: 100%;
+  max-width: 800px;
+  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.6);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  animation: fadeInDown 0.3s ease;
+}
+
+@keyframes fadeInDown {
+  from { opacity: 0; transform: translateY(-20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.video-modal-header {
+  padding: 16px 24px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.video-modal-header h3 {
+  color: #fff;
+  font-size: 16px;
+  margin: 0;
+}
+
+.video-close-btn {
+  background: transparent;
+  border: none;
+  color: rgba(255, 255, 255, 0.5);
+  font-size: 24px;
+  line-height: 1;
+  cursor: pointer;
+  transition: color 0.15s;
+}
+
+.video-close-btn:hover {
+  color: white;
+}
+
+.video-player-container {
+  width: 100%;
+  background: #000;
+  max-height: 60vh;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.recorded-video {
+  max-width: 100%;
+  max-height: 60vh;
+}
+
+.video-modal-footer {
+  padding: 16px 24px;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+}
+
+.video-btn {
+  padding: 8px 16px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s;
+  border: none;
+}
+
+.video-btn.secondary {
+  background: rgba(255, 255, 255, 0.1);
+  color: white;
+}
+
+.video-btn.secondary:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+.video-btn.primary {
+  background: #3b82f6;
+  color: white;
+}
+
+.video-btn.primary:hover {
+  background: #2563eb;
+}
+
+/* ============================================================
+   Webcam Widget
+   ============================================================ */
+.webcam-widget {
+  position: fixed;
+  width: 280px;
+  background: rgba(15, 15, 26, 0.95);
+  backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 16px;
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.5);
+  overflow: hidden;
+  z-index: 900;
+  display: flex;
+  flex-direction: column;
+  touch-action: none; /* ป้องกันการทัชสกรอล ทำให้ลากง่ายขึ้น */
+}
+
+.webcam-header {
+  padding: 8px 12px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  cursor: grab;
+  user-select: none;
+}
+
+.webcam-header:active {
+  cursor: grabbing;
+}
+
+.webcam-title {
+  color: #fff;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.webcam-drag-handle {
+  color: rgba(255, 255, 255, 0.5);
+  font-size: 14px;
+}
+
+.webcam-video {
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  object-fit: cover;
+  background: #000;
+  border-bottom-left-radius: 16px;
+  border-bottom-right-radius: 16px;
+  pointer-events: none; /* ห้ามกดขวาคลิกบนวิดีโอ */
+}
+
+.webcam-error {
+  padding: 20px;
+  text-align: center;
+  color: #ef4444;
+  font-size: 13px;
+  font-weight: 500;
+  background: rgba(239, 68, 68, 0.1);
+  border-bottom-left-radius: 16px;
+  border-bottom-right-radius: 16px;
+}
+
+/* ============================================================
+   Color Picker Modal (Classic Windows Style)
+   ============================================================ */
+.cp-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.4);
+  z-index: 2000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.cp-modal-content {
+  background: #f0f0f0;
+  border: 1px solid #999;
+  border-radius: 4px;
+  width: 500px;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.3);
+  display: flex;
+  flex-direction: column;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  color: #333;
+}
+
+.cp-header {
+  background: #fff;
+  padding: 8px 12px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1px solid #ddd;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.cp-close-btn {
+  background: transparent;
+  border: none;
+  font-size: 14px;
+  cursor: pointer;
+  color: #666;
+}
+.cp-close-btn:hover { color: #000; }
+
+.cp-body {
+  display: flex;
+  padding: 12px;
+  gap: 16px;
+}
+
+/* Left side (Palettes) */
+.cp-palettes {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  width: 220px; /* ขยายให้พอ 8 คอลัมน์ */
+}
+
+.cp-section {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.cp-label {
+  font-size: 12px;
+  margin-bottom: 4px;
+}
+
+.cp-grid {
+  display: grid;
+  grid-template-columns: repeat(8, 1fr);
+  gap: 4px;
+}
+
+.cp-color-box {
+  width: 22px;
+  height: 22px;
+  border: 1px solid #a0a0a0;
+  box-sizing: border-box;
+  cursor: pointer;
+}
+
+.cp-color-box:hover {
+  border-color: #000;
+}
+
+.cp-color-box.active {
+  border: 2px solid #000;
+  outline: 1px dotted #fff;
+  outline-offset: -3px;
+}
+
+.cp-btn {
+  padding: 4px 12px;
+  border: 1px solid #999;
+  background: #e1e1e1;
+  border-radius: 2px;
+  cursor: pointer;
+  font-size: 12px;
+}
+.cp-btn:hover { background: #d0d0d0; }
+.cp-btn.fill { background: #2b7082; color: white; border-color: #1a4a56; }
+.cp-btn.fill:hover { background: #1a4a56; }
+
+.add-custom-btn {
+  margin-top: 10px;
+  align-self: flex-start;
+}
+
+/* Right side (Interactive) */
+.cp-interactive {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  flex: 1;
+}
+
+.cp-pickers {
+  display: flex;
+  gap: 12px;
+  height: 180px;
+}
+
+.cp-spectrum {
+  position: relative;
+  flex: 1;
+  border: 1px solid #a0a0a0;
+  cursor: crosshair;
+  background: linear-gradient(to bottom, transparent, #fff),
+              linear-gradient(to right, #f00 0%, #ff0 17%, #0f0 33%, #0ff 50%, #00f 67%, #f0f 83%, #f00 100%);
+}
+
+.cp-spectrum-pointer {
+  position: absolute;
+  width: 12px;
+  height: 12px;
+  border: 1px solid #000;
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+  box-shadow: inset 0 0 0 1px #fff;
+}
+
+.cp-slider-track {
+  position: relative;
+  width: 20px;
+  height: 100%;
+  cursor: ns-resize;
+}
+
+.cp-slider-bg {
+  position: absolute;
+  left: 6px;
+  width: 8px;
+  height: 100%;
+  border: 1px inset #a0a0a0;
+}
+
+.cp-slider-pointer {
+  position: absolute;
+  right: -4px;
+  font-size: 12px;
+  line-height: 1;
+  transform: translateY(-50%);
+  pointer-events: none;
+  color: #000;
+}
+
+.cp-inputs {
+  display: flex;
+  gap: 16px;
+  align-items: flex-start;
+}
+
+.cp-preview-box {
+  width: 60px;
+  height: 60px;
+  border: 1px inset #a0a0a0;
+  background: #fff;
+  padding: 2px;
+}
+
+.cp-preview-color {
+  width: 100%;
+  height: 100%;
+}
+
+.cp-rgb-inputs {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.cp-input-group {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  font-size: 12px;
+}
+
+.cp-input-group input {
+  width: 45px;
+  padding: 2px 4px;
+  border: 1px solid #a0a0a0;
+  font-size: 12px;
+}
+
+.cp-input-group input[type="text"] {
+  width: 65px;
+}
+
+.cp-footer {
+  padding: 12px;
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  border-top: 1px solid #ddd;
+  background: #f0f0f0;
 }

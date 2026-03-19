@@ -1,9 +1,8 @@
-# Magic Pen (Handwriting to Text) Implementation
+# Screen Recording Feature
 
-- [x] Install `tesseract.js` in the `Client` directory.
-- [x] Add `magicPen` tool state and button UI (✍️✨) to Floating Palette or Sidebar.
-- [x] Update `Canvas.jsx` to handle the 1-second idle delay after drawing with `magicPen`.
-- [x] Implement stroke extraction and temporary canvas rendering for OCR.
-- [x] Integrate Tesseract.js OCR processing (Thai + English).
-- [x] Replace drawn strokes with the recognized text on the canvas.
-- [x] Add loading indicators during the OCR process.
+- [x] Add state for `isRecording` and `recordedVideoUrl` in App.jsx
+- [x] Create `startRecording` and `stopRecording` functions using MediaRecorder API
+- [x] Add Record / Stop Record buttons to `Toolbar.jsx`
+- [x] Create a modal for Video Playback (`VideoPlayerModal.jsx`)
+- [x] Add CSS styles for the new Recording features
+- [ ] Test the recording and playback functionality manually

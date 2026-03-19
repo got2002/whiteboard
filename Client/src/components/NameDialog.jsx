@@ -1,43 +1,38 @@
 // ============================================================
-// NameDialog.jsx — ป๊อปอัปตั้งชื่อผู้ใช้ + เลือก Role
+// NameDialog.jsx — ป๊อปอัปตั้งชื่อ (Auto Role)
 // ============================================================
 //
-// แสดงตอนเข้าใช้ครั้งแรก ให้พิมพ์ชื่อ + เลือก Role ก่อนเริ่ม
-// ดีไซน์ glassmorphism เข้ากับ UI หลัก
+// Role ถูกกำหนดอัตโนมัติ:
+//  - ถ้ายังไม่มี host → เป็นครู (host) โดยอัตโนมัติ
+//  - ถ้ามี host อยู่แล้ว → เป็นนักเรียน (viewer) โดยอัตโนมัติ
 //
 // Props:
-//  - onSubmit(name, role) → callback เมื่อกรอกชื่อแล้วกด "เข้าร่วม"
+//  - onSubmit(name, role)  → callback
+//  - hostExists            → boolean
 //
 // ============================================================
 
 import { useState, useRef, useEffect } from "react";
 
-function NameDialog({ onSubmit }) {
-    // ──────────────────────────────────────────────────────────
-    // State & Refs
-    // ──────────────────────────────────────────────────────────
-    const [name, setName] = useState("");           // ชื่อที่ user พิมพ์
-    const [role, setRole] = useState("contributor"); // role ที่เลือก
-    const inputRef = useRef(null);                   // ref สำหรับ auto-focus
+function NameDialog({ onSubmit, hostExists }) {
+    const [name, setName] = useState("");
+    const inputRef = useRef(null);
 
-    // Auto-focus ช่องพิมพ์เมื่อ dialog แสดง
     useEffect(() => {
         inputRef.current?.focus();
     }, []);
 
-    // ──────────────────────────────────────────────────────────
-    // Handlers
-    // ──────────────────────────────────────────────────────────
+    // กำหนด role อัตโนมัติ
+    const autoRole = hostExists ? "viewer" : "host";
 
-    /** จัดการส่งชื่อ — ถ้าไม่พิมพ์ให้ใช้ชื่อ default */
     const handleSubmit = () => {
         const trimmed = name.trim();
-        // สร้างชื่อ default: "ผู้ใช้ XXXX" (เลข 4 หลักสุ่ม)
-        const finalName = trimmed || `ผู้ใช้ ${Math.floor(1000 + Math.random() * 9000)}`;
-        onSubmit(finalName, role);
+        const finalName = trimmed || (autoRole === "host"
+            ? `ครู ${Math.floor(100 + Math.random() * 900)}`
+            : `นักเรียน ${Math.floor(1000 + Math.random() * 9000)}`);
+        onSubmit(finalName, autoRole);
     };
 
-    /** กด Enter = ส่งชื่อ */
     const handleKeyDown = (e) => {
         if (e.key === "Enter") {
             e.preventDefault();
@@ -45,25 +40,14 @@ function NameDialog({ onSubmit }) {
         }
     };
 
-    // ──────────────────────────────────────────────────────────
-    // Role Options
-    // ──────────────────────────────────────────────────────────
-    const roles = [
-        { id: "host", icon: "👨‍🏫", label: "Teacher", desc: "ควบคุมกระดานทั้งหมด" },
-        { id: "contributor", icon: "✏️", label: "Contributor", desc: "วาดและแก้ไขได้" },
-        { id: "viewer", icon: "👁️", label: "Viewer", desc: "ดูอย่างเดียว" },
-    ];
-
-    // ──────────────────────────────────────────────────────────
-    // Render
-    // ──────────────────────────────────────────────────────────
     return (
         <div className="name-dialog-overlay">
             <div className="name-dialog">
                 {/* หัวข้อ */}
-                <div className="name-dialog-icon">✏️</div>
-                <h2 className="name-dialog-title">ยินดีต้อนรับ!</h2>
-                <p className="name-dialog-subtitle">ใส่ชื่อของคุณเพื่อเข้าร่วมกระดาน</p>
+                <h2 className="name-dialog-title">
+                    {hostExists ? "เข้าร่วมกระดาน" : "สร้างกระดาน"}
+                </h2>
+                <p className="name-dialog-subtitle">ใส่ชื่อของคุณเพื่อเริ่มใช้งาน</p>
 
                 {/* ช่องพิมพ์ชื่อ */}
                 <input
@@ -77,28 +61,9 @@ function NameDialog({ onSubmit }) {
                     maxLength={20}
                 />
 
-                {/* Role Selector */}
-                <div className="role-selector">
-                    <p className="role-selector-label">เลือกบทบาท:</p>
-                    <div className="role-selector-options">
-                        {roles.map((r) => (
-                            <button
-                                key={r.id}
-                                className={`role-option ${role === r.id ? "role-option-active" : ""}`}
-                                onClick={() => setRole(r.id)}
-                                type="button"
-                            >
-                                <span className="role-option-icon">{r.icon}</span>
-                                <span className="role-option-label">{r.label}</span>
-                                <span className="role-option-desc">{r.desc}</span>
-                            </button>
-                        ))}
-                    </div>
-                </div>
-
                 {/* ปุ่มเข้าร่วม */}
                 <button className="name-dialog-btn" onClick={handleSubmit}>
-                    🚀 เข้าร่วม
+                    เข้าร่วม
                 </button>
 
                 {/* คำแนะนำ */}

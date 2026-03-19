@@ -25,14 +25,25 @@ import {
 } from "react";
 
 // รายชื่อ tool ที่ถือเป็น "shape" (ใช้ rubber-band preview)
-const SHAPE_TOOLS = ["line", "rect", "circle", "arrow"];
+const SHAPE_TOOLS = [
+    "axes", "line", "arrow", "rect", "rounded_rect", 
+    "parallelogram", "trapezoid", "diamond", 
+    "triangle", "right_triangle", "pentagon", "hexagon", 
+    "heptagon", "octagon", "star", "cross", 
+    "circle", "ellipse", "cylinder", "cone", 
+    "sphere", "cube", "triangular_prism", "pyramid"
+];
+
+// สีคงที่สำหรับ Split Board
+const SLOT_COLORS = ["#ef4444", "#3b82f6", "#22c55e", "#f97316", "#a855f7", "#06b6d4", "#ec4899", "#eab308", "#6b7280", "#000000"];
 
 // cache สำหรับ Image objects (เก็บ dataURL → HTMLImageElement)
 const imageCache = {};
 
 const Canvas = forwardRef(function Canvas(
     {
-        page, tool, color, penSize, mode,
+        page, tool, color, penSize, penStyle, mode,
+        hostTool, hostPenStyle,
         onStrokeComplete, onDraw, onTextRequest, socket,
         // ── Phase 7 Props ──
         onCursorMove,
@@ -57,6 +68,7 @@ const Canvas = forwardRef(function Canvas(
     const prevY = useRef(0);
     const shapeStart = useRef(null);
     const previewCanvasRef = useRef(null);
+    const streamCanvasRef = useRef(null); // สำหรับรวมภาพ + พื้นหลังเพื่อเซฟเป็นวิดีโอ
 
     // Select tool refs
     const [selectedStrokeId, setSelectedStrokeId] = useState(null);
@@ -68,6 +80,9 @@ const Canvas = forwardRef(function Canvas(
     const activePointers = useRef(new Map());
     const lastPanPoint = useRef(null);
     const lastPinchDistance = useRef(null); // เพิ่มตัวแปรเก็บระยะจุด 2 นิ้ว
+
+    // Spacebar to pan
+    const [isSpacePressed, setIsSpacePressed] = useState(false);
 
     useImperativeHandle(ref, () => canvasRef.current);
 
@@ -98,31 +113,114 @@ const Canvas = forwardRef(function Canvas(
         }
         preview.width = canvas.width;
         preview.height = canvas.height;
+
+        // --- เตรียม streamCanvas ไว้คู่กัน ---
+        let sCanvas = streamCanvasRef.current;
+        if (!sCanvas) {
+            sCanvas = document.createElement("canvas");
+            streamCanvasRef.current = sCanvas;
+        }
+        sCanvas.width = canvas.width;
+        sCanvas.height = canvas.height;
+        
+        // ผูกฟังก์ชันเข้ากับ DOM Element โดยตรงเพื่อให้ App.jsx เรียกใช้ได้
+        canvas.captureStreamWithBg = (fps) => {
+            return streamCanvasRef.current.captureStream(fps);
+        };
     }, []);
 
     // ============================================================
     // [B] วาดเส้นตรง 1 segment
     // ============================================================
     const drawSegment = useCallback(
-        (fromX, fromY, toX, toY, sColor, sSize, sTool) => {
+        (fromX, fromY, toX, toY, sColor, sSize, sTool, sPenStyle) => {
             const ctx = ctxRef.current;
             if (!ctx) return;
 
             ctx.save();
+            const style = sPenStyle || "pen";
+
             if (sTool === "eraser") {
                 ctx.globalCompositeOperation = "destination-out";
                 ctx.strokeStyle = "rgba(0,0,0,1)";
                 ctx.lineWidth = sSize * 5;
-            } else if (sTool === "highlighter") {
-                // Highlighter: semi-transparent, wider stroke
+                ctx.lineCap = "round";
+                ctx.lineJoin = "round";
+            } else if (sTool === "highlighter" || style === "highlighter") {
                 ctx.globalCompositeOperation = "source-over";
                 ctx.strokeStyle = sColor;
                 ctx.globalAlpha = 0.3;
                 ctx.lineWidth = sSize * 6;
-            } else {
+                ctx.lineCap = "butt";
+                ctx.lineJoin = "round";
+            } else if (style === "brush") {
+                ctx.globalCompositeOperation = "source-over";
+                ctx.strokeStyle = sColor;
+                const dist = Math.hypot(toX - fromX, toY - fromY);
+                const dynamicSize = Math.max(1, sSize * (1 + Math.min(dist / 30, 3)));
+                ctx.lineWidth = dynamicSize;
+                ctx.lineCap = "round";
+                ctx.lineJoin = "round";
+            } else if (style === "calligraphy") {
+                ctx.globalCompositeOperation = "source-over";
+                ctx.fillStyle = sColor;
+                const angle = Math.PI / 4;
+                const hw = sSize * 1.5;
+                const hh = sSize * 0.3;
+                const cos = Math.cos(angle), sin = Math.sin(angle);
+                ctx.beginPath();
+                ctx.moveTo(fromX - hw * cos + hh * sin, fromY - hw * sin - hh * cos);
+                ctx.lineTo(fromX + hw * cos + hh * sin, fromY + hw * sin - hh * cos);
+                ctx.lineTo(toX + hw * cos - hh * sin, toY + hw * sin + hh * cos);
+                ctx.lineTo(toX - hw * cos - hh * sin, toY - hw * sin + hh * cos);
+                ctx.closePath();
+                ctx.fill();
+                ctx.restore();
+                return;
+            } else if (style === "crayon") {
                 ctx.globalCompositeOperation = "source-over";
                 ctx.strokeStyle = sColor;
                 ctx.lineWidth = sSize;
+                ctx.lineCap = "round";
+                ctx.lineJoin = "round";
+                for (let i = 0; i < 3; i++) {
+                    ctx.globalAlpha = 0.25;
+                    ctx.beginPath();
+                    ctx.moveTo(fromX + (Math.random() - 0.5) * sSize, fromY + (Math.random() - 0.5) * sSize);
+                    ctx.lineTo(toX + (Math.random() - 0.5) * sSize, toY + (Math.random() - 0.5) * sSize);
+                    ctx.stroke();
+                }
+                ctx.restore();
+                return;
+            } else if (style === "dashed") {
+                ctx.globalCompositeOperation = "source-over";
+                ctx.strokeStyle = sColor;
+                ctx.lineWidth = sSize;
+                ctx.lineCap = "round";
+                ctx.lineJoin = "round";
+                ctx.setLineDash([sSize * 4, sSize * 2]);
+            } else if (style === "dotted") {
+                ctx.globalCompositeOperation = "source-over";
+                ctx.strokeStyle = sColor;
+                ctx.lineWidth = sSize;
+                ctx.lineCap = "round";
+                ctx.lineJoin = "round";
+                ctx.setLineDash([sSize, sSize * 3]);
+            } else if (style === "neon") {
+                ctx.globalCompositeOperation = "source-over";
+                ctx.strokeStyle = sColor;
+                ctx.lineWidth = sSize;
+                ctx.lineCap = "round";
+                ctx.lineJoin = "round";
+                ctx.shadowColor = sColor;
+                ctx.shadowBlur = sSize * 4;
+            } else {
+                // Default pen
+                ctx.globalCompositeOperation = "source-over";
+                ctx.strokeStyle = sColor;
+                ctx.lineWidth = sSize;
+                ctx.lineCap = "round";
+                ctx.lineJoin = "round";
             }
             ctx.beginPath();
             ctx.moveTo(fromX, fromY);
@@ -137,7 +235,7 @@ const Canvas = forwardRef(function Canvas(
     // [C] วาด Shape บน Context
     // ============================================================
     const drawShapeOnCtx = useCallback((ctx, shape) => {
-        const { shapeType, startX, startY, endX, endY, color: sColor, size: sSize } = shape;
+        const { shapeType, startX, startY, endX, endY, color: sColor, size: sSize, penStyle } = shape;
         ctx.save();
         ctx.globalCompositeOperation = "source-over";
         ctx.strokeStyle = sColor;
@@ -145,45 +243,267 @@ const Canvas = forwardRef(function Canvas(
         ctx.lineCap = "round";
         ctx.lineJoin = "round";
 
-        if (shapeType === "line") {
-            ctx.beginPath();
-            ctx.moveTo(startX, startY);
-            ctx.lineTo(endX, endY);
-            ctx.stroke();
-        } else if (shapeType === "rect") {
-            ctx.beginPath();
-            ctx.strokeRect(
-                Math.min(startX, endX), Math.min(startY, endY),
-                Math.abs(endX - startX), Math.abs(endY - startY)
-            );
-        } else if (shapeType === "circle") {
-            const cx = (startX + endX) / 2;
-            const cy = (startY + endY) / 2;
-            const rx = Math.abs(endX - startX) / 2;
-            const ry = Math.abs(endY - startY) / 2;
-            ctx.beginPath();
-            ctx.ellipse(cx, cy, rx, ry, 0, 0, Math.PI * 2);
-            ctx.stroke();
-        } else if (shapeType === "arrow") {
-            const angle = Math.atan2(endY - startY, endX - startX);
-            const headLen = Math.max(15, sSize * 4);
-            ctx.beginPath();
-            ctx.moveTo(startX, startY);
-            ctx.lineTo(endX, endY);
-            ctx.stroke();
-            ctx.beginPath();
-            ctx.moveTo(endX, endY);
-            ctx.lineTo(
-                endX - headLen * Math.cos(angle - Math.PI / 6),
-                endY - headLen * Math.sin(angle - Math.PI / 6)
-            );
-            ctx.moveTo(endX, endY);
-            ctx.lineTo(
-                endX - headLen * Math.cos(angle + Math.PI / 6),
-                endY - headLen * Math.sin(angle + Math.PI / 6)
-            );
-            ctx.stroke();
+        if (penStyle === "dashed") {
+            ctx.setLineDash([sSize * 4, sSize * 2]);
+        } else if (penStyle === "dotted") {
+            ctx.setLineDash([sSize, sSize * 3]);
+        } else if (penStyle === "neon") {
+            ctx.shadowColor = sColor;
+            ctx.shadowBlur = sSize * 4;
+        } else if (penStyle === "highlighter") {
+            ctx.globalAlpha = 0.3;
         }
+
+        const left = Math.min(startX, endX);
+        const right = Math.max(startX, endX);
+        const top = Math.min(startY, endY);
+        const bottom = Math.max(startY, endY);
+        const width = right - left;
+        const height = bottom - top;
+        const cx = left + width / 2;
+        const cy = top + height / 2;
+
+        ctx.beginPath();
+
+        switch (shapeType) {
+            case "line":
+                ctx.moveTo(startX, startY);
+                ctx.lineTo(endX, endY);
+                break;
+            case "arrow":
+                {
+                    const angle = Math.atan2(endY - startY, endX - startX);
+                    const headLen = Math.max(15, sSize * 4);
+                    ctx.moveTo(startX, startY);
+                    ctx.lineTo(endX, endY);
+                    ctx.moveTo(endX, endY);
+                    ctx.lineTo(
+                        endX - headLen * Math.cos(angle - Math.PI / 6),
+                        endY - headLen * Math.sin(angle - Math.PI / 6)
+                    );
+                    ctx.moveTo(endX, endY);
+                    ctx.lineTo(
+                        endX - headLen * Math.cos(angle + Math.PI / 6),
+                        endY - headLen * Math.sin(angle + Math.PI / 6)
+                    );
+                }
+                break;
+            case "axes":
+                {
+                    const headLen = 10;
+                    // Y axis
+                    ctx.moveTo(cx, bottom);
+                    ctx.lineTo(cx, top);
+                    ctx.lineTo(cx - headLen/2, top + headLen);
+                    ctx.moveTo(cx, top);
+                    ctx.lineTo(cx + headLen/2, top + headLen);
+                    // X axis
+                    ctx.moveTo(left, cy);
+                    ctx.lineTo(right, cy);
+                    ctx.lineTo(right - headLen, cy - headLen/2);
+                    ctx.moveTo(right, cy);
+                    ctx.lineTo(right - headLen, cy + headLen/2);
+                }
+                break;
+            case "rect":
+                ctx.rect(left, top, width, height);
+                break;
+            case "rounded_rect":
+                {
+                    const r = Math.min(width, height) * 0.15;
+                    ctx.roundRect(left, top, width, height, r);
+                }
+                break;
+            case "parallelogram":
+                ctx.moveTo(left + width * 0.2, top);
+                ctx.lineTo(right, top);
+                ctx.lineTo(right - width * 0.2, bottom);
+                ctx.lineTo(left, bottom);
+                ctx.closePath();
+                break;
+            case "trapezoid":
+                ctx.moveTo(left + width * 0.2, top);
+                ctx.lineTo(right - width * 0.2, top);
+                ctx.lineTo(right, bottom);
+                ctx.lineTo(left, bottom);
+                ctx.closePath();
+                break;
+            case "diamond":
+                ctx.moveTo(cx, top);
+                ctx.lineTo(right, cy);
+                ctx.lineTo(cx, bottom);
+                ctx.lineTo(left, cy);
+                ctx.closePath();
+                break;
+            case "triangle":
+                ctx.moveTo(cx, top);
+                ctx.lineTo(right, bottom);
+                ctx.lineTo(left, bottom);
+                ctx.closePath();
+                break;
+            case "right_triangle":
+                ctx.moveTo(left, top);
+                ctx.lineTo(left, bottom);
+                ctx.lineTo(right, bottom);
+                ctx.closePath();
+                break;
+            case "pentagon":
+            case "hexagon":
+            case "heptagon":
+            case "octagon":
+                {
+                    let sides = 5;
+                    if (shapeType === "hexagon") sides = 6;
+                    if (shapeType === "heptagon") sides = 7;
+                    if (shapeType === "octagon") sides = 8;
+                    for (let i = 0; i < sides; i++) {
+                        const angle = i * 2 * Math.PI / sides - Math.PI / 2;
+                        const x = cx + Math.cos(angle) * width / 2;
+                        const y = cy + Math.sin(angle) * height / 2;
+                        if (i === 0) ctx.moveTo(x, y);
+                        else ctx.lineTo(x, y);
+                    }
+                    ctx.closePath();
+                }
+                break;
+            case "star":
+                {
+                    const spikes = 5;
+                    const outerRadius = Math.min(width, height) / 2;
+                    const innerRadius = outerRadius * 0.4;
+                    for (let i = 0; i < spikes * 2; i++) {
+                        const radius = i % 2 === 0 ? outerRadius : innerRadius;
+                        const angle = i * Math.PI / spikes - Math.PI / 2;
+                        const x = cx + Math.cos(angle) * (radius * (width / height || 1));
+                        const y = cy + Math.sin(angle) * (radius * (height / width || 1));
+                        if (i === 0) ctx.moveTo(x, y);
+                        else ctx.lineTo(x, y);
+                    }
+                    ctx.closePath();
+                }
+                break;
+            case "cross":
+                {
+                    const t = Math.min(width, height) * 0.3; // thickness
+                    ctx.moveTo(cx - t/2, top);
+                    ctx.lineTo(cx + t/2, top);
+                    ctx.lineTo(cx + t/2, cy - t/2);
+                    ctx.lineTo(right, cy - t/2);
+                    ctx.lineTo(right, cy + t/2);
+                    ctx.lineTo(cx + t/2, cy + t/2);
+                    ctx.lineTo(cx + t/2, bottom);
+                    ctx.lineTo(cx - t/2, bottom);
+                    ctx.lineTo(cx - t/2, cy + t/2);
+                    ctx.lineTo(left, cy + t/2);
+                    ctx.lineTo(left, cy - t/2);
+                    ctx.lineTo(cx - t/2, cy - t/2);
+                    ctx.closePath();
+                }
+                break;
+            case "circle":
+                {
+                    const radius = Math.max(Math.abs(endX - startX), Math.abs(endY - startY)) / 2;
+                    ctx.ellipse(cx, cy, radius, radius, 0, 0, Math.PI * 2);
+                }
+                break;
+            case "ellipse":
+                ctx.ellipse(cx, cy, width / 2, height / 2, 0, 0, Math.PI * 2);
+                break;
+            case "cylinder":
+                {
+                    const ry = height * 0.15;
+                    // Top ellipse
+                    ctx.ellipse(cx, top + ry, width / 2, Math.abs(ry), 0, 0, Math.PI * 2);
+                    ctx.stroke(); // Draw top part first
+                    ctx.beginPath();
+                    // Bottom half-ellipse
+                    ctx.ellipse(cx, bottom - ry, width / 2, Math.abs(ry), 0, 0, Math.PI);
+                    // Sides
+                    ctx.moveTo(left, top + ry);
+                    ctx.lineTo(left, bottom - ry);
+                    ctx.moveTo(right, top + ry);
+                    ctx.lineTo(right, bottom - ry);
+                }
+                break;
+            case "cone":
+                {
+                    const ry = height * 0.15;
+                    ctx.ellipse(cx, bottom - ry, width / 2, Math.abs(ry), 0, 0, Math.PI * 2);
+                    ctx.moveTo(cx, top);
+                    ctx.lineTo(left, bottom - ry);
+                    ctx.moveTo(cx, top);
+                    ctx.lineTo(right, bottom - ry);
+                }
+                break;
+            case "sphere":
+                {
+                    const rx = width / 2;
+                    const ry = height / 2;
+                    ctx.ellipse(cx, cy, rx, ry, 0, 0, Math.PI * 2);
+                    ctx.moveTo(left, cy);
+                    ctx.bezierCurveTo(left, cy + ry * 0.6, right, cy + ry * 0.6, right, cy);
+                    ctx.bezierCurveTo(right, cy - ry * 0.6, left, cy - ry * 0.6, left, cy);
+                }
+                break;
+            case "cube":
+                {
+                    const offX = width * 0.3;
+                    const offY = height * 0.3;
+                    // Front face
+                    ctx.rect(left, top + offY, width - offX, height - offY);
+                    // Back face
+                    ctx.rect(left + offX, top, width - offX, height - offY);
+                    // Connecting lines
+                    ctx.moveTo(left, top + offY); ctx.lineTo(left + offX, top);
+                    ctx.moveTo(right - offX, top + offY); ctx.lineTo(right, top);
+                    ctx.moveTo(left, bottom); ctx.lineTo(left + offX, bottom - offY);
+                    ctx.moveTo(right - offX, bottom); ctx.lineTo(right, bottom - offY);
+                }
+                break;
+            case "triangular_prism":
+                {
+                    const offX = width * 0.3;
+                    const offY = height * 0.3;
+                    // Front triangle
+                    ctx.moveTo(left + (width - offX)/2, top + offY);
+                    ctx.lineTo(left, bottom);
+                    ctx.lineTo(right - offX, bottom);
+                    ctx.closePath();
+                    // Back triangle
+                    ctx.moveTo(left + offX + (width - offX)/2, top);
+                    ctx.lineTo(left + offX, bottom - offY);
+                    ctx.lineTo(right, bottom - offY);
+                    ctx.closePath();
+                    // Connectors
+                    ctx.moveTo(left + (width - offX)/2, top + offY); ctx.lineTo(left + offX + (width - offX)/2, top);
+                    ctx.moveTo(left, bottom); ctx.lineTo(left + offX, bottom - offY);
+                    ctx.moveTo(right - offX, bottom); ctx.lineTo(right, bottom - offY);
+                }
+                break;
+            case "pyramid":
+                {
+                    const offX = width * 0.3;
+                    const offY = height * 0.3;
+                    // Base (parallelogram)
+                    ctx.moveTo(left, bottom);
+                    ctx.lineTo(right - offX, bottom);
+                    ctx.lineTo(right, bottom - offY);
+                    ctx.lineTo(left + offX, bottom - offY);
+                    ctx.closePath();
+                    // Top vertex
+                    const tx = cx;
+                    const ty = top;
+                    ctx.moveTo(left, bottom); ctx.lineTo(tx, ty);
+                    ctx.moveTo(right - offX, bottom); ctx.lineTo(tx, ty);
+                    ctx.moveTo(right, bottom - offY); ctx.lineTo(tx, ty);
+                    ctx.moveTo(left + offX, bottom - offY); ctx.lineTo(tx, ty);
+                }
+                break;
+            default:
+                break;
+        }
+
+        ctx.stroke();
         ctx.restore();
     }, []);
 
@@ -257,25 +577,122 @@ const Canvas = forwardRef(function Canvas(
             return;
         }
 
-        // Pen / Eraser / Highlighter
+        // Pen / Eraser / Highlighter / Special Pens
         if (!stroke.points || stroke.points.length < 2) return;
         ctx.save();
+        const style = stroke.penStyle || "pen";
+
         if (stroke.tool === "eraser") {
             ctx.globalCompositeOperation = "destination-out";
             ctx.strokeStyle = "rgba(0,0,0,1)";
             ctx.lineWidth = stroke.size * 5;
-        } else if (stroke.tool === "highlighter") {
+            ctx.lineCap = "round";
+            ctx.lineJoin = "round";
+        } else if (stroke.tool === "highlighter" || style === "highlighter") {
             ctx.globalCompositeOperation = "source-over";
             ctx.strokeStyle = stroke.color;
             ctx.globalAlpha = 0.3;
             ctx.lineWidth = stroke.size * 6;
+            ctx.lineCap = "butt";
+            ctx.lineJoin = "round";
+        } else if (style === "neon") {
+            ctx.globalCompositeOperation = "source-over";
+            ctx.strokeStyle = stroke.color;
+            ctx.lineWidth = stroke.size;
+            ctx.lineCap = "round";
+            ctx.lineJoin = "round";
+            ctx.shadowColor = stroke.color;
+            ctx.shadowBlur = stroke.size * 4;
+        } else if (style === "dashed") {
+            ctx.globalCompositeOperation = "source-over";
+            ctx.strokeStyle = stroke.color;
+            ctx.lineWidth = stroke.size;
+            ctx.lineCap = "round";
+            ctx.lineJoin = "round";
+            ctx.setLineDash([stroke.size * 4, stroke.size * 2]);
+        } else if (style === "dotted") {
+            ctx.globalCompositeOperation = "source-over";
+            ctx.strokeStyle = stroke.color;
+            ctx.lineWidth = stroke.size;
+            ctx.lineCap = "round";
+            ctx.lineJoin = "round";
+            ctx.setLineDash([stroke.size, stroke.size * 3]);
         } else {
             ctx.globalCompositeOperation = "source-over";
             ctx.strokeStyle = stroke.color;
             ctx.lineWidth = stroke.size;
+            ctx.lineCap = "round";
+            ctx.lineJoin = "round";
         }
-        ctx.lineCap = "round";
-        ctx.lineJoin = "round";
+
+        // Special drawing for calligraphy
+        if (style === "calligraphy") {
+            ctx.fillStyle = stroke.color;
+            const angle = Math.PI / 4;
+            const hw = stroke.size * 1.5;
+            const hh = stroke.size * 0.3;
+            const cos = Math.cos(angle), sin = Math.sin(angle);
+            for (let i = 0; i < stroke.points.length - 1; i++) {
+                const p0 = stroke.points[i];
+                const p1 = stroke.points[i + 1];
+                ctx.beginPath();
+                ctx.moveTo(p0.x - hw * cos + hh * sin, p0.y - hw * sin - hh * cos);
+                ctx.lineTo(p0.x + hw * cos + hh * sin, p0.y + hw * sin - hh * cos);
+                ctx.lineTo(p1.x + hw * cos - hh * sin, p1.y + hw * sin + hh * cos);
+                ctx.lineTo(p1.x - hw * cos - hh * sin, p1.y - hw * sin + hh * cos);
+                ctx.closePath();
+                ctx.fill();
+            }
+            ctx.restore();
+            return;
+        }
+
+        // Special drawing for crayon (textured)
+        if (style === "crayon") {
+            ctx.strokeStyle = stroke.color;
+            ctx.lineWidth = stroke.size;
+            ctx.lineCap = "round";
+            ctx.lineJoin = "round";
+            // สุ่ม seed จาก id
+            let seed = 0;
+            for (let c = 0; c < (stroke.id || "").length; c++) seed += (stroke.id || "").charCodeAt(c);
+            const pseudoRandom = (i) => Math.sin(seed + i * 12.97) * 0.5 + 0.5;
+            for (let layer = 0; layer < 3; layer++) {
+                ctx.globalAlpha = 0.25;
+                ctx.beginPath();
+                const offX = (pseudoRandom(layer * 100) - 0.5) * stroke.size;
+                const offY = (pseudoRandom(layer * 200) - 0.5) * stroke.size;
+                ctx.moveTo(stroke.points[0].x + offX, stroke.points[0].y + offY);
+                for (let i = 1; i < stroke.points.length; i++) {
+                    const jx = (pseudoRandom(i * 31 + layer * 7) - 0.5) * stroke.size * 0.5;
+                    const jy = (pseudoRandom(i * 47 + layer * 11) - 0.5) * stroke.size * 0.5;
+                    ctx.lineTo(stroke.points[i].x + jx, stroke.points[i].y + jy);
+                }
+                ctx.stroke();
+            }
+            ctx.restore();
+            return;
+        }
+
+        // Special drawing for brush (dynamic width)
+        if (style === "brush") {
+            ctx.lineCap = "round";
+            ctx.lineJoin = "round";
+            for (let i = 0; i < stroke.points.length - 1; i++) {
+                const p0 = stroke.points[i];
+                const p1 = stroke.points[i + 1];
+                const dist = Math.hypot(p1.x - p0.x, p1.y - p0.y);
+                ctx.lineWidth = Math.max(1, stroke.size * (1 + Math.min(dist / 30, 3)));
+                ctx.beginPath();
+                ctx.moveTo(p0.x, p0.y);
+                ctx.lineTo(p1.x, p1.y);
+                ctx.stroke();
+            }
+            ctx.restore();
+            return;
+        }
+
+        // Default path drawing (pen, neon, dashed, dotted, highlighter, eraser)
         ctx.beginPath();
         ctx.moveTo(stroke.points[0].x, stroke.points[0].y);
         for (let i = 1; i < stroke.points.length; i++) {
@@ -306,11 +723,99 @@ const Canvas = forwardRef(function Canvas(
         }
         ctx.restore();
 
+        // วาดเส้นแบ่งจอ (Split Screen Pens) ให้คงที่กับหน้าจอ (Screen Space)
+        const isSplitActiveLocally = tool === "pen" && typeof penStyle === "string" && penStyle.startsWith("split_");
+        const isSplitActiveByHost = hostTool === "pen" && typeof hostPenStyle === "string" && hostPenStyle.startsWith("split_");
+        
+        // ถ้าโฮสต์เลือกปากกาแบ่งช่อง ให้แสดงร่วมด้วยสำหรับเครื่องนักเรียน
+        let activeSplitStyle = null;
+        if (isSplitActiveLocally) activeSplitStyle = penStyle;
+        else if (isSplitActiveByHost) activeSplitStyle = hostPenStyle;
+
+        if (activeSplitStyle) {
+            const slots = parseInt(activeSplitStyle.split("_")[1]);
+            if (!isNaN(slots) && slots >= 2) {
+                ctx.save();
+                ctx.strokeStyle = "rgba(100, 100, 100, 0.4)";
+                ctx.lineWidth = 2;
+                ctx.setLineDash([15, 15]);
+                const slotWidth = window.innerWidth / slots;
+                ctx.beginPath();
+                for (let i = 1; i < slots; i++) {
+                    const lx = i * slotWidth;
+                    ctx.moveTo(lx, 0);
+                    ctx.lineTo(lx, window.innerHeight);
+                }
+                ctx.stroke();
+                // วาด Text เลขช่องหรือสีช่องเล็กน้อย (Optional)
+                ctx.setLineDash([]);
+                for (let i = 0; i < slots; i++) {
+                    ctx.fillStyle = SLOT_COLORS[i % SLOT_COLORS.length];
+                    ctx.globalAlpha = 0.5;
+                    ctx.beginPath();
+                    ctx.roundRect(i * slotWidth + 10, 10, 20, 20, 4);
+                    ctx.fill();
+                    ctx.globalAlpha = 1;
+                }
+                ctx.restore();
+            }
+        }
+
         // Update background CSS
         if (canvasRef.current && canvasRef.current.parentElement) {
             canvasRef.current.parentElement.style.backgroundPosition = `${panOffset.current.x}px ${panOffset.current.y}px`;
         }
-    }, [page?.strokes, drawStroke]);
+
+        // --- อัปเดต streamCanvas (เพื่อให้วิดีโอที่อัดได้ มีพื้นหลังสีขาว/ดำ ไม่โปร่งใส) ---
+        if (streamCanvasRef.current) {
+            const sCtx = streamCanvasRef.current.getContext("2d");
+            const w = streamCanvasRef.current.width;
+            const h = streamCanvasRef.current.height;
+
+            // 1. ระบายสีพื้นหลัง
+            const bg = page?.background || "white";
+            if (bg === "black") sCtx.fillStyle = "#1a1a2e";
+            else if (bg === "lined") sCtx.fillStyle = "#fefcf3";
+            else sCtx.fillStyle = "#ffffff";
+            sCtx.fillRect(0, 0, w, h);
+
+            // 2. วาดตารางลวดลาย
+            if (bg === "grid" || bg === "lined") {
+                sCtx.save();
+                // ขยับลายตาม pan เหมือนที่ CSS ทำ
+                sCtx.translate(panOffset.current.x % (bg === "grid" ? 30*dpr : 32*dpr), panOffset.current.y % (bg === "grid" ? 30*dpr : 32*dpr));
+                
+                if (bg === "grid") {
+                    sCtx.strokeStyle = "rgba(0,0,0,0.1)";
+                    sCtx.lineWidth = 1;
+                    const step = 30 * dpr;
+                    for (let x = -step; x <= w + step; x += step) {
+                        sCtx.beginPath(); sCtx.moveTo(x, -step); sCtx.lineTo(x, h + step); sCtx.stroke();
+                    }
+                    for (let y = -step; y <= h + step; y += step) {
+                        sCtx.beginPath(); sCtx.moveTo(-step, y); sCtx.lineTo(w + step, y); sCtx.stroke();
+                    }
+                } else if (bg === "lined") {
+                    sCtx.strokeStyle = "rgba(59, 130, 246, 0.2)";
+                    sCtx.lineWidth = 1;
+                    const step = 32 * dpr;
+                    for (let y = -step; y <= h + step; y += step) {
+                        sCtx.beginPath(); sCtx.moveTo(-step, y); sCtx.lineTo(w + step, y); sCtx.stroke();
+                    }
+                }
+                sCtx.restore();
+
+                // เส้นกั้นหน้ากระดาษแนวตั้ง (ไม่ pan)
+                if (bg === "lined") {
+                    sCtx.strokeStyle = "rgba(239, 68, 68, 0.3)";
+                    sCtx.beginPath(); sCtx.moveTo(70 * dpr, 0); sCtx.lineTo(70 * dpr, h); sCtx.stroke();
+                }
+            }
+
+            // 3. วาดภาพจาก Canvas ตัวหลักทับลงไป
+            sCtx.drawImage(canvasRef.current, 0, 0);
+        }
+    }, [page?.strokes, drawStroke, tool, penStyle, hostTool, hostPenStyle, page?.background]);
 
     // ============================================================
     // [G] Effects: Setup + Redraw
@@ -325,14 +830,14 @@ const Canvas = forwardRef(function Canvas(
 
     useEffect(() => {
         redrawAll();
-    }, [page?.id, page?.strokes?.length, redrawAll]);
+    }, [page?.id, page?.strokes?.length, redrawAll, tool, penStyle, hostTool, hostPenStyle]);
 
     // รับเส้น real-time จากผู้ใช้อื่น
     useEffect(() => {
         const handleRemoteDraw = (data) => {
             if (data.pageId === page?.id) {
                 if (data.type === "shape-preview") return;
-                drawSegment(data.prevX, data.prevY, data.x, data.y, data.color, data.size, data.tool);
+                drawSegment(data.prevX, data.prevY, data.x, data.y, data.color, data.size, data.tool, data.penStyle);
             }
         };
         socket.on("draw", handleRemoteDraw);
@@ -393,13 +898,13 @@ const Canvas = forwardRef(function Canvas(
 
     /** เริ่มวาด — กดลงบน canvas */
     const handlePointerDown = (e) => {
-        // ── Viewer: ไม่อนุญาตให้วาด แต่ยัง track cursor ได้ ──
-        if (userRole === "viewer") return;
-
         activePointers.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
 
-        // ── Panning & Zooming (2 นิ้ว หรือ เลือกเครื่องมือ Pan) ──
-        if (tool === "pan" || activePointers.current.size >= 2) {
+        const isViewer = userRole === "viewer";
+        const effectiveTool = isViewer || isSpacePressed ? "pan" : tool;
+
+        // ── Panning & Zooming (2 นิ้ว หรือ เลือกเครื่องมือ Pan หรือ Viewer) ──
+        if (effectiveTool === "pan" || activePointers.current.size >= 2) {
             e.target.setPointerCapture(e.pointerId);
             isDrawing.current = false; // ยกเลิกการวาดชั่วคราว
 
@@ -418,6 +923,9 @@ const Canvas = forwardRef(function Canvas(
             lastPanPoint.current = { x: cx, y: cy };
             return;
         }
+
+        // ── Viewer: ไม่อนุญาตให้ทำอย่างอื่นนอกจาก Pan/Zoom ──
+        if (isViewer) return;
 
         // Text tool
         if (tool === "text") {
@@ -473,11 +981,31 @@ const Canvas = forwardRef(function Canvas(
             pCtx.clearRect(0, 0, preview.width, preview.height);
             pCtx.drawImage(canvasRef.current, 0, 0);
         } else {
-            // Pen/Eraser/Highlighter
+            // Pen/Eraser/Highlighter/Special pens
+            const effectivePenStyle = (tool === "highlighter") ? "highlighter" : (tool === "eraser" ? "pen" : penStyle);
+            
+            let strokeColor = tool === "eraser" ? "#000" : color;
+            // ── คำนวณสีสำหรับ Split Canvas ──
+            // ถ้านักเรียน/เพื่อนร่วมห้องใช้ปากกาธรรมดา แต่โฮสต์เซ็ตโหมดแบ่งช่องไว้ ให้ใช้โหมดแบ่งช่องของโฮสต์
+            let useSplitStyle = null;
+            if (tool === "pen" && effectivePenStyle.startsWith("split_")) useSplitStyle = effectivePenStyle;
+            else if (tool === "pen" && hostPenStyle && hostPenStyle.startsWith("split_")) useSplitStyle = hostPenStyle;
+            
+            if (useSplitStyle) {
+                const slots = parseInt(useSplitStyle.split("_")[1]);
+                if (!isNaN(slots) && slots >= 2) {
+                    const pointerScreenX = e.clientX; 
+                    const slotWidth = window.innerWidth / slots;
+                    const slotIndex = Math.max(0, Math.min(slots - 1, Math.floor(pointerScreenX / slotWidth)));
+                    strokeColor = SLOT_COLORS[slotIndex % SLOT_COLORS.length];
+                }
+            }
+
             currentStroke.current = {
                 id: Date.now().toString(36) + Math.random().toString(36).substr(2),
-                tool, // "pen" | "eraser" | "highlighter"
-                color: tool === "eraser" ? "#000" : color,
+                tool,
+                penStyle: effectivePenStyle,
+                color: strokeColor,
                 size: penSize,
                 points: [{ x, y }],
             };
@@ -490,8 +1018,16 @@ const Canvas = forwardRef(function Canvas(
             activePointers.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
         }
 
+        const isViewer = userRole === "viewer";
+        const effectiveTool = isViewer || isSpacePressed ? "pan" : tool;
+
         // ── Panning & Zoom Logic ──
-        if (tool === "pan" || activePointers.current.size >= 2) {
+        if (effectiveTool === "pan" || activePointers.current.size >= 2) {
+            if (!lastPanPoint.current && activePointers.current.size > 0) {
+                let cx = 0, cy = 0;
+                activePointers.current.forEach(p => { cx += p.x; cy += p.y; });
+                lastPanPoint.current = { x: cx / activePointers.current.size, y: cy / activePointers.current.size };
+            }
             if (!lastPanPoint.current) return;
 
             // 1) Panning (เลื่อนกระดาน)
@@ -573,16 +1109,18 @@ const Canvas = forwardRef(function Canvas(
                 startY: shapeStart.current.y,
                 endX: x, endY: y,
                 color, size: penSize,
+                penStyle
             });
             ctx.restore();
         } else {
-            // Pen/Eraser/Highlighter
-            const sColor = tool === "eraser" ? "#000" : color;
-            drawSegment(prevX.current, prevY.current, x, y, sColor, penSize, tool);
+            // Pen/Eraser/Highlighter/Special pens
+            const strokeColor = currentStroke.current ? currentStroke.current.color : (tool === "eraser" ? "#000" : color);
+            const effectiveStyle = (tool === "highlighter") ? "highlighter" : (tool === "eraser" ? "pen" : penStyle);
+            drawSegment(prevX.current, prevY.current, x, y, strokeColor, penSize, tool, effectiveStyle);
 
             onDraw({
                 prevX: prevX.current, prevY: prevY.current,
-                x, y, color: sColor, size: penSize, tool,
+                x, y, color: strokeColor, size: penSize, tool, penStyle: effectiveStyle,
             });
 
             currentStroke.current?.points.push({ x, y });
@@ -635,6 +1173,7 @@ const Canvas = forwardRef(function Canvas(
                     startY: shapeStart.current.y,
                     endX: x, endY: y,
                     color, size: penSize,
+                    penStyle
                 };
                 onStrokeComplete(shapeStroke);
             }
@@ -655,7 +1194,10 @@ const Canvas = forwardRef(function Canvas(
         if (!canvas) return;
 
         const handleWheel = (e) => {
-            if (e.ctrlKey || e.metaKey || tool === "pan") {
+            const isViewer = userRole === "viewer";
+            const effectiveTool = isViewer ? "pan" : tool;
+            
+            if (e.ctrlKey || e.metaKey || effectiveTool === "pan") {
                 e.preventDefault();
                 const rect = canvas.getBoundingClientRect();
                 const mouseX = e.clientX - rect.left;
@@ -676,20 +1218,46 @@ const Canvas = forwardRef(function Canvas(
 
         canvas.addEventListener("wheel", handleWheel, { passive: false });
         return () => canvas.removeEventListener("wheel", handleWheel);
-    }, [redrawAll, tool]);
+    }, [redrawAll, tool, userRole]);
+
+    // ============================================================
+    // [H3] Spacebar to Pan
+    // ============================================================
+    useEffect(() => {
+        const handleKeyDown = (e) => {
+            if (e.code === "Space" && e.target.tagName !== "INPUT" && e.target.tagName !== "TEXTAREA") {
+                e.preventDefault(); // ป้องกันหน้าเลื่อนลง
+                setIsSpacePressed(true);
+            }
+        };
+        const handleKeyUp = (e) => {
+            if (e.code === "Space") {
+                setIsSpacePressed(false);
+            }
+        };
+        window.addEventListener("keydown", handleKeyDown);
+        window.addEventListener("keyup", handleKeyUp);
+        return () => {
+            window.removeEventListener("keydown", handleKeyDown);
+            window.removeEventListener("keyup", handleKeyUp);
+        };
+    }, []);
 
     // ============================================================
     // [I] Cursor style
     // ============================================================
     let cursorStyle = "default";
-    if (tool === "pen") cursorStyle = "crosshair";
-    else if (tool === "highlighter") cursorStyle = "crosshair";
-    else if (tool === "eraser") cursorStyle = "cell";
-    else if (tool === "text") cursorStyle = "text";
-    else if (tool === "laser") cursorStyle = "none";
-    else if (tool === "select") cursorStyle = selectedStrokeId ? "move" : "pointer";
-    else if (tool === "pan") cursorStyle = activePointers.current.size > 0 ? "grabbing" : "grab";
-    else if (SHAPE_TOOLS.includes(tool)) cursorStyle = "crosshair";
+    const isViewerForCursor = userRole === "viewer";
+    const effectiveToolForCursor = isViewerForCursor || isSpacePressed ? "pan" : tool;
+
+    if (effectiveToolForCursor === "pen") cursorStyle = "crosshair";
+    else if (effectiveToolForCursor === "highlighter") cursorStyle = "crosshair";
+    else if (effectiveToolForCursor === "eraser") cursorStyle = "cell";
+    else if (effectiveToolForCursor === "text") cursorStyle = "text";
+    else if (effectiveToolForCursor === "laser") cursorStyle = "none";
+    else if (effectiveToolForCursor === "select") cursorStyle = selectedStrokeId ? "move" : "pointer";
+    else if (effectiveToolForCursor === "pan") cursorStyle = activePointers.current.size > 0 ? "grabbing" : "grab";
+    else if (SHAPE_TOOLS.includes(effectiveToolForCursor)) cursorStyle = "crosshair";
 
     // ============================================================
     // [J] กรอง Remote Cursors / Laser
