@@ -26,7 +26,6 @@ import PagePanel from "./components/PagePanel";
 import ModePanel from "./components/ModePanel";
 import NameDialog from "./components/NameDialog";
 import UserPanel from "./components/UserPanel";
-import { createPage } from "./utils/pageFactory";
 
 import PermissionButton from "./components/PermissionButton";
 import PermissionPanel from "./components/PermissionPanel";
@@ -45,7 +44,13 @@ const socket = io(SOCKET_URL);
 // ============================================================
 // [2] Helper — สร้างหน้ากระดานเปล่าใหม่
 // ============================================================
-
+function createPage(bg = "white") {
+  return {
+    id: Date.now().toString(36) + Math.random().toString(36).substr(2),
+    background: bg,
+    strokes: [],
+  };
+}
 
 // ============================================================
 // [2.1] Auto Save key สำหรับ localStorage

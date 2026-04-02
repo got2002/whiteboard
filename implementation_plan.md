@@ -1,116 +1,43 @@
-# Phase 7 — Real-time Collaboration Enhancements
+# Screen Recording Feature Plan
 
-## Overview
+## Goal Description
+The user wants to add a screen recording and playback feature to the Whiteboard web application. This will allow users to record their drawing sessions (both video and audio) and playback or download the resulting video within the application.
 
-เพิ่มฟีเจอร์ Collaboration ขั้นสูงให้ Whiteboard เพื่อให้ผู้ใช้หลายคนทำงานร่วมกันได้ดีขึ้น
-
-**ฟีเจอร์ที่จะเพิ่ม:**
-1. **ตั้งชื่อผู้ใช้** — ป๊อปอัปตอนเข้าใช้ครั้งแรก ให้พิมพ์ชื่อ + ได้สีประจำตัวอัตโนมัติ
-2. **Live Cursors** — แสดงเคอร์เซอร์ของผู้ใช้คนอื่นบน canvas ในเวลาจริง พร้อมชื่อ
-3. **Laser Pointer** — เครื่องมือ "ชี้" สำหรับนำเสนอ (แสดงจุดสีแดงชั่วคราว)
-4. **รายชื่อผู้ใช้ออนไลน์** — แผงแสดงผู้ใช้ที่เชื่อมต่ออยู่ พร้อมสีและหน้าที่กำลังดู
-5. **Follow Mode** — กดตามคนอื่นเพื่อสลับหน้าตามเขาอัตโนมัติ
-
----
+## User Review Required
+- Is it acceptable to use the browser's `navigator.mediaDevices.getDisplayMedia()` which will prompt the user to choose which screen/window to record? This is the standard approach for screen recording on the web.
+- Currently, I plan to place the "Record / Stop" button in the `Toolbar` at the bottom right (next to the Users button). Is this placement okay?
 
 ## Proposed Changes
 
-### Server
-
-#### [MODIFY] [server.js](file:///c:/test_ai/Whiteboard/Server/server.js)
-
-- เพิ่มเก็บข้อมูลผู้ใช้: `users = { socketId: { name, color, pageIndex, cursorX, cursorY } }`
-- เพิ่ม event ใหม่:
-  - `set-user` — รับชื่อ → กำหนดสี → broadcast `user-joined`
-  - `cursor-move` — รับตำแหน่ง cursor → broadcast ให้คนอื่น
-  - `laser` — รับตำแหน่ง laser → broadcast ให้คนอื่น
-  - `page-change` — รับ pageIndex → อัปเดตใน users → broadcast `user-page-change`
-- แก้ `disconnect` → broadcast `user-left`
-- แก้ `init-state` → ส่ง `users` map ไปด้วย
-
----
-
-### Client — App Component
-
+### Client Application
 #### [MODIFY] [App.jsx](file:///c:/test_ai/Whiteboard/Client/src/App.jsx)
-
-- เพิ่ม state: `username`, `userColor`, `remoteUsers`, `showUserPanel`, `followUserId`
-- เพิ่ม `showNameDialog` state — แสดง dialog ให้ใส่ชื่อตอน mount
-- ส่ง `set-user` event ตอนตั้งชื่อเสร็จ
-- ฟัง event ใหม่: `user-joined`, `user-left`, `user-list`, `user-page-change`
-- ส่ง `page-change` event เมื่อเปลี่ยนหน้า
-- Follow Mode: เมื่อคนที่ follow เปลี่ยนหน้า → สลับหน้าตาม
-- เพิ่ม `tool === "laser"` → ส่ง cursor pos ผ่าน `laser` event
-- ส่ง `cursor-move` ทุก pointermove บน canvas
-
----
-
-### Client — Canvas Component
-
-#### [MODIFY] [Canvas.jsx](file:///c:/test_ai/Whiteboard/Client/src/components/Canvas.jsx)
-
-- รับ props ใหม่: `remoteCursors`, `laserPointers`
-- วาด remote cursors เป็น `<div>` ที่ลอยทับ canvas (ใช้ CSS transform) พร้อมชื่อ + สี
-- วาด laser pointers เป็นวงกลมเรืองแสงชั่วคราว (fade out)
-- ส่ง `onCursorMove(x, y)` callback กลับไป App เมื่อ pointermove
-
----
-
-### Client — Toolbar
+- **Add State:** `isRecording`, `recordedVideoUrl`, `showVideoModal`.
+- **Add Refs:** `mediaRecorderRef`, `recordedChunksRef`.
+- **Add Functions:** 
+  - `startRecording()`: Requests display media (screen/window) and audio, initializes `MediaRecorder`, and starts recording.
+  - `stopRecording()`: Stops the `MediaRecorder` and the media tracks, compiles the chunks into a Blob, and generates a URL for playback.
+- **Render:** Pass recording states and callbacks to `Toolbar`. Also render `VideoPlayerModal` when `showVideoModal` is true.
 
 #### [MODIFY] [Toolbar.jsx](file:///c:/test_ai/Whiteboard/Client/src/components/Toolbar.jsx)
+- **Add Props:** `isRecording` (boolean), `onStartRecord` (function), `onStopRecord` (function).
+- **Add UI:** A newly added record button ⏺️ (or stop button ⏹️) located in the toolbar group on the right side.
 
-- เพิ่มปุ่ม Laser Pointer 🔴 ในกลุ่มเครื่องมือวาด
-- เพิ่มปุ่มเปิด/ปิด User Panel 👥
-
----
-
-### New Component — UserPanel
-
-#### [NEW] [UserPanel.jsx](file:///c:/test_ai/Whiteboard/Client/src/components/UserPanel.jsx)
-
-- แผงสไลด์จากขวา — แสดงรายชื่อผู้ใช้ออนไลน์
-- แต่ละรายการมี: จุดสี + ชื่อ + "หน้า X" + ปุ่ม "ตามดู"
-- ปุ่ม "ตามดู" → เปิด Follow Mode (สลับหน้าตามคนนั้น)
-
----
-
-### New Component — NameDialog
-
-#### [NEW] [NameDialog.jsx](file:///c:/test_ai/Whiteboard/Client/src/components/NameDialog.jsx)
-
-- Modal ป๊อปอัปเมื่อเข้าใช้ครั้งแรก
-- ช่องใส่ชื่อ + ปุ่มเข้าร่วม
-- ดีไซน์ glassmorphism ให้เข้ากับ UI เดิม
-- ถ้าไม่ใส่ชื่อ → ใช้ชื่อ default "ผู้ใช้ XXXX"
-
----
-
-### Styles
+#### [NEW] [VideoPlayerModal.jsx](file:///c:/test_ai/Whiteboard/Client/src/components/VideoPlayerModal.jsx)
+- A new modal component that takes `videoUrl` and `onClose` props.
+- Displays a `<video src={videoUrl} controls />` element for playback.
+- Includes a "Download" button to save the video as a `.webm` file.
 
 #### [MODIFY] [index.css](file:///c:/test_ai/Whiteboard/Client/src/index.css)
-
-- สไตล์ NameDialog (modal glassmorphism)
-- สไตล์ UserPanel (slide-in จากขวา)
-- สไตล์ Remote Cursors (ทรง arrow + label ชื่อ)
-- สไตล์ Laser Pointer (วงกลมเรืองแสง + animation fade)
-- สไตล์ Follow Mode indicator
-
----
+- Add styling for the `.video-modal-overlay` and `.video-modal-content` elements to display the video player elegantly.
+- Add styling for the recording button (perhaps a pulsing red dot when recording).
 
 ## Verification Plan
-
-### Build Verification
-```
-cd c:\test_ai\Whiteboard\Client && npx vite build
-```
-ต้องผ่าน 0 errors
-
-### Manual Browser Testing
-
-1. เปิด `http://localhost:5173/`
-2. **Name Dialog** — ป๊อปอัปขึ้นให้ใส่ชื่อ → พิมพ์ชื่อ → กด "เข้าร่วม" → ป๊อปอัปหายไป
-3. **User Panel** — กดปุ่ม 👥 → แผงเลื่อนออกมาจากขวา → เห็นชื่อตัวเอง + หน้าที่กำลังดูอยู่
-4. **Live Cursors** — เปิดเบราว์เซอร์ 2 แท็บ → เลื่อนเมาส์ในแท็บหนึ่ง → เห็น cursor ขึ้นในอีกแท็บพร้อมชื่อ
-5. **Laser Pointer** — เลือก tool 🔴 → เลื่อนเมาส์บน canvas → เห็นจุดแดงเรืองแสง → คนอื่นเห็นด้วย
-6. **Follow Mode** — กด "ตามดู" ข้างชื่อคนอื่นใน User Panel → เปลี่ยนหน้าในแท็บนั้น → หน้าของเราเปลี่ยนตาม
+### Manual Verification
+1. Open the application in the browser.
+2. Click the new "Record" button in the toolbar.
+3. Accept the browser prompt to share the screen/window.
+4. Draw on the canvas.
+5. Click the "Stop Recording" button.
+6. Verify that the Video Player Modal appears.
+7. Play the video to ensure it captured the screen and audio.
+8. Click "Download" to ensure the video saves correctly to the local device.
