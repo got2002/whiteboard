@@ -18,4 +18,6 @@ contextBridge.exposeInMainWorld("electronAPI", {
     minimize: () => ipcRenderer.send("window-minimize"),
     close: () => ipcRenderer.send("window-close"),
     toggleOnScreen: (isTransparent) => ipcRenderer.invoke("toggle-onscreen", isTransparent),
+    toggleFullscreen: (intendedState) => ipcRenderer.invoke("toggle-fullscreen", intendedState),
+    setIgnoreMouse: (ignore) => ipcRenderer.send("set-ignore-mouse", ignore),
 });

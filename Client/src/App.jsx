@@ -19,12 +19,14 @@ import { useState, useRef, useCallback, useEffect } from "react";
 import { io } from "socket.io-client";
 import { QRCodeSVG } from "qrcode.react";
 import Canvas from "./components/Canvas";
-import Toolbar from "./components/Toolbar";
+import HeaderBar from "./components/HeaderBar";
+import ToolPalette from "./components/ToolPalette";
+import ColorSidebar from "./components/ColorSidebar";
 import PagePanel from "./components/PagePanel";
 import ModePanel from "./components/ModePanel";
 import NameDialog from "./components/NameDialog";
 import UserPanel from "./components/UserPanel";
-import SideToolbar from "./components/SideToolbar";
+
 import PermissionButton from "./components/PermissionButton";
 import PermissionPanel from "./components/PermissionPanel";
 import VideoPlayerModal from "./components/VideoPlayerModal";
@@ -108,6 +110,8 @@ function App() {
   const [serverUrl, setServerUrl] = useState("");
   const [userCount, setUserCount] = useState(0);
   const [showQR, setShowQR] = useState(false);
+  const [showToolbars, setShowToolbars] = useState(true);
+  const [isOnScreen, setIsOnScreen] = useState(false);
 
   // ──────────────────────────────────────────────────────────
   // State: EClass features
@@ -245,6 +249,41 @@ function App() {
   }, [autoSave, pages, currentPageIndex]);
 
   // ============================================================
+  // [3.2] On-Screen Mode — toggle HTML class for transparent BG
+  // ============================================================
+  useEffect(() => {
+    if (isOnScreen) {
+      document.documentElement.classList.add("on-screen-mode");
+    } else {
+      document.documentElement.classList.remove("on-screen-mode");
+    }
+
+    // เมื่อ on-screen mode: ให้ toolbar reclickable ด้วย mouseenter/mouseleave
+    if (!isOnScreen || !window.electronAPI?.isElectron) return;
+
+    const enableMouse = () => window.electronAPI.setIgnoreMouse(false);
+    const disableMouse = () => window.electronAPI.setIgnoreMouse(true);
+
+    // เลือก UI elements ที่ต้องการให้คลิกได้
+    const selectors = [".header-bar", ".tool-palette", ".color-sidebar", ".canvas-bg", ".mode-panel", ".page-panel", ".user-panel", ".qr-container", ".permission-panel"];
+    const elements = [];
+    selectors.forEach(sel => {
+      document.querySelectorAll(sel).forEach(el => {
+        el.addEventListener("mouseenter", enableMouse);
+        el.addEventListener("mouseleave", disableMouse);
+        elements.push(el);
+      });
+    });
+
+    return () => {
+      elements.forEach(el => {
+        el.removeEventListener("mouseenter", enableMouse);
+        el.removeEventListener("mouseleave", disableMouse);
+      });
+    };
+  }, [isOnScreen]);
+
+  // ============================================================
   // [4] Socket.IO Listeners
   // ============================================================
   useEffect(() => {
@@ -254,22 +293,7 @@ function App() {
       if (hT) setHostTool(hT);
       if (hPS) setHostPenStyle(hPS);
 
-      // ถ้ากระดาน server เป็นหน้าเปล่าแผ่นเดียว แล้วเรามี auto-save อยู่ 
-      // → ให้ดัน auto-save ของเราขึ้นไปเป็นหลัก
-      if (serverPages?.length === 1 && serverPages[0].strokes?.length === 0) {
-        try {
-          const saved = localStorage.getItem(AUTO_SAVE_KEY);
-          if (saved) {
-            const data = JSON.parse(saved);
-            if (data.pages && data.pages.length > 0) {
-              setPages(data.pages);
-              setCurrentPageIndex(data.currentPageIndex || 0);
-              socket.emit("load-project", { pages: data.pages });
-              return;
-            }
-          }
-        } catch { /* ignore */ }
-      }
+      // เมื่อเชื่อมต่อครั้งแรก ให้ใช้ข้อมูลจาก Server เป็นหลัก (เดี๋ยวให้ Host ดึง auto-save ในภายหลัง)
 
       // นอกนั้นให้ใช้ข้อมูลจาก server ตามปกติ
       if (serverPages && serverPages.length > 0) {
@@ -336,7 +360,31 @@ function App() {
     socket.on("user-list", (userMap) => setRemoteUsers(userMap || {}));
     socket.on("user-confirmed", ({ color: myColor, role: myRole }) => {
       setUserColor(myColor);
-      if (myRole) setUserRole(myRole);
+      if (myRole) {
+        setUserRole(myRole);
+
+        // ถ้าได้เป็น Host และหน้ากระดานปัจจุบันยังว่างเปล่า ให้คืนค่าจาก auto-save
+        if (myRole === "host") {
+          setPages((currentPages) => {
+            if (currentPages?.length === 1 && currentPages[0].strokes?.length === 0) {
+              try {
+                const saved = localStorage.getItem(AUTO_SAVE_KEY);
+                if (saved) {
+                  const data = JSON.parse(saved);
+                  if (data.pages && data.pages.length > 0) {
+                    setTimeout(() => {
+                      setCurrentPageIndex(data.currentPageIndex || 0);
+                      socket.emit("load-project", { pages: data.pages });
+                    }, 0);
+                    return data.pages;
+                  }
+                }
+              } catch { /* ignore */ }
+            }
+            return currentPages;
+          });
+        }
+      }
     });
 
     socket.on("user-joined", ({ id, name, color: uColor, pageIndex }) => {
@@ -532,6 +580,20 @@ function App() {
   );
 
   // ============================================================
+  // [5.0] Track Last Remote Draw for Focus Mode
+  // ============================================================
+  const lastDrawRef = useRef(null);
+  useEffect(() => {
+    const handleRemoteDraw = (data) => {
+      if (data.pageId === currentPage?.id) {
+        lastDrawRef.current = { x: data.x, y: data.y };
+      }
+    };
+    socket.on("draw", handleRemoteDraw);
+    return () => socket.off("draw", handleRemoteDraw);
+  }, [currentPage?.id]);
+
+  // ============================================================
   // [5.1] Select Tool — ย้าย stroke
   // ============================================================
   const handleStrokeUpdate = useCallback(
@@ -560,6 +622,46 @@ function App() {
               }
               if (s.type === "text" || s.type === "stamp" || s.type === "image") {
                 return { ...s, x: s.x + dx, y: s.y + dy };
+              }
+              return s;
+            }),
+          };
+        })
+      );
+    },
+    [currentPage?.id]
+  );
+
+  // ============================================================
+  // [5.2] Select Tool — ย่อ/ขยาย stroke (image, shape)
+  // ============================================================
+  const handleStrokeResize = useCallback(
+    (strokeId, newBounds) => {
+      setPages((prev) =>
+        prev.map((p) => {
+          if (p.id !== currentPage?.id) return p;
+          return {
+            ...p,
+            strokes: p.strokes.map((s) => {
+              if (s.id !== strokeId) return s;
+
+              if (s.type === "image") {
+                return {
+                  ...s,
+                  x: newBounds.x,
+                  y: newBounds.y,
+                  width: newBounds.width,
+                  height: newBounds.height,
+                };
+              }
+              if (s.type === "shape") {
+                return {
+                  ...s,
+                  startX: newBounds.x,
+                  startY: newBounds.y,
+                  endX: newBounds.x + newBounds.width,
+                  endY: newBounds.y + newBounds.height,
+                };
               }
               return s;
             }),
@@ -1172,7 +1274,7 @@ function App() {
   // [17] Render
   // ============================================================
   return (
-    <div className="app" onClick={tool === "stamp" ? handleCanvasClick : undefined}>
+    <div className={`app${isOnScreen ? " on-screen" : ""}`} onClick={tool === "stamp" ? handleCanvasClick : undefined}>
 
       {/* Name Dialog */}
       {showNameDialog && hostStatusLoaded && (
@@ -1215,6 +1317,7 @@ function App() {
         laserPointers={laserPointers}
         currentPageIndex={currentPageIndex}
         onStrokeUpdate={handleStrokeUpdate}
+        onStrokeResize={handleStrokeResize}
         userRole={userRole}
       />
 
@@ -1241,62 +1344,79 @@ function App() {
         </div>
       )}
 
+      {/* ═══════════════════════════════════════════════════ */}
+      {/* NEW LAYOUT: HeaderBar + ToolPalette + ColorSidebar */}
+      {/* ═══════════════════════════════════════════════════ */}
+
+      {/* Header Bar — always visible */}
+      <HeaderBar
+        currentPageIndex={currentPageIndex}
+        totalPages={pages.length}
+        onPrevPage={handlePrevPage}
+        onNextPage={handleNextPage}
+        onTogglePages={() => setShowPagePanel((v) => !v)}
+        onNewBoard={handleNewBoard}
+        onLoadProject={handleLoadProject}
+        onSaveProject={handleSaveProject}
+        onExport={handleExport}
+        onExportAll={handleExportAll}
+        autoSave={autoSave}
+        onToggleAutoSave={handleToggleAutoSave}
+        onInsertImage={handleInsertImage}
+        mode={mode}
+        onModeChange={handleModeChange}
+        userCount={userCount}
+        onToggleUserPanel={() => setShowUserPanel((v) => !v)}
+        showQR={showQR}
+        onToggleQR={() => setShowQR((v) => !v)}
+        isRecording={isRecording}
+        onStartRecord={startRecording}
+        onStopRecord={stopRecording}
+        showWebcam={showWebcam}
+        onToggleWebcam={() => setShowWebcam((v) => !v)}
+        userRole={userRole}
+        pendingRequests={pendingRequests.length}
+        onTogglePermissionPanel={() => setShowPermissionPanel((v) => !v)}
+        onToggleOnScreen={(val) => setIsOnScreen(val)}
+      />
+
+      {/* Tool Palette — host/contributor only */}
+      {userRole !== "viewer" && showToolbars && (
+        <ToolPalette
+          tool={tool}
+          color={color}
+          penSize={penSize}
+          penStyle={penStyle}
+          onToolChange={(t) => { setTool(t); if (t !== "stamp") setActiveStamp(null); }}
+          onPenStyleChange={setPenStyle}
+          onPenSizeChange={setPenSize}
+          onUndo={handleUndo}
+          onRedo={handleRedo}
+          onClear={handleClear}
+          onInsertImage={handleInsertImage}
+          userRole={userRole}
+        />
+      )}
+
+      {/* Color Sidebar — host/contributor only */}
+      {userRole !== "viewer" && showToolbars && (
+        <ColorSidebar
+          color={color}
+          onColorChange={setColor}
+          penSize={penSize}
+          onPenSizeChange={setPenSize}
+          background={currentPage?.background || "white"}
+          onBackgroundChange={handleBackgroundChange}
+          userRole={userRole}
+        />
+      )}
+
       {/* Mode Panel — host only */}
       {userRole === "host" && (
         <ModePanel
           mode={mode}
           activeStamp={activeStamp}
           onStampSelect={handleStampSelect}
-        />
-      )}
-
-      {/* EClass: Side Toolbar — host/contributor */}
-      {userRole !== "viewer" && (
-        <SideToolbar
-          onScreenshot={handleScreenshot}
-        />
-      )}
-
-
-      {/* Toolbar (ด้านล่าง) — host/contributor */}
-      {userRole !== "viewer" && (
-        <Toolbar
-          tool={tool}
-          color={color}
-          penSize={penSize}
-          penStyle={penStyle}
-          background={currentPage?.background || "white"}
-          mode={mode}
-          currentPageIndex={currentPageIndex}
-          totalPages={pages.length}
-          onToolChange={(t) => { setTool(t); if (t !== "stamp") setActiveStamp(null); }}
-          onColorChange={setColor}
-          onPenSizeChange={setPenSize}
-          onPenStyleChange={setPenStyle}
-          onBackgroundChange={handleBackgroundChange}
-          onModeChange={handleModeChange}
-          onUndo={handleUndo}
-          onRedo={handleRedo}
-          onClear={handleClear}
-          onExport={handleExport}
-          onSaveProject={handleSaveProject}
-          onLoadProject={handleLoadProject}
-          onExportAll={handleExportAll}
-          onPrevPage={handlePrevPage}
-          onNextPage={handleNextPage}
-          onTogglePages={() => setShowPagePanel((v) => !v)}
-          onToggleUserPanel={() => setShowUserPanel((v) => !v)}
-          // EClass new props
-          onNewBoard={handleNewBoard}
-          onInsertImage={handleInsertImage}
-          autoSave={autoSave}
-          onToggleAutoSave={handleToggleAutoSave}
-          isRecording={isRecording}
-          onStartRecord={startRecording}
-          onStopRecord={stopRecording}
-          showWebcam={showWebcam}
-          onToggleWebcam={() => setShowWebcam((v) => !v)}
-          userRole={userRole}
         />
       )}
 
@@ -1324,12 +1444,6 @@ function App() {
         onFollow={handleFollow}
       />
 
-      {/* จำนวนผู้ใช้ออนไลน์ */}
-      <div className="user-count" title="ผู้ใช้ที่เชื่อมต่อ">
-        <span className="user-dot" />
-        {userCount} ออนไลน์
-      </div>
-
       {/* Follow Indicator */}
       {followUserId && remoteUsers[followUserId] && (
         <div className="follow-indicator">
@@ -1341,6 +1455,26 @@ function App() {
             ✕ หยุด
           </button>
         </div>
+      )}
+
+      {/* Focus Drawer Button — visible only for clients (not host) */}
+      {userCount > 1 && userRole !== "host" && (
+        <button
+          className="focus-drawer-btn"
+          onClick={() => {
+            if (lastDrawRef.current && canvasRef.current?.focusOnPoint) {
+              canvasRef.current.focusOnPoint(lastDrawRef.current.x, lastDrawRef.current.y);
+            } else {
+              const cursors = Object.values(remoteCursors).filter(c => c.pageIndex === currentPageIndex);
+              if (cursors.length > 0 && canvasRef.current?.focusOnPoint) {
+                canvasRef.current.focusOnPoint(cursors[0].x, cursors[0].y);
+              }
+            }
+          }}
+          title="ไปที่จุดที่มีคนกำลังเขียน"
+        >
+          🎯 โฟกัส
+        </button>
       )}
 
       {/* Viewer Mode Indicator + Permission Button */}
@@ -1358,40 +1492,20 @@ function App() {
 
       {/* Permission Panel for Host */}
       {userRole === "host" && (
-        <>
-          <button
-            className="permission-toggle-btn"
-            onClick={() => setShowPermissionPanel((v) => !v)}
-            title="จัดการสิทธิ์"
-          >
-            🔐
-            {pendingRequests.length > 0 && (
-              <span className="permission-toggle-badge">{pendingRequests.length}</span>
-            )}
-          </button>
-          <PermissionPanel
-            show={showPermissionPanel}
-            onToggle={() => setShowPermissionPanel(false)}
-            pendingRequests={pendingRequests}
-            contributors={Object.entries(remoteUsers)
-              .filter(([, u]) => u.role === "contributor")
-              .map(([id, u]) => ({ id, ...u }))}
-            onApprove={handleApproveRequest}
-            onDeny={handleDenyRequest}
-            onRevoke={handleRevokePermission}
-          />
-        </>
+        <PermissionPanel
+          show={showPermissionPanel}
+          onToggle={() => setShowPermissionPanel(false)}
+          pendingRequests={pendingRequests}
+          contributors={Object.entries(remoteUsers)
+            .filter(([, u]) => u.role === "contributor")
+            .map(([id, u]) => ({ id, ...u }))}
+          onApprove={handleApproveRequest}
+          onDeny={handleDenyRequest}
+          onRevoke={handleRevokePermission}
+        />
       )}
 
-      {/* QR Code */}
-      <button
-        className="qr-toggle"
-        onClick={() => setShowQR((v) => !v)}
-        title="แชร์ QR Code"
-      >
-        📱
-      </button>
-
+      {/* QR Code Panel */}
       {showQR && serverUrl && (
         <div className="qr-container">
           <div className="qr-header">
@@ -1414,6 +1528,52 @@ function App() {
 
       {/* Webcam Widget */}
       {showWebcam && <WebcamWidget />}
+
+      {/* ═══════════════════════════════════════════════════ */}
+      {/* Toggle Toolbars Button */}
+      {/* ═══════════════════════════════════════════════════ */}
+      {userRole !== "viewer" && (
+        <button
+          className="toggle-toolbars-btn"
+          onClick={() => setShowToolbars((v) => !v)}
+          title={showToolbars ? "ซ่อนเครื่องมือ" : "แสดงเครื่องมือ"}
+          style={{
+            position: "fixed",
+            bottom: "16px",
+            right: "16px",
+            zIndex: 1000,
+            display: "flex",
+            alignItems: "center",
+            gap: "6px",
+            padding: "4px 8px",
+            borderRadius: "6px",
+            backgroundColor: showToolbars ? "rgba(100, 116, 139, 0.4)" : "#3b82f6",
+            color: "white",
+            border: "none",
+            fontSize: "12px",
+            fontWeight: "500",
+            cursor: "pointer",
+            transition: "all 0.2s"
+          }}
+        >
+          {showToolbars ? (
+            <>
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M18 15l-6-6-6 6M18 9l-6-6-6 6" />
+              </svg>
+              ซ่อนเครื่องมือ
+            </>
+          ) : (
+            <>
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M6 9l6 6 6-6M6 15l6-6 6 6" />
+              </svg>
+              แสดงเครื่องมือ
+            </>
+          )}
+        </button>
+      )}
+
     </div>
   );
 }

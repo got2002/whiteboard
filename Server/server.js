@@ -104,7 +104,7 @@ function getNextColor() {
 // ────────────────────────────────────────────────────────────
 // API Route: แสดงสถานะ Server
 // ────────────────────────────────────────────────────────────
-app.get("/", (req, res) => {
+app.get("/api/status", (req, res) => {
   res.json({
     status: "✅ Whiteboard Server กำลังทำงาน",
     connectedUsers,
@@ -116,13 +116,20 @@ app.get("/", (req, res) => {
 // ────────────────────────────────────────────────────────────
 // Production Mode: serve ไฟล์ React build
 // ────────────────────────────────────────────────────────────
-// เมื่อ deploy จริง ให้ build React แล้ว set NODE_ENV=production
-// Server จะ serve ไฟล์จาก Client/dist/ โดยตรง
-if (process.env.NODE_ENV === "production") {
-  const dist = path.join(__dirname, "../Client/dist");
-  app.use(express.static(dist));
-  app.use((_, res) => res.sendFile(path.join(dist, "index.html")));
-}
+app.use((req, res, next) => {
+  if (process.env.NODE_ENV === "production" || process.env.ELECTRON_ENV === "production") {
+    const dist = path.join(__dirname, "../Client/dist");
+    express.static(dist)(req, res, () => {
+      res.sendFile(path.join(dist, "index.html"));
+    });
+  } else {
+    // If not production and accessing root, show dev status
+    if (req.path === "/") {
+       return res.json({ status: "✅ Whiteboard Server Dev Mode" });
+    }
+    next();
+  }
+});
 
 // ============================================================
 // Socket.IO — จัดการการเชื่อมต่อ
@@ -442,9 +449,21 @@ function getLocalIP() {
 }
 
 // ============================================================
-// เริ่ม Server
+// เริ่ม Server หรือ Export ให้ Electron นำไปใช้
 // ============================================================
-const PORT = process.env.PORT || 3000;
-server.listen(PORT, () => {
-  console.log(`🚀 Server ทำงานที่: http://${getLocalIP()}:${PORT}`);
-});
+function startServer(port) {
+  return new Promise((resolve) => {
+    server.listen(port, () => {
+      console.log(`🚀 Server ทำงานที่: http://${getLocalIP()}:${port}`);
+      resolve(server);
+    });
+  });
+}
+
+// เลือกรัน Standalone หรือรอเรียกจาก Electron
+if (require.main === module) {
+  const PORT = process.env.PORT || 3000;
+  startServer(PORT);
+}
+
+module.exports = { startServer, io, app };

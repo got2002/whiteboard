@@ -42,9 +42,9 @@ const BACKGROUNDS = [
 // ──────────────────────────────────────────────────────────
 const MODES = [
     { id: "standard", label: "🎨", title: "Standard" },
-    { id: "math", label: "🧮", title: "Math" },
-    { id: "science", label: "🔬", title: "Science" },
-    { id: "language", label: "📖", title: "Language" },
+    // { id: "math", label: "🧮", title: "Math" },
+    // { id: "science", label: "🔬", title: "Science" },
+    // { id: "language", label: "📖", title: "Language" },
 ];
 
 // ──────────────────────────────────────────────────────────

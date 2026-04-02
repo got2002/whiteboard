@@ -5,4 +5,4 @@
 - [x] Add Record / Stop Record buttons to `Toolbar.jsx`
 - [x] Create a modal for Video Playback (`VideoPlayerModal.jsx`)
 - [x] Add CSS styles for the new Recording features
-- [ ] Test the recording and playback functionality manually
+- [x] Test the recording and playback functionality manually

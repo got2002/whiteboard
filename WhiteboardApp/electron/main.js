@@ -59,9 +59,34 @@ function createWindow() {
             mainWindow.setAlwaysOnTop(isTransparent, "screen-saver");
             if (isTransparent) {
                 mainWindow.maximize();
+                // เริ่มต้น: ให้คลิกทะลุ transparent area ได้
+                mainWindow.setIgnoreMouseEvents(true, { forward: true });
+            } else {
+                mainWindow.setIgnoreMouseEvents(false);
+                mainWindow.unmaximize();
             }
         }
-        return true;
+        return isTransparent;
+    });
+
+    // ใช้สำหรับ On-Screen mode: สลับ mouse events เมื่อ hover toolbar
+    ipcMain.on("set-ignore-mouse", (event, ignore) => {
+        if (mainWindow) {
+            if (ignore) {
+                mainWindow.setIgnoreMouseEvents(true, { forward: true });
+            } else {
+                mainWindow.setIgnoreMouseEvents(false);
+            }
+        }
+    });
+
+    ipcMain.handle("toggle-fullscreen", (event, intendedState) => {
+        if (mainWindow) {
+            const isFullScreen = intendedState !== undefined ? intendedState : !mainWindow.isFullScreen();
+            mainWindow.setFullScreen(isFullScreen);
+            return isFullScreen;
+        }
+        return false;
     });
 
     // ── โหลด URL ──────────────────────────────────────────
@@ -116,12 +141,13 @@ app.whenReady().then(async () => {
 
     // ── เริ่ม Express+Socket.IO Server ──────────────────────
     try {
-        const { startServer } = require("../server/server.js");
-
         // ใน production mode → set NODE_ENV เพื่อให้ server serve React build
         if (!isDev) {
             process.env.NODE_ENV = "production";
+            process.env.ELECTRON_ENV = "production";
         }
+
+        const { startServer } = require("../server/server.js");
 
         await startServer(SERVER_PORT);
         console.log(`✅ Server พร้อมที่ port ${SERVER_PORT}`);

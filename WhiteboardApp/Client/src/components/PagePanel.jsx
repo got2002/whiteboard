@@ -20,6 +20,8 @@
 //
 // ============================================================
 
+import { useState } from "react";
+
 function PagePanel({
     pages,
     currentPageIndex,
@@ -28,7 +30,39 @@ function PagePanel({
     onSelectPage,
     onAddPage,
     onDeletePage,
+    onReorderPages,
 }) {
+    // State ควบคุม Drag and Drop
+    const [draggedIndex, setDraggedIndex] = useState(null);
+    const [dragOverIndex, setDragOverIndex] = useState(null);
+
+    const handleDragStart = (e, index) => {
+        setDraggedIndex(index);
+        e.dataTransfer.effectAllowed = "move";
+    };
+
+    const handleDragOver = (e, index) => {
+        e.preventDefault(); // อนุญาตให้ drop
+        e.dataTransfer.dropEffect = "move";
+        if (dragOverIndex !== index) {
+            setDragOverIndex(index);
+        }
+    };
+
+    const handleDragEnd = () => {
+        setDraggedIndex(null);
+        setDragOverIndex(null);
+    };
+
+    const handleDrop = (e, targetIndex) => {
+        e.preventDefault();
+        if (draggedIndex !== null && draggedIndex !== targetIndex) {
+            onReorderPages(draggedIndex, targetIndex);
+        }
+        setDraggedIndex(null);
+        setDragOverIndex(null);
+    };
+
     // ไม่แสดงอะไรถ้า show = false
     if (!show) return null;
 
@@ -49,33 +83,45 @@ function PagePanel({
 
                 {/* ─── รายการหน้า (thumbnail) ─── */}
                 <div className="page-list">
-                    {pages.map((page, index) => (
-                        <div
-                            key={page.id}
-                            className={`page-item ${index === currentPageIndex ? "active" : ""}`}
-                            onClick={() => onSelectPage(index)}
-                        >
-                            {/* Thumbnail: แสดงพื้นหลัง + เลขหน้า + จำนวน stroke */}
-                            <div className={`page-thumb bg-${page.background}`}>
-                                <span className="page-number">{index + 1}</span>
-                                {page.strokes.length > 0 && (
-                                    <span className="stroke-count">{page.strokes.length} เส้น</span>
+                    {pages.map((page, index) => {
+                        let dropClass = "";
+                        if (dragOverIndex === index) {
+                            dropClass = draggedIndex < index ? "drag-over-bottom" : "drag-over-top";
+                        }
+                        return (
+                            <div
+                                key={page.id}
+                                className={`page-item ${index === currentPageIndex ? "active" : ""} ${dropClass} ${draggedIndex === index ? "dragging" : ""}`}
+                                draggable
+                                onDragStart={(e) => handleDragStart(e, index)}
+                                onDragOver={(e) => handleDragOver(e, index)}
+                                onDragEnd={handleDragEnd}
+                                onDrop={(e) => handleDrop(e, index)}
+                                onClick={() => onSelectPage(index)}
+                                title="ลากเพื่อสลับตำแหน่ง หรือคลิกเพื่อเปิดหน้า"
+                            >
+                                {/* Thumbnail: แสดงพื้นหลัง + เลขหน้า + จำนวน stroke */}
+                                <div className={`page-thumb bg-${page.background}`}>
+                                    <span className="page-number">{index + 1}</span>
+                                    {page.strokes.length > 0 && (
+                                        <span className="stroke-count">{page.strokes.length} เส้น</span>
+                                    )}
+                                </div>
+
+                                {/* ปุ่มลบหน้า (แสดงเมื่อ hover, ซ่อนเมื่อเหลือหน้าเดียว) */}
+                                {pages.length > 1 && (
+                                    <button
+                                        className="page-delete"
+                                        onClick={(e) => {
+                                            e.stopPropagation(); // ไม่ให้ event ไปเลือกหน้า
+                                            onDeletePage(page.id);
+                                        }}
+                                        title="ลบหน้านี้"
+                                    >×</button>
                                 )}
                             </div>
-
-                            {/* ปุ่มลบหน้า (แสดงเมื่อ hover, ซ่อนเมื่อเหลือหน้าเดียว) */}
-                            {pages.length > 1 && (
-                                <button
-                                    className="page-delete"
-                                    onClick={(e) => {
-                                        e.stopPropagation(); // ไม่ให้ event ไปเลือกหน้า
-                                        onDeletePage(page.id);
-                                    }}
-                                    title="ลบหน้านี้"
-                                >×</button>
-                            )}
-                        </div>
-                    ))}
+                        );
+                    })}
                 </div>
 
                 {/* ─── ปุ่มเพิ่มหน้าใหม่ ─── */}

@@ -50,8 +50,9 @@ const Canvas = forwardRef(function Canvas(
         remoteCursors,
         laserPointers,
         currentPageIndex,
-        // ── EClass: Select + Move ──
+        // ── EClass: Select + Move + Resize ──
         onStrokeUpdate,   // callback: อัปเดต stroke หลังย้าย
+        onStrokeResize,   // callback: อัปเดตขนาด stroke (image/shape)
         // ── Role ──
         userRole,         // "host" | "contributor" | "viewer"
     },
@@ -67,12 +68,65 @@ const Canvas = forwardRef(function Canvas(
     const prevX = useRef(0);
     const prevY = useRef(0);
     const shapeStart = useRef(null);
+    const activeDrawings = useRef(new Map()); // { pointerId: { isDrawing, currentStroke, prevX, prevY, shapeStart } }
     const previewCanvasRef = useRef(null);
     const streamCanvasRef = useRef(null); // สำหรับรวมภาพ + พื้นหลังเพื่อเซฟเป็นวิดีโอ
 
     // Select tool refs
     const [selectedStrokeId, setSelectedStrokeId] = useState(null);
     const selectDragStart = useRef(null);
+
+    // Resize refs
+    const resizeDragRef = useRef(null); // { strokeId, handle, startX, startY, origBounds }
+    const HANDLE_SIZE = 10;
+    const hoveredHandleRef = useRef(null);
+
+    // Helper: get bounding box of a stroke
+    const getStrokeBounds = useCallback((stroke) => {
+        if (!stroke) return null;
+        if (stroke.type === "image") {
+            return { x: stroke.x, y: stroke.y, width: stroke.width, height: stroke.height };
+        }
+        if (stroke.type === "shape") {
+            const x = Math.min(stroke.startX, stroke.endX);
+            const y = Math.min(stroke.startY, stroke.endY);
+            return { x, y, width: Math.abs(stroke.endX - stroke.startX), height: Math.abs(stroke.endY - stroke.startY) };
+        }
+        return null;
+    }, []);
+
+    // Helper: get the 8 resize handles for a bounding box
+    const getHandles = useCallback((bounds) => {
+        if (!bounds) return [];
+        const { x, y, width: w, height: h } = bounds;
+        const hs = HANDLE_SIZE / 2;
+        return [
+            { id: "nw", x: x - hs, y: y - hs, cursor: "nwse-resize" },
+            { id: "n",  x: x + w / 2 - hs, y: y - hs, cursor: "ns-resize" },
+            { id: "ne", x: x + w - hs, y: y - hs, cursor: "nesw-resize" },
+            { id: "e",  x: x + w - hs, y: y + h / 2 - hs, cursor: "ew-resize" },
+            { id: "se", x: x + w - hs, y: y + h - hs, cursor: "nwse-resize" },
+            { id: "s",  x: x + w / 2 - hs, y: y + h - hs, cursor: "ns-resize" },
+            { id: "sw", x: x - hs, y: y + h - hs, cursor: "nesw-resize" },
+            { id: "w",  x: x - hs, y: y + h / 2 - hs, cursor: "ew-resize" },
+        ];
+    }, []);
+
+    // Helper: detect which handle is hit at world coords (wx, wy)
+    const hitTestHandle = useCallback((bounds, wx, wy) => {
+        if (!bounds) return null;
+        const handles = getHandles(bounds);
+        const hs = HANDLE_SIZE;
+        for (const h of handles) {
+            if (wx >= h.x - 2 && wx <= h.x + hs + 2 && wy >= h.y - 2 && wy <= h.y + hs + 2) {
+                return h.id;
+            }
+        }
+        return null;
+    }, [getHandles]);
+
+    // Slot Names state
+    const [slotTitles, setSlotTitles] = useState({});
 
     // Pan / Camera refs
     const panOffset = useRef({ x: 0, y: 0 });
@@ -138,7 +192,10 @@ const Canvas = forwardRef(function Canvas(
             if (!ctx) return;
 
             ctx.save();
-            const style = sPenStyle || "pen";
+        // Apply pan/zoom transform so world-space coordinates render correctly
+        ctx.translate(panOffset.current.x, panOffset.current.y);
+        ctx.scale(zoom.current, zoom.current);
+        const style = sPenStyle || "pen";
 
             if (sTool === "eraser") {
                 ctx.globalCompositeOperation = "destination-out";
@@ -832,6 +889,17 @@ const Canvas = forwardRef(function Canvas(
         redrawAll();
     }, [page?.id, page?.strokes?.length, redrawAll, tool, penStyle, hostTool, hostPenStyle]);
 
+    // ── รีเซ็ต Pan/Zoom เมื่อเข้าสู่โหมด Split Board ──
+    useEffect(() => {
+        const isSplit = (typeof penStyle === "string" && penStyle.startsWith("split_"))
+            || (typeof hostPenStyle === "string" && hostPenStyle.startsWith("split_"));
+        if (isSplit) {
+            panOffset.current = { x: 0, y: 0 };
+            zoom.current = 1;
+            redrawAll();
+        }
+    }, [penStyle, hostPenStyle, redrawAll]);
+
     // รับเส้น real-time จากผู้ใช้อื่น
     useEffect(() => {
         const handleRemoteDraw = (data) => {
@@ -843,6 +911,19 @@ const Canvas = forwardRef(function Canvas(
         socket.on("draw", handleRemoteDraw);
         return () => socket.off("draw", handleRemoteDraw);
     }, [page?.id, socket, drawSegment]);
+
+    // ── EClass: Expose Focus Method ──
+    useEffect(() => {
+        if (canvasRef.current) {
+            canvasRef.current.focusOnPoint = (targetX, targetY) => {
+                panOffset.current = {
+                    x: (window.innerWidth / 2) - (targetX * zoom.current),
+                    y: (window.innerHeight / 2) - (targetY * zoom.current)
+                };
+                redrawAll();
+            };
+        }
+    }, [redrawAll]);
 
     // ============================================================
     // [H1] Select Tool — หา stroke ที่ใกล้จุดคลิกมากที่สุด
@@ -896,17 +977,30 @@ const Canvas = forwardRef(function Canvas(
     // [H] Pointer Events
     // ============================================================
 
+    // ── Helper: ตรวจว่ากำลังอยู่ในโหมด Split Board หรือไม่ ──
+    const isSplitMode = (typeof penStyle === "string" && penStyle.startsWith("split_"))
+        || (typeof hostPenStyle === "string" && hostPenStyle.startsWith("split_"));
+
     /** เริ่มวาด — กดลงบน canvas */
     const handlePointerDown = (e) => {
-        activePointers.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
+        const pId = e.pointerId;
+        activePointers.current.set(pId, { x: e.clientX, y: e.clientY });
 
         const isViewer = userRole === "viewer";
         const effectiveTool = isViewer || isSpacePressed ? "pan" : tool;
+        const isExplicitPan = effectiveTool === "pan";
+        const isMultiTouchPan = activePointers.current.size >= 2 && !isSplitMode;
 
-        // ── Panning & Zooming (2 นิ้ว หรือ เลือกเครื่องมือ Pan หรือ Viewer) ──
-        if (effectiveTool === "pan" || activePointers.current.size >= 2) {
-            e.target.setPointerCapture(e.pointerId);
-            isDrawing.current = false; // ยกเลิกการวาดชั่วคราว
+        if (isExplicitPan || isMultiTouchPan) {
+            e.target.setPointerCapture(pId);
+
+            activeDrawings.current.forEach((val) => {
+                if (val.currentStroke && val.currentStroke.points.length > 1) {
+                    onStrokeComplete(val.currentStroke);
+                }
+            });
+            activeDrawings.current.clear();
+            redrawAll();
 
             if (activePointers.current.size === 2) {
                 const pts = Array.from(activePointers.current.values());
@@ -924,10 +1018,8 @@ const Canvas = forwardRef(function Canvas(
             return;
         }
 
-        // ── Viewer: ไม่อนุญาตให้ทำอย่างอื่นนอกจาก Pan/Zoom ──
         if (isViewer) return;
 
-        // Text tool
         if (tool === "text") {
             const rect = canvasRef.current.getBoundingClientRect();
             onTextRequest?.(
@@ -937,26 +1029,42 @@ const Canvas = forwardRef(function Canvas(
             return;
         }
 
-        // Stamp tool
-        if (tool === "stamp") return;
+        if (tool === "stamp" || tool === "laser") return;
 
-        // Laser pointer
-        if (tool === "laser") return;
-
-        // ── Select tool ──
         if (tool === "select") {
             const rect = canvasRef.current.getBoundingClientRect();
             const x = (e.clientX - rect.left - panOffset.current.x) / zoom.current;
             const y = (e.clientY - rect.top - panOffset.current.y) / zoom.current;
+
+            // Check if clicking on a resize handle of the currently selected stroke
+            if (selectedStrokeId) {
+                const selStroke = page?.strokes?.find(s => s.id === selectedStrokeId);
+                const bounds = getStrokeBounds(selStroke);
+                const handle = hitTestHandle(bounds, x, y);
+                if (handle) {
+                    resizeDragRef.current = {
+                        strokeId: selectedStrokeId,
+                        handle,
+                        startX: x,
+                        startY: y,
+                        origBounds: { ...bounds },
+                    };
+                    e.target.setPointerCapture(pId);
+                    activeDrawings.current.set(pId, { isDrawing: true });
+                    return;
+                }
+            }
+
             const found = findStrokeAt(x, y);
             if (found) {
                 setSelectedStrokeId(found.id);
                 selectDragStart.current = { x, y, strokeId: found.id };
-                e.target.setPointerCapture(e.pointerId);
-                isDrawing.current = true;
+                e.target.setPointerCapture(pId);
+                activeDrawings.current.set(pId, { isDrawing: true });
             } else {
                 setSelectedStrokeId(null);
                 selectDragStart.current = null;
+                resizeDragRef.current = null;
             }
             return;
         }
@@ -965,28 +1073,25 @@ const Canvas = forwardRef(function Canvas(
         const isPenLike = tool === "pen" || tool === "eraser" || tool === "highlighter";
         if (!isShapeTool && !isPenLike) return;
 
-        e.target.setPointerCapture(e.pointerId);
-        isDrawing.current = true;
+        e.target.setPointerCapture(pId);
 
         const rect = canvasRef.current.getBoundingClientRect();
         const x = (e.clientX - rect.left - panOffset.current.x) / zoom.current;
         const y = (e.clientY - rect.top - panOffset.current.y) / zoom.current;
-        prevX.current = x;
-        prevY.current = y;
+
+        const drawState = { isDrawing: true, currentStroke: null, prevX: x, prevY: y, shapeStart: null };
+        activeDrawings.current.set(pId, drawState);
 
         if (isShapeTool) {
-            shapeStart.current = { x, y };
+            drawState.shapeStart = { x, y };
             const preview = previewCanvasRef.current;
             const pCtx = preview.getContext("2d");
             pCtx.clearRect(0, 0, preview.width, preview.height);
             pCtx.drawImage(canvasRef.current, 0, 0);
         } else {
-            // Pen/Eraser/Highlighter/Special pens
             const effectivePenStyle = (tool === "highlighter") ? "highlighter" : (tool === "eraser" ? "pen" : penStyle);
             
             let strokeColor = tool === "eraser" ? "#000" : color;
-            // ── คำนวณสีสำหรับ Split Canvas ──
-            // ถ้านักเรียน/เพื่อนร่วมห้องใช้ปากกาธรรมดา แต่โฮสต์เซ็ตโหมดแบ่งช่องไว้ ให้ใช้โหมดแบ่งช่องของโฮสต์
             let useSplitStyle = null;
             if (tool === "pen" && effectivePenStyle.startsWith("split_")) useSplitStyle = effectivePenStyle;
             else if (tool === "pen" && hostPenStyle && hostPenStyle.startsWith("split_")) useSplitStyle = hostPenStyle;
@@ -1001,8 +1106,8 @@ const Canvas = forwardRef(function Canvas(
                 }
             }
 
-            currentStroke.current = {
-                id: Date.now().toString(36) + Math.random().toString(36).substr(2),
+            drawState.currentStroke = {
+                id: Date.now().toString(36) + Math.random().toString(36).substr(2) + pId,
                 tool,
                 penStyle: effectivePenStyle,
                 color: strokeColor,
@@ -1010,7 +1115,7 @@ const Canvas = forwardRef(function Canvas(
                 points: [{ x, y }],
             };
         }
-    };
+    }
 
     /** ลากวาด — เลื่อนนิ้ว/เมาส์ */
     const handlePointerMove = (e) => {
@@ -1020,9 +1125,13 @@ const Canvas = forwardRef(function Canvas(
 
         const isViewer = userRole === "viewer";
         const effectiveTool = isViewer || isSpacePressed ? "pan" : tool;
+        const isExplicitPan = effectiveTool === "pan";
+        const isMultiTouchPan = activePointers.current.size >= 2 && !isSplitMode;
 
         // ── Panning & Zoom Logic ──
-        if (effectiveTool === "pan" || activePointers.current.size >= 2) {
+        // ✅ Pan/Zoom ทำงานเมื่อกด Spacebar/Pan tool เสมอ
+        // ❌ 2-finger auto-pan ปิดเมื่ออยู่ในโหมด Split Board
+        if (isExplicitPan || isMultiTouchPan) {
             if (!lastPanPoint.current && activePointers.current.size > 0) {
                 let cx = 0, cy = 0;
                 activePointers.current.forEach(p => { cx += p.x; cy += p.y; });
@@ -1074,7 +1183,46 @@ const Canvas = forwardRef(function Canvas(
         // ส่งตำแหน่ง cursor
         onCursorMove?.(x, y);
 
-        if (!isDrawing.current) return;
+        // ── Hover Detection for Select Tool ──
+        if (tool === "select" && selectedStrokeId && !resizeDragRef.current && !selectDragStart.current) {
+            const selStroke = page?.strokes?.find(s => s.id === selectedStrokeId);
+            const bounds = getStrokeBounds(selStroke);
+            const handle = hitTestHandle(bounds, x, y);
+            if (handle !== hoveredHandleRef.current) {
+                hoveredHandleRef.current = handle;
+                if (canvasRef.current) {
+                    if (handle === "nw" || handle === "se") canvasRef.current.style.cursor = "nwse-resize";
+                    else if (handle === "ne" || handle === "sw") canvasRef.current.style.cursor = "nesw-resize";
+                    else if (handle === "n" || handle === "s") canvasRef.current.style.cursor = "ns-resize";
+                    else if (handle === "e" || handle === "w") canvasRef.current.style.cursor = "ew-resize";
+                    else canvasRef.current.style.cursor = "move";
+                }
+            }
+        }
+
+        const drawState = activeDrawings.current.get(e.pointerId);
+        if (!drawState || !drawState.isDrawing) return;
+
+        // ── Select tool: resize drag ──
+        if (tool === "select" && resizeDragRef.current) {
+            const rd = resizeDragRef.current;
+            const dx = x - rd.startX;
+            const dy = y - rd.startY;
+            const ob = rd.origBounds;
+            let nx = ob.x, ny = ob.y, nw = ob.width, nh = ob.height;
+
+            const hid = rd.handle;
+            if (hid.includes("w")) { nx = ob.x + dx; nw = ob.width - dx; }
+            if (hid.includes("e")) { nw = ob.width + dx; }
+            if (hid.includes("n")) { ny = ob.y + dy; nh = ob.height - dy; }
+            if (hid.includes("s")) { nh = ob.height + dy; }
+
+            if (nw < 20) { if (hid.includes("w")) nx = ob.x + ob.width - 20; nw = 20; }
+            if (nh < 20) { if (hid.includes("n")) ny = ob.y + ob.height - 20; nh = 20; }
+
+            onStrokeResize?.(rd.strokeId, { x: nx, y: ny, width: nw, height: nh });
+            return;
+        }
 
         // ── Select tool: ลาก stroke ──
         if (tool === "select" && selectDragStart.current) {
@@ -1090,7 +1238,7 @@ const Canvas = forwardRef(function Canvas(
 
         const isShapeTool = SHAPE_TOOLS.includes(tool);
 
-        if (isShapeTool && shapeStart.current) {
+        if (isShapeTool && drawState.shapeStart) {
             const ctx = ctxRef.current;
             const dpr = window.devicePixelRatio || 1;
             const preview = previewCanvasRef.current;
@@ -1105,8 +1253,8 @@ const Canvas = forwardRef(function Canvas(
 
             drawShapeOnCtx(ctx, {
                 shapeType: tool,
-                startX: shapeStart.current.x,
-                startY: shapeStart.current.y,
+                startX: drawState.shapeStart.x,
+                startY: drawState.shapeStart.y,
                 endX: x, endY: y,
                 color, size: penSize,
                 penStyle
@@ -1114,24 +1262,25 @@ const Canvas = forwardRef(function Canvas(
             ctx.restore();
         } else {
             // Pen/Eraser/Highlighter/Special pens
-            const strokeColor = currentStroke.current ? currentStroke.current.color : (tool === "eraser" ? "#000" : color);
+            const strokeColor = drawState.currentStroke ? drawState.currentStroke.color : (tool === "eraser" ? "#000" : color);
             const effectiveStyle = (tool === "highlighter") ? "highlighter" : (tool === "eraser" ? "pen" : penStyle);
-            drawSegment(prevX.current, prevY.current, x, y, strokeColor, penSize, tool, effectiveStyle);
+            drawSegment(drawState.prevX, drawState.prevY, x, y, strokeColor, penSize, tool, effectiveStyle);
 
             onDraw({
-                prevX: prevX.current, prevY: prevY.current,
+                prevX: drawState.prevX, prevY: drawState.prevY,
                 x, y, color: strokeColor, size: penSize, tool, penStyle: effectiveStyle,
             });
 
-            currentStroke.current?.points.push({ x, y });
-            prevX.current = x;
-            prevY.current = y;
+            drawState.currentStroke?.points.push({ x, y });
+            drawState.prevX = x;
+            drawState.prevY = y;
         }
     };
 
     /** หยุดวาด — ปล่อยนิ้ว/เมาส์ */
     const handlePointerUp = (e) => {
-        activePointers.current.delete(e.pointerId);
+        const pId = e.pointerId;
+        activePointers.current.delete(pId);
 
         if (activePointers.current.size === 0) {
             lastPanPoint.current = null;
@@ -1144,45 +1293,47 @@ const Canvas = forwardRef(function Canvas(
             lastPinchDistance.current = null;
         }
 
-        if (!isDrawing.current) return;
+        const drawState = activeDrawings.current.get(pId);
+        if (!drawState || !drawState.isDrawing) return;
 
-        e.target.releasePointerCapture(e.pointerId);
-        isDrawing.current = false;
+        e.target.releasePointerCapture(pId);
+        drawState.isDrawing = false;
 
         // Select tool: เสร็จสิ้นการลาก
         if (tool === "select") {
             selectDragStart.current = null;
+            resizeDragRef.current = null;
             return;
         }
 
         const isShapeTool = SHAPE_TOOLS.includes(tool);
 
-        if (isShapeTool && shapeStart.current) {
+        if (isShapeTool && drawState.shapeStart) {
             const rect = canvasRef.current.getBoundingClientRect();
             const x = (e.clientX - rect.left - panOffset.current.x) / zoom.current;
             const y = (e.clientY - rect.top - panOffset.current.y) / zoom.current;
 
-            const dx = Math.abs(x - shapeStart.current.x);
-            const dy = Math.abs(y - shapeStart.current.y);
+            const dx = Math.abs(x - drawState.shapeStart.x);
+            const dy = Math.abs(y - drawState.shapeStart.y);
             if (dx > 3 || dy > 3) {
                 const shapeStroke = {
-                    id: Date.now().toString(36) + Math.random().toString(36).substr(2),
+                    id: Date.now().toString(36) + Math.random().toString(36).substr(2) + pId,
                     type: "shape",
                     shapeType: tool,
-                    startX: shapeStart.current.x,
-                    startY: shapeStart.current.y,
+                    startX: drawState.shapeStart.x,
+                    startY: drawState.shapeStart.y,
                     endX: x, endY: y,
                     color, size: penSize,
                     penStyle
                 };
                 onStrokeComplete(shapeStroke);
             }
-            shapeStart.current = null;
+            drawState.shapeStart = null;
         } else {
-            if (currentStroke.current && currentStroke.current.points.length > 1) {
-                onStrokeComplete(currentStroke.current);
+            if (drawState.currentStroke && drawState.currentStroke.points.length > 1) {
+                onStrokeComplete(drawState.currentStroke);
             }
-            currentStroke.current = null;
+            drawState.currentStroke = null;
         }
     };
 
@@ -1194,6 +1345,11 @@ const Canvas = forwardRef(function Canvas(
         if (!canvas) return;
 
         const handleWheel = (e) => {
+            // ❌ ปิด Wheel Zoom เมื่ออยู่ในโหมด Split Board
+            const isSplitActive = (typeof penStyle === "string" && penStyle.startsWith("split_"))
+                || (typeof hostPenStyle === "string" && hostPenStyle.startsWith("split_"));
+            if (isSplitActive) return;
+
             const isViewer = userRole === "viewer";
             const effectiveTool = isViewer ? "pan" : tool;
             
@@ -1218,7 +1374,7 @@ const Canvas = forwardRef(function Canvas(
 
         canvas.addEventListener("wheel", handleWheel, { passive: false });
         return () => canvas.removeEventListener("wheel", handleWheel);
-    }, [redrawAll, tool, userRole]);
+    }, [redrawAll, tool, userRole, penStyle, hostPenStyle]);
 
     // ============================================================
     // [H3] Spacebar to Pan
@@ -1255,7 +1411,17 @@ const Canvas = forwardRef(function Canvas(
     else if (effectiveToolForCursor === "eraser") cursorStyle = "cell";
     else if (effectiveToolForCursor === "text") cursorStyle = "text";
     else if (effectiveToolForCursor === "laser") cursorStyle = "none";
-    else if (effectiveToolForCursor === "select") cursorStyle = selectedStrokeId ? "move" : "pointer";
+    else if (effectiveToolForCursor === "select") {
+        if (hoveredHandleRef.current) {
+            const hc = hoveredHandleRef.current;
+            if (hc === "nw" || hc === "se") cursorStyle = "nwse-resize";
+            else if (hc === "ne" || hc === "sw") cursorStyle = "nesw-resize";
+            else if (hc === "n" || hc === "s") cursorStyle = "ns-resize";
+            else if (hc === "e" || hc === "w") cursorStyle = "ew-resize";
+        } else {
+            cursorStyle = selectedStrokeId ? "move" : "pointer";
+        }
+    }
     else if (effectiveToolForCursor === "pan") cursorStyle = activePointers.current.size > 0 ? "grabbing" : "grab";
     else if (SHAPE_TOOLS.includes(effectiveToolForCursor)) cursorStyle = "crosshair";
 
@@ -1270,6 +1436,22 @@ const Canvas = forwardRef(function Canvas(
     );
 
     // ============================================================
+    // [J2] Calculate Split Slots for Header
+    // ============================================================
+    const isSplitActiveLocally = tool === "pen" && typeof penStyle === "string" && penStyle.startsWith("split_");
+    const isSplitActiveByHost = hostTool === "pen" && typeof hostPenStyle === "string" && hostPenStyle.startsWith("split_");
+    
+    let activeSplitStyleForHeader = null;
+    if (isSplitActiveLocally) activeSplitStyleForHeader = penStyle;
+    else if (isSplitActiveByHost) activeSplitStyleForHeader = hostPenStyle;
+
+    let numSlots = 0;
+    if (activeSplitStyleForHeader) {
+        numSlots = parseInt(activeSplitStyleForHeader.split("_")[1]);
+        if (isNaN(numSlots) || numSlots < 2) numSlots = 0;
+    }
+
+    // ============================================================
     // [K] Render
     // ============================================================
     return (
@@ -1281,8 +1463,99 @@ const Canvas = forwardRef(function Canvas(
                 onPointerUp={handlePointerUp}
                 onPointerLeave={handlePointerUp}
                 className="drawing-canvas"
-                style={{ cursor: cursorStyle }}
+                style={{ cursor: cursorStyle, touchAction: 'none' }}
             />
+            {/* Selection + Resize Handles Overlay */}
+            {tool === "select" && selectedStrokeId && (() => {
+                const selStroke = page?.strokes?.find(s => s.id === selectedStrokeId);
+                const bounds = getStrokeBounds(selStroke);
+                if (!bounds) return null;
+                const z = zoom.current;
+                const ox = panOffset.current.x;
+                const oy = panOffset.current.y;
+                const screenX = bounds.x * z + ox;
+                const screenY = bounds.y * z + oy;
+                const screenW = bounds.width * z;
+                const screenH = bounds.height * z;
+                const hs = HANDLE_SIZE;
+                const handles = [
+                    { id: "nw", left: -hs/2, top: -hs/2, cursor: "nwse-resize" },
+                    { id: "n",  left: screenW/2 - hs/2, top: -hs/2, cursor: "ns-resize" },
+                    { id: "ne", left: screenW - hs/2, top: -hs/2, cursor: "nesw-resize" },
+                    { id: "e",  left: screenW - hs/2, top: screenH/2 - hs/2, cursor: "ew-resize" },
+                    { id: "se", left: screenW - hs/2, top: screenH - hs/2, cursor: "nwse-resize" },
+                    { id: "s",  left: screenW/2 - hs/2, top: screenH - hs/2, cursor: "ns-resize" },
+                    { id: "sw", left: -hs/2, top: screenH - hs/2, cursor: "nesw-resize" },
+                    { id: "w",  left: -hs/2, top: screenH/2 - hs/2, cursor: "ew-resize" },
+                ];
+                return (
+                    <div style={{
+                        position: "fixed", left: screenX + "px", top: screenY + "px",
+                        width: screenW + "px", height: screenH + "px",
+                        pointerEvents: "none", zIndex: 50,
+                    }}>
+                        <div style={{
+                            position: "absolute", inset: 0,
+                            border: "2px dashed #3b82f6",
+                            borderRadius: "2px",
+                        }} />
+                        {handles.map(h => (
+                            <div key={h.id} style={{
+                                position: "absolute",
+                                left: h.left + "px", top: h.top + "px",
+                                width: hs + "px", height: hs + "px",
+                                background: "#fff",
+                                border: "2px solid #3b82f6",
+                                borderRadius: "2px",
+                                cursor: h.cursor,
+                                pointerEvents: "none",
+                            }} />
+                        ))}
+                    </div>
+                );
+            })()}
+
+            {/* Split Slot Headers Overlay — rendered AFTER canvas so it's on top */}
+            {numSlots > 0 && (
+                <div className="split-headers-overlay" style={{
+                    position: "fixed", top: "60px", left: 0, width: "100%",
+                    zIndex: 60, pointerEvents: "none",
+                    display: "flex"
+                }}>
+                    {Array.from({ length: numSlots }).map((_, i) => (
+                        <div key={i} style={{
+                            flex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: "8px",
+                            pointerEvents: "auto"
+                        }}>
+                            <div style={{
+                                width: "18px", height: "18px", borderRadius: "50%", flexShrink: 0,
+                                backgroundColor: SLOT_COLORS[i % SLOT_COLORS.length],
+                                border: "2.5px solid rgba(255,255,255,0.9)",
+                                boxShadow: `0 2px 8px ${SLOT_COLORS[i % SLOT_COLORS.length]}66`
+                            }} title={`สีช่องที่ ${i+1}`} />
+                            <input
+                                type="text"
+                                placeholder={`ชื่อช่อง ${i+1}`}
+                                value={slotTitles[i] || ""}
+                                onChange={(e) => setSlotTitles(prev => ({ ...prev, [i]: e.target.value }))}
+                                style={{
+                                    background: "rgba(255,255,255,0.92)", border: "1px solid rgba(0,0,0,0.08)",
+                                    borderRadius: "10px", padding: "6px 12px", fontSize: "13px",
+                                    width: "120px", maxWidth: "50%",
+                                    color: "#333", outline: "none",
+                                    boxShadow: "0 2px 12px rgba(0,0,0,0.08)",
+                                    fontWeight: "600", textAlign: "center",
+                                    backdropFilter: "blur(12px)"
+                                }}
+                                onFocus={(e) => e.target.style.borderColor = SLOT_COLORS[i % SLOT_COLORS.length]}
+                                onBlur={(e) => e.target.style.borderColor = "rgba(0,0,0,0.08)"}
+                                onPointerDown={(e) => e.stopPropagation()}
+                                onKeyDown={(e) => e.stopPropagation()}
+                            />
+                        </div>
+                    ))}
+                </div>
+            )}
 
             {/* Remote Cursors (ต้องบวก offset และคูณ zoom เพื่อแสดงให้ถูกตำแหน่งบนจอ) */}
             {visibleCursors.map(([id, data]) => (
