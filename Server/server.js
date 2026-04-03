@@ -17,6 +17,10 @@ app.get("/api/status", (req, res) => {
   });
 });
 
+app.get("/", (req, res) => {
+  res.send("✅ Whiteboard Server Running");
+});
+
 io.on("connection", (socket) => {
   store.connectedUsers++;
 
