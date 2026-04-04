@@ -1,13 +1,21 @@
-const os = require("os");
 
-function getLocalIP() {
-  const nets = os.networkInterfaces();
-  for (const name of Object.keys(nets)) {
-    for (const net of nets[name]) {
-      if (net.family === "IPv4" && !net.internal) return net.address;
-    }
-  }
-  return "localhost";
-}
+// ============================================================
+// socket/index.js — Socket Handler Aggregator
+// ============================================================
+// รวม handler ทั้งหมดเข้าที่เดียว เพื่อให้ server.js เรียกใช้
+// ============================================================
 
-module.exports = { getLocalIP };
+const drawingHandler = require("./drawing");
+const collaborationHandler = require("./collaboration");
+const pageHandler = require("./page");
+const permissionHandler = require("./permission");
+const usersHandler = require("./users");
+
+module.exports = (io, socket) => {
+  drawingHandler(io, socket);
+  collaborationHandler(io, socket);
+  pageHandler(io, socket);
+  permissionHandler(io, socket);
+  usersHandler(io, socket);
+};
+

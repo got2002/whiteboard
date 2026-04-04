@@ -24,10 +24,13 @@ app.get("/", (req, res) => {
 io.on("connection", (socket) => {
   store.connectedUsers++;
 
+  console.log(`✅ ผู้ใช้เชื่อมต่อ: ${socket.id} (ทั้งหมด: ${store.connectedUsers})`);
+
   socket.emit("init-state", {
     pages: store.pages,
     hostTool: store.hostTool,
     hostPenStyle: store.hostPenStyle,
+    serverIp: getLocalIP(),
   });
 
   io.emit("user-count", store.connectedUsers);
