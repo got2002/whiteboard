@@ -28,6 +28,8 @@ function HeaderBar({
     onNewBoard,
     onLoadProject,
     onSaveProject,
+    onSaveIWB,
+    onSavePD1,
     onExport,
     onExportAll,
     autoSave,
@@ -91,6 +93,12 @@ function HeaderBar({
                                     </button>
                                     <button className="header-dropdown-item" onClick={() => { onSaveProject(); setShowMainMenu(false); }}>
                                         <span className="hdi-icon">💾</span><span>Save</span>
+                                    </button>
+                                    <button className="header-dropdown-item" onClick={() => { onSaveProject(); onSaveIWB(false); }}>
+                                        <span className="hdi-icon">📤</span><span>Save IWB</span>
+                                    </button>
+                                    <button className="header-dropdown-item" onClick={() => { onSaveProject(); onSavePD1(false); }}>
+                                        <span className="hdi-icon">📤</span><span>Save PD1</span>
                                     </button>
                                     <button className="header-dropdown-item" onClick={() => { onExport(); setShowMainMenu(false); }}>
                                         <span className="hdi-icon">📤</span><span>Export PNG</span>

@@ -106,10 +106,75 @@ export function useFileOps({ pages, setPages, setCurrentPageIndex, canvasRef, cu
   }, [handleStrokeComplete]);
 
   const handleToggleAutoSave = () => setAutoSave(prev => !prev);
+ 
+  //Save IWB
+  const handleSaveIWB = () => {
+    const data = {
+      version: 1,
+      createdAt: new Date(),
+      pages
+    }
+
+    const blob = new Blob(
+      [JSON.stringify(data, null, 2)],
+      { type: 'application/json' }
+    )
+
+    const url = URL.createObjectURL(blob)
+
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `board-${Date.now()}.iwb`
+    a.click()
+
+    URL.revokeObjectURL(url)
+  }
+  //  close Save IWB
+
+  // Save pd1
+  const handleSavePD1 = () => {
+    try {
+      const data = {
+        version: 1,
+        createdAt: new Date(),
+        pages
+      }
+
+      const json = JSON.stringify(data)
+
+      // 🔐 XOR encode
+      const key = Math.floor(Date.now() / 1000) % 256
+      const buffer = new TextEncoder().encode(json)
+
+      for (let i = 0; i < buffer.length; i++) {
+        buffer[i] ^= key
+      }
+
+      // 🔥 prepend key
+      const finalBuffer = new Uint8Array(buffer.length + 1)
+      finalBuffer[0] = key
+      finalBuffer.set(buffer, 1)
+
+      const blob = new Blob([finalBuffer], { type: 'application/octet-stream' })
+
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `board-${Date.now()}.pd1`
+      a.click()
+
+      URL.revokeObjectURL(url)
+
+    } catch (err) {
+      console.error('Save PD1 error:', err)
+    }
+  }
+  // close  pd1
 
   return {
     autoSave, handleToggleAutoSave,
     handleNewBoard, handleSaveProject, handleLoadProject,
     handleExport, handleExportAll, handleInsertImage,
+    handleSaveIWB, handleSavePD1,
   };
 }
