@@ -139,6 +139,7 @@ io.on("connection", (socket) => {
   const ip = getLocalIP();
   const PORT = process.env.PORT || 3000;
 
+<<<<<<< Updated upstream
   console.log(`✅ ผู้ใช้เชื่อมต่อ: ${socket.id} (ทั้งหมด: ${connectedUsers})`);
 
   // ── ส่งข้อมูลเริ่มต้น ──────────────────────────────────
@@ -188,6 +189,13 @@ io.on("connection", (socket) => {
     io.emit("host-exists", !!hostSocketId);
 
     console.log(`👤 ตั้งชื่อ: ${name} (${color}) role=${userRole} — ${socket.id}`);
+=======
+  socket.emit("init-state", {
+    pages: store.pages,
+    hostTool: store.hostTool,
+    hostPenStyle: store.hostPenStyle,
+    serverIp: getLocalIP(),
+>>>>>>> Stashed changes
   });
 
   // ============================================================
