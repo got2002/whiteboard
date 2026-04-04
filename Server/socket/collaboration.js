@@ -23,10 +23,12 @@ module.exports = (io, socket) => {
     store.connectedUsers--;
     delete store.users[socket.id];
 
+
     if (store.hostSocketId === socket.id) {
       store.hostSocketId = null;
       io.emit("host-exists", { exists: false });
     }
+
 
     socket.broadcast.emit("user-left", { id: socket.id });
     io.emit("user-count", store.connectedUsers);

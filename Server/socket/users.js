@@ -1,3 +1,4 @@
+
 // ============================================================
 // socket/users.js — User Management Events
 // ============================================================
@@ -109,5 +110,6 @@ module.exports = (io, socket) => {
       if (stroke) Object.assign(stroke, changes);
     }
     socket.broadcast.emit("stroke-update", { pageId, strokeId, changes });
+
   });
 };
