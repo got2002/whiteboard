@@ -212,6 +212,8 @@ export default function MainLayout() {
         onNewBoard={fileHook.handleNewBoard}
         onLoadProject={fileHook.handleLoadProject}
         onSaveProject={fileHook.handleSaveProject}
+        onSaveIWB={fileHook.handleSaveIWB}
+        onSavePD1={fileHook.handleSavePD1}
         onExport={fileHook.handleExport}
         onExportAll={fileHook.handleExportAll}
         autoSave={fileHook.autoSave}
