@@ -1,5 +1,5 @@
 // ============================================================
-// App.jsx — หน้าหลักของ EClass-style Whiteboard
+// App.jsx — หน้าหลักของ EClass-style ProEdu1
 // ============================================================
 //
 // ไฟล์นี้เป็น Component หลักที่รวม "ทุกอย่าง" เข้าด้วยกัน:
@@ -55,7 +55,7 @@ function createPage(bg = "white") {
 // ============================================================
 // [2.1] Auto Save key สำหรับ localStorage
 // ============================================================
-const AUTO_SAVE_KEY = "whiteboard-autosave";
+const AUTO_SAVE_KEY = "proedu1-autosave";
 
 // ============================================================
 // [3] App Component หลัก
@@ -117,7 +117,7 @@ function App() {
   // State: EClass features
   // ──────────────────────────────────────────────────────────
   const [autoSave, setAutoSave] = useState(() => {
-    try { return localStorage.getItem("whiteboard-autosave-enabled") === "true"; } catch { return false; }
+    try { return localStorage.getItem("proedu1-autosave-enabled") === "true"; } catch { return false; }
   });
 
   // ──────────────────────────────────────────────────────────
@@ -216,7 +216,7 @@ function App() {
     if (!recordedVideoUrl) return;
     const a = document.createElement("a");
     a.href = recordedVideoUrl;
-    a.download = "whiteboard-recording.webm";
+    a.download = "proedu1-recording.webm";
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
@@ -949,7 +949,7 @@ function App() {
   const handleToggleAutoSave = useCallback(() => {
     setAutoSave((prev) => {
       const next = !prev;
-      try { localStorage.setItem("whiteboard-autosave-enabled", String(next)); } catch { /* ignore */ }
+      try { localStorage.setItem("proedu1-autosave-enabled", String(next)); } catch { /* ignore */ }
       return next;
     });
   }, []);
@@ -998,7 +998,7 @@ function App() {
     tempCtx.drawImage(canvas, 0, 0);
 
     const link = document.createElement("a");
-    link.download = `whiteboard-page-${currentPageIndex + 1}.png`;
+    link.download = `proedu1-page-${currentPageIndex + 1}.png`;
     link.href = tempCanvas.toDataURL("image/png");
     link.click();
   }, [currentPage?.background, currentPageIndex]);
@@ -1023,7 +1023,7 @@ function App() {
 
     const link = document.createElement("a");
     const timestamp = new Date().toISOString().slice(0, 16).replace(/[T:]/g, "-");
-    link.download = `whiteboard-${timestamp}.json`;
+    link.download = `proedu1-${timestamp}.json`;
     link.href = url;
     link.click();
     URL.revokeObjectURL(url);
@@ -1171,7 +1171,7 @@ function App() {
         page.strokes.forEach((s) => drawStrokeOnCtx(ctx, s));
 
         const link = document.createElement("a");
-        link.download = `whiteboard-page-${idx + 1}.png`;
+        link.download = `proedu1-page-${idx + 1}.png`;
         link.href = tempCanvas.toDataURL("image/png");
         link.click();
       }, idx * 300);

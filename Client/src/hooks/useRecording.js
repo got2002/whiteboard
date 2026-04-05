@@ -56,7 +56,7 @@ export function useRecording(canvasRef) {
     if (!recordedVideoUrl) return;
     const a = document.createElement("a");
     a.href = recordedVideoUrl;
-    a.download = `whiteboard-recording-${Date.now()}.webm`;
+    a.download = `proedu1-recording-${Date.now()}.webm`;
     a.click();
   };
 

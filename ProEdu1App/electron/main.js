@@ -35,7 +35,7 @@ function createWindow() {
         height: 900,
         minWidth: 900,
         minHeight: 600,
-        title: "Whiteboard",
+        title: "ProEdu1",
         transparent: true,
         frame: false,
         webPreferences: {

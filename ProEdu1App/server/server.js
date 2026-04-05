@@ -1,5 +1,5 @@
 // ============================================================
-// server.js — EClass-style Whiteboard Server
+// server.js — EClass-style ProEdu1 Server
 // ============================================================
 //
 // หน้าที่ของ Server:
@@ -106,7 +106,7 @@ function getNextColor() {
 // ────────────────────────────────────────────────────────────
 app.get("/api/status", (req, res) => {
   res.json({
-    status: "✅ Whiteboard Server กำลังทำงาน",
+    status: "✅ ProEdu1 Server กำลังทำงาน",
     connectedUsers,
     totalPages: pages.length,
     uptime: `${Math.floor(process.uptime())} วินาที`,
@@ -125,7 +125,7 @@ app.use((req, res, next) => {
   } else {
     // If not production and accessing root, show dev status
     if (req.path === "/") {
-       return res.json({ status: "✅ Whiteboard Server Dev Mode" });
+       return res.json({ status: "✅ ProEdu1 Server Dev Mode" });
     }
     next();
   }

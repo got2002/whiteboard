@@ -20,7 +20,7 @@
 
 ### Server
 
-#### [MODIFY] [server.js](file:///c:/test_ai/Whiteboard/Server/server.js)
+#### [MODIFY] [server.js](file:///c:/test_ai/ProEdu1/Server/server.js)
 - เพิ่ม `role` field ใน `users` map (`{ name, color, pageIndex, role }`)
 - แก้ event `set-user` ให้รับ `role` จาก client: `{ name, role }`
 - **เพิ่ม Guard** ที่ event ต่อไปนี้เพื่อป้องกัน Viewer:
@@ -28,18 +28,18 @@
   - `add-page`, `delete-page`, `change-background`, `load-project` → ต้องเป็น `host` เท่านั้น
 - ส่ง `role` กลับไปใน `user-confirmed` event
 
-#### [MODIFY] [server.js](file:///c:/test_ai/Whiteboard/WhiteboardApp/server/server.js)
+#### [MODIFY] [server.js](file:///c:/test_ai/ProEdu1/ProEdu1App/server/server.js)
 - เปลี่ยนเหมือนกันกับ `Server/server.js` ข้างต้น (ไฟล์นี้คือ server สำหรับ Electron)
 
 ---
 
 ### Client (Browser — ใช้กับทุก Role)
 
-#### [MODIFY] [NameDialog.jsx](file:///c:/test_ai/Whiteboard/Client/src/components/NameDialog.jsx)
+#### [MODIFY] [NameDialog.jsx](file:///c:/test_ai/ProEdu1/Client/src/components/NameDialog.jsx)
 - เพิ่มปุ่มเลือก Role (3 ปุ่ม: 👨‍🏫 Teacher / ✏️ Contributor / 👁️ Viewer)
 - ส่ง `{ name, role }` กลับผ่าน `onSubmit`
 
-#### [MODIFY] [App.jsx](file:///c:/test_ai/Whiteboard/Client/src/App.jsx)
+#### [MODIFY] [App.jsx](file:///c:/test_ai/ProEdu1/Client/src/App.jsx)
 - เพิ่ม state `userRole` (default: `"viewer"`)
 - ส่ง `role` ไปกับ `set-user` event
 - รับ `role` กลับจาก `user-confirmed`
@@ -47,32 +47,32 @@
 - **Contributor Mode**: ซ่อนปุ่ม host-only ใน Toolbar (เพิ่ม/ลบหน้า, เปลี่ยนพื้นหลัง, Load/Save)
 - ส่ง `userRole` ลงไปที่ Canvas เพื่อปิด pointer events สำหรับ Viewer
 
-#### [MODIFY] [Canvas.jsx](file:///c:/test_ai/Whiteboard/Client/src/components/Canvas.jsx)
+#### [MODIFY] [Canvas.jsx](file:///c:/test_ai/ProEdu1/Client/src/components/Canvas.jsx)
 - รับ prop `userRole`
 - ถ้า `userRole === "viewer"` → ไม่ประมวลผล pointer events (ปิดการวาด)
 
-#### [MODIFY] [Toolbar.jsx](file:///c:/test_ai/Whiteboard/Client/src/components/Toolbar.jsx)
+#### [MODIFY] [Toolbar.jsx](file:///c:/test_ai/ProEdu1/Client/src/components/Toolbar.jsx)
 - รับ prop `userRole`
 - ซ่อนปุ่มที่ไม่มีสิทธิ์ตาม Role
 
-#### [MODIFY] [index.css](file:///c:/test_ai/Whiteboard/Client/src/index.css)
+#### [MODIFY] [index.css](file:///c:/test_ai/ProEdu1/Client/src/index.css)
 - เพิ่ม CSS สำหรับ Role Selector ใน NameDialog
 - เพิ่ม CSS สำหรับ "Viewer Mode" indicator (แถบแสดงสถานะ)
 
 ---
 
-### WhiteboardApp (Electron — Teacher/Contributor)
+### ProEdu1App (Electron — Teacher/Contributor)
 
-#### [MODIFY] [NameDialog.jsx](file:///c:/test_ai/Whiteboard/WhiteboardApp/Client/src/components/NameDialog.jsx)
+#### [MODIFY] [NameDialog.jsx](file:///c:/test_ai/ProEdu1/ProEdu1App/Client/src/components/NameDialog.jsx)
 - เพิ่มปุ่มเลือก Role เหมือนกับ Client
 
-#### [MODIFY] [App.jsx](file:///c:/test_ai/Whiteboard/WhiteboardApp/Client/src/App.jsx)
+#### [MODIFY] [App.jsx](file:///c:/test_ai/ProEdu1/ProEdu1App/Client/src/App.jsx)
 - เพิ่มระบบ Role เหมือนกับใน `Client/src/App.jsx`
 
-#### [MODIFY] [Canvas.jsx](file:///c:/test_ai/Whiteboard/WhiteboardApp/Client/src/components/Canvas.jsx)
+#### [MODIFY] [Canvas.jsx](file:///c:/test_ai/ProEdu1/ProEdu1App/Client/src/components/Canvas.jsx)
 - เพิ่ม `userRole` prop เหมือนกับ Client
 
-#### [MODIFY] [Toolbar.jsx](file:///c:/test_ai/Whiteboard/WhiteboardApp/Client/src/components/Toolbar.jsx)
+#### [MODIFY] [Toolbar.jsx](file:///c:/test_ai/ProEdu1/ProEdu1App/Client/src/components/Toolbar.jsx)
 - เพิ่ม `userRole` prop เหมือนกับ Client
 
 ---
@@ -82,8 +82,8 @@
 ### Browser Testing (หลักๆ)
 ทดสอบผ่าน Browser โดยเปิด Server แล้วเชื่อมต่อจาก Client:
 
-1. **เปิด Server**: `cd c:\test_ai\Whiteboard\Server && node server.js`
-2. **เปิด Client**: `cd c:\test_ai\Whiteboard\Client && npm run dev`
+1. **เปิด Server**: `cd c:\test_ai\ProEdu1\Server && node server.js`
+2. **เปิด Client**: `cd c:\test_ai\ProEdu1\Client && npm run dev`
 3. **ทดสอบ Viewer**:
    - เปิดเบราว์เซอร์ไปที่ `http://localhost:5173`
    - กรอกชื่อและเลือก Role เป็น "Viewer"

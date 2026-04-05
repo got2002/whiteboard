@@ -1,9 +1,9 @@
 {
-    "name": "whiteboard-app",
+    "name": "proedu1-app",
     "version": "1.0.0",
-    "description": "EClass-style Whiteboard — Desktop App",
+    "description": "EClass-style ProEdu1 — Desktop App",
     "main": "electron/main.js",
-    "author": "Whiteboard Team",
+    "author": "ProEdu1 Team",
     "license": "MIT",
     "scripts": {
         "electron:dev": "concurrently \"cd Client && npm run dev\" \"wait-on http://localhost:5173 && set ELECTRON_DEV=1 && electron .\"",
@@ -24,8 +24,8 @@
         "wait-on": "^8.0.3"
     },
     "build": {
-        "appId": "com.whiteboard.app",
-        "productName": "Whiteboard",
+        "appId": "com.proedu1.app",
+        "productName": "ProEdu1",
         "files": [
             "electron/**/*",
             "server/**/*",
