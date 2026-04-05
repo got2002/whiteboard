@@ -1,5 +1,5 @@
 // ============================================================
-// server.js — EClass-style Whiteboard Server
+// server.js — EClass-style ProEdu1 Server
 // ============================================================
 //
 // หน้าที่ของ Server:
@@ -106,7 +106,7 @@ function getNextColor() {
 // ────────────────────────────────────────────────────────────
 app.get("/api/status", (req, res) => {
   res.json({
-    status: "✅ Whiteboard Server กำลังทำงาน",
+    status: "✅ ProEdu1 Server กำลังทำงาน",
     connectedUsers,
     totalPages: pages.length,
     uptime: `${Math.floor(process.uptime())} วินาที`,
@@ -125,7 +125,7 @@ app.use((req, res, next) => {
   } else {
     // If not production and accessing root, show dev status
     if (req.path === "/") {
-       return res.json({ status: "✅ Whiteboard Server Dev Mode" });
+       return res.json({ status: "✅ ProEdu1 Server Dev Mode" });
     }
     next();
   }
@@ -407,6 +407,31 @@ io.on("connection", (socket) => {
     io.emit("user-role-updated", { id: studentId, role: "viewer" });
 
     console.log(`↩️ ครูถอนสิทธิ์: ${student.name} → viewer`);
+  });
+
+  // ============================================================
+  // [Permission] โฮสต์มอบสิทธิ์ (Host grants permission directly)
+  // ============================================================
+  socket.on("grant-permission", ({ studentId }) => {
+    if (socket.id !== hostSocketId) return;
+    const student = users[studentId];
+    if (!student || student.role === "contributor") return;
+
+    // เปลี่ยน role เป็น contributor
+    student.role = "contributor";
+
+    // ถ้ามี pending อยู่ให้ลบออกด้วย
+    if (pendingRequests[studentId]) {
+      delete pendingRequests[studentId];
+    }
+
+    // แจ้ง student (อัปเดตสิทธิ์เพื่อให้วาดได้)
+    io.to(studentId).emit("role-changed", { role: "contributor" });
+
+    // แจ้งทุกคนว่า role เปลี่ยน (เพื่อให้เห็น user dot ที่ถูกต้อง)
+    io.emit("user-role-updated", { id: studentId, role: "contributor" });
+
+    console.log(`✅ ครูมอบสิทธิ์เขียนให้: ${student.name}`);
   });
 
   // ============================================================

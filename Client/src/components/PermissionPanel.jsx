@@ -20,8 +20,8 @@
 
 function PermissionPanel({
     show, onToggle,
-    pendingRequests, contributors,
-    onApprove, onDeny, onRevoke,
+    pendingRequests, contributors, viewers = [],
+    onApprove, onDeny, onRevoke, onGrant,
 }) {
     return (
         <div className={`permission-panel ${show ? "open" : ""}`}>
@@ -93,6 +93,38 @@ function PermissionPanel({
                                 title="ถอนสิทธิ์"
                             >
                                 ↩️ ถอนสิทธิ์
+                            </button>
+                        </div>
+                    ))
+                )}
+            </div>
+
+            {/* ─── ผู้เข้าชมทั้งหมด (Viewers) ─── */}
+            <div className="permission-section">
+                <h4 className="permission-section-title">
+                    👀 ผู้เข้าชม ({viewers.length})
+                </h4>
+                {viewers.length === 0 ? (
+                    <div className="permission-empty">ไม่มีผู้เข้าชม</div>
+                ) : (
+                    viewers.map((user) => (
+                        <div key={user.id} className="permission-contributor-item">
+                            <span
+                                className="permission-user-dot"
+                                style={{ backgroundColor: user.color || "#888" }}
+                            />
+                            <span className="permission-user-name">{user.name}</span>
+                            <button
+                                className="permission-grant-btn"
+                                onClick={() => onGrant(user.id)}
+                                title="ให้สิทธิ์เขียน"
+                                style={{
+                                    fontSize: "12px", border: "1px solid #22c55e", color: "#22c55e",
+                                    background: "transparent", padding: "4px 8px", borderRadius: "4px",
+                                    cursor: "pointer", display: "flex", alignItems: "center", gap: "4px"
+                                }}
+                            >
+                                ➕ ให้สิทธิ์
                             </button>
                         </div>
                     ))

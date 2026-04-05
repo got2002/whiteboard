@@ -1,5 +1,5 @@
 // ============================================================
-// useKeyboardShortcuts.js — Hook คีย์ลัดสำหรับ Whiteboard
+// useKeyboardShortcuts.js — Hook คีย์ลัดสำหรับ ProEdu1
 // ============================================================
 import { useEffect } from "react";
 

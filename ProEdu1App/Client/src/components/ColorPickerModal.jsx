@@ -80,7 +80,7 @@ function ColorPickerModal({ currentColor, onClose, onSelectColor }) {
   // อ่าน Custom Colors จาก localStorage
   const [customColors, setCustomColors] = useState(() => {
     try {
-      const saved = localStorage.getItem("whiteboard-custom-colors");
+      const saved = localStorage.getItem("proedu1-custom-colors");
       if (saved) return JSON.parse(saved);
     } catch { /* ignore */ }
     return Array(16).fill("#ffffff");
@@ -119,7 +119,7 @@ function ColorPickerModal({ currentColor, onClose, onSelectColor }) {
       newCustom[index] = selectedColor;
       
       try {
-        localStorage.setItem("whiteboard-custom-colors", JSON.stringify(newCustom));
+        localStorage.setItem("proedu1-custom-colors", JSON.stringify(newCustom));
       } catch {}
       return newCustom;
     });

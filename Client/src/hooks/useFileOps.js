@@ -28,7 +28,7 @@ export function useFileOps({ pages, setPages, setCurrentPageIndex, canvasRef, cu
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `whiteboard-${new Date().toISOString().slice(0, 10)}.json`;
+    a.download = `proedu1-${new Date().toISOString().slice(0, 10)}.json`;
     a.click();
     URL.revokeObjectURL(url);
   }, [pages]);
@@ -63,7 +63,7 @@ export function useFileOps({ pages, setPages, setCurrentPageIndex, canvasRef, cu
     const url = canvas.toDataURL("image/png");
     const a = document.createElement("a");
     a.href = url;
-    a.download = `whiteboard-page-${currentPageIndex + 1}.png`;
+    a.download = `proedu1-page-${currentPageIndex + 1}.png`;
     a.click();
   };
 

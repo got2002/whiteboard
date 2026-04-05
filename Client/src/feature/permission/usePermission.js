@@ -54,9 +54,14 @@ export function usePermission({ isActive, setUserRole }) {
     permissionService.emitRevokePermission(studentId);
   };
 
+  const handleGrantPermission = (studentId) => {
+    permissionService.emitGrantPermission(studentId);
+    setPendingRequests(prev => prev.filter(r => r.id !== studentId));
+  };
+
   return {
     pendingRequests, requestStatus,
     handleRequestWrite, handleApproveRequest,
-    handleDenyRequest, handleRevokePermission,
+    handleDenyRequest, handleRevokePermission, handleGrantPermission,
   };
 }

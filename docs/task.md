@@ -1,21 +1,13 @@
-# Role-Based Authorization System
+# Direct Permission Assignment Task Tracker
 
 ## Server
-- [ ] แก้ไข `Server/server.js` — เพิ่ม role ใน users map + guard events
-- [ ] แก้ไข `WhiteboardApp/server/server.js` — เพิ่ม role เหมือนกัน
+- [x] `Server/socket/permission.js` — เพิ่ม `socket.on("grant-permission")`
 
-## Client (Browser)
-- [ ] แก้ไข `Client/src/components/NameDialog.jsx` — เพิ่ม Role Selector
-- [ ] แก้ไข `Client/src/App.jsx` — เพิ่ม userRole state + ซ่อน UI ตาม role
-- [ ] แก้ไข `Client/src/components/Canvas.jsx` — ปิดวาดสำหรับ Viewer
-- [ ] แก้ไข `Client/src/components/Toolbar.jsx` — ซ่อนปุ่มตาม role
-- [ ] แก้ไข `Client/src/index.css` — เพิ่ม CSS สำหรับ Role Selector + Viewer indicator
-
-## WhiteboardApp (Electron)
-- [ ] แก้ไข `WhiteboardApp/Client/src/components/NameDialog.jsx`
-- [ ] แก้ไข `WhiteboardApp/Client/src/App.jsx`
-- [ ] แก้ไข `WhiteboardApp/Client/src/components/Canvas.jsx`
-- [ ] แก้ไข `WhiteboardApp/Client/src/components/Toolbar.jsx`
+## Client
+- [x] `Client/src/feature/permission/permissionService.js` — เพิ่ม `emitGrantPermission`
+- [x] `Client/src/feature/permission/usePermission.js` — เพิ่ม `handleGrantPermission`
+- [x] `Client/src/layouts/MainLayout.jsx` — ดึงรายชื่อ `viewers` และส่งเข้า `PermissionPanel`
+- [x] `Client/src/components/PermissionPanel.jsx` — หน้าตา UI ส่วน Viewers + ปุ่ม `➕ ให้สิทธิ์`
 
 ## Verification
-- [ ] ทดสอบ Server + Client ผ่าน Browser
+- [ ] ทดสอบเปลี่ยนสิทธิ์ให้ผู้ชมสำเร็จ

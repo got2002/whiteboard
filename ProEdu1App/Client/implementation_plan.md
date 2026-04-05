@@ -1,7 +1,7 @@
-# Whiteboard Professional UX/UI Redesign
+# ProEdu1 Professional UX/UI Redesign
 
 ## Problem
-ปัจจุบัน UI ของ Whiteboard ยัดทุกอย่างลงใน Toolbar ด้านล่างเส้นเดียว — เมนู, ปากกา, สี, พื้นหลัง, undo/redo, shape, ผู้ใช้, บันทึก — ทำให้ดูรก ไม่เป็นมืออาชีพ และใช้งานยากโดยเฉพาะบนมือถือ
+ปัจจุบัน UI ของ ProEdu1 ยัดทุกอย่างลงใน Toolbar ด้านล่างเส้นเดียว — เมนู, ปากกา, สี, พื้นหลัง, undo/redo, shape, ผู้ใช้, บันทึก — ทำให้ดูรก ไม่เป็นมืออาชีพ และใช้งานยากโดยเฉพาะบนมือถือ
 
 ## Design Direction
 จัดวาง UI ใหม่แบบ **Miro / Figma-style** — แยกเครื่องมือตามหน้าที่ ใส่ตำแหน่งที่เหมาะสม
@@ -38,38 +38,38 @@
 
 ### Component Structure
 
-#### [NEW] [HeaderBar.jsx](file:///c:/test_ai/Whiteboard/Client/src/components/HeaderBar.jsx)
+#### [NEW] [HeaderBar.jsx](file:///c:/test_ai/ProEdu1/Client/src/components/HeaderBar.jsx)
 - ตำแหน่ง: Fixed top, full width
 - ซ้าย: Menu button (☰), Page navigation (◀ 1/5 ▶), Page panel toggle
 - กลาง: ชื่อโปรเจกต์ / App title
 - ขวา: User count badge, QR button, Permission button (host), Webcam toggle
 
-#### [MODIFY] [Toolbar.jsx](file:///c:/test_ai/Whiteboard/Client/src/components/Toolbar.jsx) → Rename to **ToolPalette.jsx**
+#### [MODIFY] [Toolbar.jsx](file:///c:/test_ai/ProEdu1/Client/src/components/Toolbar.jsx) → Rename to **ToolPalette.jsx**
 - ตำแหน่ง: Fixed top-center, ด้านล่าง HeaderBar
 - เฉพาะเครื่องมือวาดเท่านั้น: Pen (popup), Eraser, Text, Shape (popup), Select, Pan, Laser
 - กลุ่ม Actions: Undo, Redo, Clear
 - กลุ่ม Recording: Record, Insert Image
 - ลดความยาวของ bar ลงอย่างมาก
 
-#### [NEW] [ColorSidebar.jsx](file:///c:/test_ai/Whiteboard/Client/src/components/ColorSidebar.jsx)
+#### [NEW] [ColorSidebar.jsx](file:///c:/test_ai/ProEdu1/Client/src/components/ColorSidebar.jsx)
 - ตำแหน่ง: Fixed right, vertical, centered
 - Quick colors 12 สี (วงกลมเล็ก)
 - Color picker (เปิด modal)
 - Background picker (4 ปุ่ม) — host only
 - Pen size slider — โผล่เมื่อ hover/click
 
-#### [MODIFY] [App.jsx](file:///c:/test_ai/Whiteboard/Client/src/App.jsx)
+#### [MODIFY] [App.jsx](file:///c:/test_ai/ProEdu1/Client/src/App.jsx)
 - เปลี่ยนจากการ render `<Toolbar>` เป็น `<HeaderBar>` + `<ToolPalette>` + `<ColorSidebar>`
 - ย้าย UI elements (user-count, qr-toggle, permission-toggle-btn, focus-drawer-btn) เข้า HeaderBar
 - Props ยังคงเดิม — แค่กระจายไปให้คนละ component
 
-#### [MODIFY] [index.css](file:///c:/test_ai/Whiteboard/Client/src/index.css)
+#### [MODIFY] [index.css](file:///c:/test_ai/ProEdu1/Client/src/index.css)
 - เพิ่ม styles สำหรับ `.header-bar`, `.tool-palette`, `.color-sidebar`
 - ลบหรือปรับ styles เดิมของ `.toolbar`
 - ปรับ responsive breakpoints ให้รองรับ layout ใหม่
 - เพิ่ม animations สำหรับ sidebar expand/collapse
 
-#### [MODIFY] [NameDialog.jsx](file:///c:/test_ai/Whiteboard/Client/src/components/NameDialog.jsx)
+#### [MODIFY] [NameDialog.jsx](file:///c:/test_ai/ProEdu1/Client/src/components/NameDialog.jsx)
 - ปรับ design ให้ดูเป็น modern card — เพิ่ม role indicator icon, gradient accent
 
 ---
@@ -77,7 +77,7 @@
 ## Verification Plan
 
 ### Browser Testing
-1. Start dev server: `cd c:\test_ai\Whiteboard\Server && node server.js` then `cd c:\test_ai\Whiteboard\Client && npm run dev`
+1. Start dev server: `cd c:\test_ai\ProEdu1\Server && node server.js` then `cd c:\test_ai\ProEdu1\Client && npm run dev`
 2. Open browser at `http://localhost:5173`
 3. Verify:
    - HeaderBar แสดงถูกต้องด้านบน (menu, pages, users)

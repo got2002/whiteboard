@@ -24,6 +24,7 @@ function HeaderBar({
     onPrevPage,
     onNextPage,
     onTogglePages,
+    onAddPage,
     // Menu actions
     onNewBoard,
     onLoadProject,
@@ -152,6 +153,13 @@ function HeaderBar({
                             <path d="M9 18l6-6-6-6" />
                         </svg>
                     </button>
+                    {isHost && (
+                        <button className="header-btn header-add-page-btn" onClick={onAddPage} title="เพิ่มหน้าใหม่">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                                <path d="M12 5v14M5 12h14" />
+                            </svg>
+                        </button>
+                    )}
                 </div>
             </div>
 

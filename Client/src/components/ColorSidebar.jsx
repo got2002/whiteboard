@@ -20,6 +20,14 @@ const BACKGROUNDS = [
     { id: "black", label: "⬛", title: "พื้นดำ" },
     { id: "grid", label: "📐", title: "ตาราง" },
     { id: "lined", label: "📝", title: "เส้นบรรทัด" },
+    { id: "dotted", label: "⁙", title: "จุด" },
+    { id: "graph", label: "📊", title: "กราฟ" },
+    { id: "isometric", label: "◇", title: "ไอโซเมตริก" },
+];
+
+const BG_COLORS = [
+    "#ffffff", "#f8fafc", "#fefce8", "#ecfdf5",
+    "#eff6ff", "#fdf2f8", "#f5f3ff", "#1a1a2e",
 ];
 
 function ColorSidebar({
@@ -104,6 +112,27 @@ function ColorSidebar({
                             {bg.label}
                         </button>
                     ))}
+                    <div className="cs-bg-divider" />
+                    {BG_COLORS.map((c) => (
+                        <button
+                            key={c}
+                            className={`cs-bg-btn cs-bgcolor-btn ${background === `color-${c}` ? "active" : ""}`}
+                            style={{ backgroundColor: c }}
+                            onClick={() => onBackgroundChange(`color-${c}`)}
+                            title={`พื้นสี ${c}`}
+                        />
+                    ))}
+                    <label
+                        className="cs-bg-btn cs-bgcolor-custom"
+                        title="เลือกสีพื้นหลังเอง"
+                    >
+                        🎨
+                        <input
+                            type="color"
+                            style={{ position: 'absolute', opacity: 0, width: 0, height: 0 }}
+                            onChange={(e) => onBackgroundChange(`color-${e.target.value}`)}
+                        />
+                    </label>
                 </div>
             )}
 

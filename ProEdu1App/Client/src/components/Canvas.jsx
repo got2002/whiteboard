@@ -1454,8 +1454,13 @@ const Canvas = forwardRef(function Canvas(
     // ============================================================
     // [K] Render
     // ============================================================
+    const bg = page?.background || "white";
+    const isCustomColor = bg.startsWith("color-");
+    const bgClass = isCustomColor ? "" : `bg-${bg}`;
+    const bgStyle = isCustomColor ? { backgroundColor: bg.replace("color-", "") } : {};
+
     return (
-        <div className={`canvas-bg bg-${page?.background || "white"}`}>
+        <div className={`canvas-bg ${bgClass}`} style={bgStyle}>
             <canvas
                 ref={canvasRef}
                 onPointerDown={handlePointerDown}

@@ -101,7 +101,10 @@ function PagePanel({
                                 title="ลากเพื่อสลับตำแหน่ง หรือคลิกเพื่อเปิดหน้า"
                             >
                                 {/* Thumbnail: แสดงพื้นหลัง + เลขหน้า + จำนวน stroke */}
-                                <div className={`page-thumb bg-${page.background}`}>
+                                <div
+                                    className={`page-thumb ${page.background.startsWith("color-") ? "" : `bg-${page.background}`}`}
+                                    style={page.background.startsWith("color-") ? { backgroundColor: page.background.replace("color-", "") } : {}}
+                                >
                                     <span className="page-number">{index + 1}</span>
                                     {page.strokes.length > 0 && (
                                         <span className="stroke-count">{page.strokes.length} เส้น</span>
