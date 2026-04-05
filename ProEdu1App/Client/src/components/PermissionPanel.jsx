@@ -20,8 +20,8 @@
 
 function PermissionPanel({
     show, onToggle,
-    pendingRequests, contributors,
-    onApprove, onDeny, onRevoke,
+    pendingRequests, contributors, viewers = [],
+    onApprove, onDeny, onRevoke, onGrant,
 }) {
     return (
         <div className={`permission-panel ${show ? "open" : ""}`}>

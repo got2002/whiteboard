@@ -209,6 +209,7 @@ export default function MainLayout() {
         onPrevPage={pageHook.handlePrevPage}
         onNextPage={pageHook.handleNextPage}
         onTogglePages={() => setShowPagePanel(v => !v)}
+        onAddPage={pageHook.handleAddPage}
         onNewBoard={fileHook.handleNewBoard}
         onLoadProject={fileHook.handleLoadProject}
         onSaveProject={fileHook.handleSaveProject}
@@ -353,9 +354,13 @@ export default function MainLayout() {
           contributors={Object.entries(collabHook.remoteUsers)
             .filter(([, u]) => u.role === "contributor")
             .map(([id, u]) => ({ id, ...u }))}
+          viewers={Object.entries(collabHook.remoteUsers)
+            .filter(([, u]) => u.role === "viewer")
+            .map(([id, u]) => ({ id, ...u }))}
           onApprove={permHook.handleApproveRequest}
           onDeny={permHook.handleDenyRequest}
           onRevoke={permHook.handleRevokePermission}
+          onGrant={permHook.handleGrantPermission}
         />
       )}
 

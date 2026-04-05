@@ -28,4 +28,19 @@ module.exports = (io, socket) => {
     io.to(studentId).emit("role-changed", { role: "contributor" });
     io.emit("user-role-updated", { id: studentId, role: "contributor" });
   });
+
+  socket.on("grant-permission", ({ studentId }) => {
+    if (socket.id !== store.hostSocketId) return;
+
+    const student = store.users[studentId];
+    if (!student || student.role !== "viewer") return;
+
+    student.role = "contributor";
+    if (store.pendingRequests[studentId]) {
+      delete store.pendingRequests[studentId];
+    }
+
+    io.to(studentId).emit("role-changed", { role: "contributor" });
+    io.emit("user-role-updated", { id: studentId, role: "contributor" });
+  });
 };

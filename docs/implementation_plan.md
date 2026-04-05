@@ -1,99 +1,42 @@
-# เพิ่มระบบ Role-Based Authorization (Viewer / Contributor / Host)
+# การพัฒนาระบบกำหนดสิทธิ์ผู้ใช้งาน (Direct Permission Assignment)
 
-ปัจจุบันทุก Client ที่เชื่อมต่อเข้ามามีสิทธิ์เท่ากันหมด ไม่แยกแยะระหว่าง Teacher, นักเรียนที่วาดได้ (Contributor) หรือผู้ดูอย่างเดียว (Viewer) ต้องเพิ่มระบบ Role เพื่อให้ตรงกับ Architecture Diagram ที่กำหนดไว้
+จากภาพและคำแนะนำของลูกค้า มีการให้แก้ไข 2 ส่วน:
+1. **ไม่ต้อง popup ให้แสดงเป็นปุ่ม alert ก่อน:** ระบบปัจจุบันได้ลบการ Alert แบบ Popup ทิ้งไปแล้ว โดยการขอสิทธิ์จะส่งเป็นตัวเลข (Badge) แจ้งเตือนสีแดง (Alert Button) ไปยังครูผู้สอนแทน เพื่อไม่ให้รบกวนหน้าจอของครูขณะสอน กรณีนี้ระบบปัจจุบันทำได้ตามที่ลูกค้าต้องการแล้ว
+2. **คนสอน assign สิทธิ์ได้โดยไม่ต้องขอ:** ลูกค้าต้องการให้ครูเห็นรายชื่อนักเรียนที่เป็นผู้เข้าชม (Viewers) ทั้งหมด และสามารถกด **ให้สิทธิ์เขียน** (Grant Permission) ให้แก่นักเรียนรายบุคคลได้เลย ทันทีโดยไม่ต้องรอนักเรียนกดขอสิทธิ์มาก่อน
 
-## สิทธิ์ของแต่ละ Role
+## กำหนดการส่วนที่แก้ (Proposed Changes)
 
-| ความสามารถ | Host (Teacher) | Contributor | Viewer |
-|---|:---:|:---:|:---:|
-| ดูกระดาน | ✅ | ✅ | ✅ |
-| วาด/พิมพ์/ลบเส้น | ✅ | ✅ | ❌ |
-| Undo/Redo/Clear | ✅ | ✅ | ❌ |
-| เพิ่ม/ลบหน้า | ✅ | ❌ | ❌ |
-| เปลี่ยนพื้นหลัง | ✅ | ❌ | ❌ |
-| Load/Save Project | ✅ | ❌ | ❌ |
-| เปลี่ยนโหมด (Math/Science) | ✅ | ❌ | ❌ |
-| เห็น Toolbar | ✅ | ✅ (จำกัด) | ❌ |
-| Laser Pointer | ✅ | ✅ | ❌ |
+### Server (Socket.io)
 
-## Proposed Changes
-
-### Server
-
-#### [MODIFY] [server.js](file:///c:/test_ai/ProEdu1/Server/server.js)
-- เพิ่ม `role` field ใน `users` map (`{ name, color, pageIndex, role }`)
-- แก้ event `set-user` ให้รับ `role` จาก client: `{ name, role }`
-- **เพิ่ม Guard** ที่ event ต่อไปนี้เพื่อป้องกัน Viewer:
-  - `draw`, `stroke-complete`, `undo`, `redo`, `clear-page` → ต้องเป็น `host` หรือ `contributor`
-  - `add-page`, `delete-page`, `change-background`, `load-project` → ต้องเป็น `host` เท่านั้น
-- ส่ง `role` กลับไปใน `user-confirmed` event
-
-#### [MODIFY] [server.js](file:///c:/test_ai/ProEdu1/ProEdu1App/server/server.js)
-- เปลี่ยนเหมือนกันกับ `Server/server.js` ข้างต้น (ไฟล์นี้คือ server สำหรับ Electron)
+#### [MODIFY] [permission.js](file:///c:/test_ai/Whiteboard/Server/socket/permission.js)
+- เพิ่ม event `grant-permission` สำหรับให้ Host ยิงคำสั่งเปลี่ยนสถานะของนักเรียนจาก `viewer` เป็น `contributor` ได้โดยตรง (รูปแบบคล้ายกับ `approve-request` แต่ไม่ต้องตรวจสอบและลบสถานะจาก `pendingRequests` ก่อน)
 
 ---
 
-### Client (Browser — ใช้กับทุก Role)
+### Client (React)
 
-#### [MODIFY] [NameDialog.jsx](file:///c:/test_ai/ProEdu1/Client/src/components/NameDialog.jsx)
-- เพิ่มปุ่มเลือก Role (3 ปุ่ม: 👨‍🏫 Teacher / ✏️ Contributor / 👁️ Viewer)
-- ส่ง `{ name, role }` กลับผ่าน `onSubmit`
+#### [MODIFY] [permissionService.js](file:///c:/test_ai/Whiteboard/Client/src/feature/permission/permissionService.js)
+- เพิ่มฟังก์ชัน `emitGrantPermission(studentId)` รองรับการยิง Socket ส่งให้ Server
 
-#### [MODIFY] [App.jsx](file:///c:/test_ai/ProEdu1/Client/src/App.jsx)
-- เพิ่ม state `userRole` (default: `"viewer"`)
-- ส่ง `role` ไปกับ `set-user` event
-- รับ `role` กลับจาก `user-confirmed`
-- **Viewer Mode**: ซ่อน `Toolbar`, `SideToolbar`, `FloatingPalette`, `ModePanel` เมื่อ `role === "viewer"`
-- **Contributor Mode**: ซ่อนปุ่ม host-only ใน Toolbar (เพิ่ม/ลบหน้า, เปลี่ยนพื้นหลัง, Load/Save)
-- ส่ง `userRole` ลงไปที่ Canvas เพื่อปิด pointer events สำหรับ Viewer
+#### [MODIFY] [usePermission.js](file:///c:/test_ai/Whiteboard/Client/src/feature/permission/usePermission.js)
+- เพิ่ม `handleGrantPermission(studentId)` เพื่อเรียกใช้ `permissionService.emitGrantPermission`
 
-#### [MODIFY] [Canvas.jsx](file:///c:/test_ai/ProEdu1/Client/src/components/Canvas.jsx)
-- รับ prop `userRole`
-- ถ้า `userRole === "viewer"` → ไม่ประมวลผล pointer events (ปิดการวาด)
+#### [MODIFY] [MainLayout.jsx](file:///c:/test_ai/Whiteboard/Client/src/layouts/MainLayout.jsx)
+- ดึงรายชื่อ `viewers` ออกจาก `collabHook.remoteUsers` เพื่อส่งต่อเข้าไปใน Panel 
+- ส่งผ่าน props `viewers` และฟังก์ชัน `onGrant` เข้าสู่ `PermissionPanel`
 
-#### [MODIFY] [Toolbar.jsx](file:///c:/test_ai/ProEdu1/Client/src/components/Toolbar.jsx)
-- รับ prop `userRole`
-- ซ่อนปุ่มที่ไม่มีสิทธิ์ตาม Role
+#### [MODIFY] [PermissionPanel.jsx](file:///c:/test_ai/Whiteboard/Client/src/components/PermissionPanel.jsx)
+- เพิ่มส่วนแสดงผลใหม่ **"👀 ผู้เข้าชม (Viewers)"** เพื่อให้แสดงนักเรียนที่ดูอยู่แต่ยังไม่ได้สิทธิ์เขียน
+- เพิ่มปุ่มกดชื่องาน **"➕ ให้สิทธิ์"** ให้ครูสามารถ Grant สิทธิ์ให้ผู้เข้าชมเหล่านั้นได้ทันที
 
-#### [MODIFY] [index.css](file:///c:/test_ai/ProEdu1/Client/src/index.css)
-- เพิ่ม CSS สำหรับ Role Selector ใน NameDialog
-- เพิ่ม CSS สำหรับ "Viewer Mode" indicator (แถบแสดงสถานะ)
+## Open Questions
 
----
-
-### ProEdu1App (Electron — Teacher/Contributor)
-
-#### [MODIFY] [NameDialog.jsx](file:///c:/test_ai/ProEdu1/ProEdu1App/Client/src/components/NameDialog.jsx)
-- เพิ่มปุ่มเลือก Role เหมือนกับ Client
-
-#### [MODIFY] [App.jsx](file:///c:/test_ai/ProEdu1/ProEdu1App/Client/src/App.jsx)
-- เพิ่มระบบ Role เหมือนกับใน `Client/src/App.jsx`
-
-#### [MODIFY] [Canvas.jsx](file:///c:/test_ai/ProEdu1/ProEdu1App/Client/src/components/Canvas.jsx)
-- เพิ่ม `userRole` prop เหมือนกับ Client
-
-#### [MODIFY] [Toolbar.jsx](file:///c:/test_ai/ProEdu1/ProEdu1App/Client/src/components/Toolbar.jsx)
-- เพิ่ม `userRole` prop เหมือนกับ Client
-
----
+เนื่องจากระบบปัจจุบันไม่ได้ขึ้นเป็น Popup อยู่แล้ว (ขึ้นเป็น Alert Badge แจ้งเตือน) ผมจึงจะโฟกัสการพัฒนาไปที่ข้อ (2) เพื่อให้ครูสามารถให้สิทธิ์นักเรียนได้ทันทีโดยที่นักเรียนไม่ต้องกดขอก่อนครับ 
 
 ## Verification Plan
 
-### Browser Testing (หลักๆ)
-ทดสอบผ่าน Browser โดยเปิด Server แล้วเชื่อมต่อจาก Client:
-
-1. **เปิด Server**: `cd c:\test_ai\ProEdu1\Server && node server.js`
-2. **เปิด Client**: `cd c:\test_ai\ProEdu1\Client && npm run dev`
-3. **ทดสอบ Viewer**:
-   - เปิดเบราว์เซอร์ไปที่ `http://localhost:5173`
-   - กรอกชื่อและเลือก Role เป็น "Viewer"
-   - ตรวจสอบว่า: **ไม่มี Toolbar**, **ไม่สามารถวาดบน Canvas ได้**, **เห็นเส้นที่คนอื่นวาดแบบ real-time**
-4. **ทดสอบ Contributor**:
-   - เปิดแท็บใหม่ เลือก Role เป็น "Contributor"
-   - ตรวจสอบว่า: **วาดได้**, **ไม่มีปุ่มเพิ่ม/ลบหน้า**, **ไม่มีปุ่ม Load/Save**
-5. **ทดสอบ Host**:
-   - เปิดแท็บใหม่ เลือก Role เป็น "Host"
-   - ตรวจสอบว่า: **วาดได้**, **มีปุ่มทุกอย่าง**, **เพิ่ม/ลบหน้าได้**
-
-### Manual Testing
-- ขอให้ user ทดสอบเปิด 2-3 แท็บพร้อมกันเพื่อยืนยันว่าการ sync ยังใช้ได้ปกติ และ role แต่ละคนต่างกันจริง
+### Manual Verification
+1. เปิดหน้าเว็บ 2 หน้าต่าง หน้าต่างแรก Log in เป็น **"ครู (Host)"** และอีกหน้าต่างเป็น **"นักเรียน (Viewer)"**
+2. ครูสามารถกดแท็บการอนุญาตสิทธิ์ และจะเห็นชื่อของนักเรียนในแท็บผู้เข้าชม
+3. ครูสามารถเพิ่มสิทธิ์เขียนให้นักเรียนเองได้ (โดยนักเรียนไม่ต้องกดขอ) 
+4. นักเรียนจะมีสิทธิ์การเขียนกระดานทันที

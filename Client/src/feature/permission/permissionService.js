@@ -6,6 +6,7 @@ import { socket } from "../../core/socket";
 export const permissionService = {
   emitRequestWrite: () => socket.emit("request-write"),
   emitApproveRequest: (studentId) => socket.emit("approve-request", { studentId }),
+  emitGrantPermission: (studentId) => socket.emit("grant-permission", { studentId }),
   emitDenyRequest: (studentId) => socket.emit("deny-request", { studentId }),
   emitRevokePermission: (studentId) => socket.emit("revoke-permission", { studentId }),
 

@@ -1239,8 +1239,13 @@ function App() {
     setPendingRequests((prev) => prev.filter((r) => r.id !== studentId));
   }, []);
 
-  const handleRevokePermission = useCallback((studentId) => {
+    const handleRevokePermission = useCallback((studentId) => {
     socket.emit("revoke-permission", { studentId });
+  }, []);
+
+  const handleGrantPermission = useCallback((studentId) => {
+    socket.emit("grant-permission", { studentId });
+    setPendingRequests((prev) => prev.filter((r) => r.id !== studentId));
   }, []);
 
   // ============================================================
@@ -1499,9 +1504,13 @@ function App() {
           contributors={Object.entries(remoteUsers)
             .filter(([, u]) => u.role === "contributor")
             .map(([id, u]) => ({ id, ...u }))}
+          viewers={Object.entries(remoteUsers)
+            .filter(([, u]) => u.role === "viewer")
+            .map(([id, u]) => ({ id, ...u }))}
           onApprove={handleApproveRequest}
           onDeny={handleDenyRequest}
           onRevoke={handleRevokePermission}
+          onGrant={handleGrantPermission}
         />
       )}
 

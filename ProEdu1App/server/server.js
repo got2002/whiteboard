@@ -410,6 +410,31 @@ io.on("connection", (socket) => {
   });
 
   // ============================================================
+  // [Permission] โฮสต์มอบสิทธิ์ (Host grants permission directly)
+  // ============================================================
+  socket.on("grant-permission", ({ studentId }) => {
+    if (socket.id !== hostSocketId) return;
+    const student = users[studentId];
+    if (!student || student.role === "contributor") return;
+
+    // เปลี่ยน role เป็น contributor
+    student.role = "contributor";
+
+    // ถ้ามี pending อยู่ให้ลบออกด้วย
+    if (pendingRequests[studentId]) {
+      delete pendingRequests[studentId];
+    }
+
+    // แจ้ง student (อัปเดตสิทธิ์เพื่อให้วาดได้)
+    io.to(studentId).emit("role-changed", { role: "contributor" });
+
+    // แจ้งทุกคนว่า role เปลี่ยน (เพื่อให้เห็น user dot ที่ถูกต้อง)
+    io.emit("user-role-updated", { id: studentId, role: "contributor" });
+
+    console.log(`✅ ครูมอบสิทธิ์เขียนให้: ${student.name}`);
+  });
+
+  // ============================================================
   // ผู้ใช้ disconnect
   // ============================================================
   socket.on("disconnect", () => {

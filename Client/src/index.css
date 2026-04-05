@@ -142,6 +142,35 @@ html.on-screen-mode #root {
   z-index: 1;
 }
 
+.canvas-bg.bg-dotted {
+  background-color: #ffffff;
+  background-image: radial-gradient(circle, rgba(0, 0, 0, 0.12) 1px, transparent 1px);
+  background-size: 24px 24px;
+}
+
+.canvas-bg.bg-graph {
+  background-color: #ffffff;
+  background-image:
+    linear-gradient(rgba(59, 130, 246, 0.08) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(59, 130, 246, 0.08) 1px, transparent 1px),
+    linear-gradient(rgba(59, 130, 246, 0.18) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(59, 130, 246, 0.18) 1px, transparent 1px);
+  background-size: 10px 10px, 10px 10px, 50px 50px, 50px 50px;
+}
+
+.canvas-bg.bg-isometric {
+  background-color: #ffffff;
+  background-image:
+    linear-gradient(30deg, rgba(0, 0, 0, 0.05) 12%, transparent 12.5%, transparent 87%, rgba(0, 0, 0, 0.05) 87.5%, rgba(0, 0, 0, 0.05)),
+    linear-gradient(150deg, rgba(0, 0, 0, 0.05) 12%, transparent 12.5%, transparent 87%, rgba(0, 0, 0, 0.05) 87.5%, rgba(0, 0, 0, 0.05)),
+    linear-gradient(30deg, rgba(0, 0, 0, 0.05) 12%, transparent 12.5%, transparent 87%, rgba(0, 0, 0, 0.05) 87.5%, rgba(0, 0, 0, 0.05)),
+    linear-gradient(150deg, rgba(0, 0, 0, 0.05) 12%, transparent 12.5%, transparent 87%, rgba(0, 0, 0, 0.05) 87.5%, rgba(0, 0, 0, 0.05)),
+    linear-gradient(60deg, rgba(0, 0, 0, 0.04) 25%, transparent 25.5%, transparent 75%, rgba(0, 0, 0, 0.04) 75%, rgba(0, 0, 0, 0.04)),
+    linear-gradient(60deg, rgba(0, 0, 0, 0.04) 25%, transparent 25.5%, transparent 75%, rgba(0, 0, 0, 0.04) 75%, rgba(0, 0, 0, 0.04));
+  background-size: 40px 70px;
+  background-position: 0 0, 0 0, 20px 35px, 20px 35px, 0 0, 20px 35px;
+}
+
 /* ============================================================
    Header Bar — Fixed top bar (glassmorphism)
    ============================================================ */
@@ -243,6 +272,18 @@ html.on-screen-mode #root {
 .header-nav-btn {
   width: 28px !important;
   height: 28px !important;
+}
+
+.header-add-page-btn {
+  width: 28px !important;
+  height: 28px !important;
+  margin-left: 4px;
+  color: rgba(34, 197, 94, 0.7) !important;
+}
+
+.header-add-page-btn:hover {
+  background: rgba(34, 197, 94, 0.15) !important;
+  color: #22c55e !important;
 }
 
 .header-page-indicator {
@@ -985,10 +1026,23 @@ html.on-screen-mode #root {
 }
 
 .panel-close {
-  width: 30px !important;
-  height: 30px !important;
-  font-size: 14px !important;
-  color: rgba(255, 255, 255, 0.5) !important;
+  width: 30px;
+  height: 30px;
+  font-size: 14px;
+  color: rgba(255, 255, 255, 0.5);
+  background: rgba(255, 255, 255, 0.08);
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s ease;
+}
+
+.panel-close:hover {
+  background: rgba(255, 255, 255, 0.15);
+  color: rgba(255, 255, 255, 0.8);
 }
 
 .page-list {
@@ -1069,6 +1123,42 @@ html.on-screen-mode #root {
   background-image:
     linear-gradient(rgba(59, 130, 246, 0.12) 1px, transparent 1px);
   background-size: 100% 12px;
+}
+
+.page-thumb.bg-dotted {
+  background-color: #f8fafc;
+  background-image: radial-gradient(circle, rgba(0, 0, 0, 0.12) 1px, transparent 1px);
+  background-size: 10px 10px;
+}
+
+.page-thumb.bg-graph {
+  background-color: #f8fafc;
+  background-image:
+    linear-gradient(rgba(59, 130, 246, 0.08) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(59, 130, 246, 0.08) 1px, transparent 1px),
+    linear-gradient(rgba(59, 130, 246, 0.18) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(59, 130, 246, 0.18) 1px, transparent 1px);
+  background-size: 5px 5px, 5px 5px, 25px 25px, 25px 25px;
+}
+
+.page-thumb.bg-isometric {
+  background-color: #f8fafc;
+  background-image:
+    linear-gradient(30deg, rgba(0, 0, 0, 0.05) 12%, transparent 12.5%, transparent 87%, rgba(0, 0, 0, 0.05) 87.5%),
+    linear-gradient(150deg, rgba(0, 0, 0, 0.05) 12%, transparent 12.5%, transparent 87%, rgba(0, 0, 0, 0.05) 87.5%),
+    linear-gradient(60deg, rgba(0, 0, 0, 0.04) 25%, transparent 25.5%, transparent 75%, rgba(0, 0, 0, 0.04) 75%);
+  background-size: 20px 35px;
+}
+
+/* Custom BG Color buttons in sidebar */
+.cs-bgcolor-btn {
+  border: 2px solid rgba(255, 255, 255, 0.15) !important;
+}
+
+.cs-bgcolor-custom {
+  cursor: pointer;
+  position: relative;
+  overflow: hidden;
 }
 
 .page-number {
