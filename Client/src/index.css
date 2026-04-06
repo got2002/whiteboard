@@ -706,6 +706,38 @@ html.on-screen-mode #root {
   margin-top: 2px;
 }
 
+.cs-bg-popup {
+  position: absolute;
+  right: 42px;
+  bottom: 0;
+  width: 140px;
+  background: rgba(15, 15, 26, 0.95);
+  backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+  animation: fadeIn 0.15s ease;
+  z-index: 110;
+}
+
+.cs-bg-popup-group {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  justify-content: center;
+}
+
+.cs-bg-divider-horizontal {
+  height: 1px;
+  width: 100%;
+  background: rgba(255, 255, 255, 0.1);
+  margin: 2px 0;
+}
+
 .cs-bg-divider {
   width: 18px;
   height: 1px;

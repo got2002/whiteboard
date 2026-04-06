@@ -6,13 +6,11 @@
 //
 // ============================================================
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import ColorPickerModal from "./ColorPickerModal";
 
-const COLORS = [
-    "#000000", "#ffffff", "#ef4444", "#f97316", "#eab308",
-    "#22c55e", "#3b82f6", "#8b5cf6", "#ec4899", "#06b6d4",
-    "#a855f7", "#6b7280",
+const DEFAULT_PRIMARY_COLORS = [
+    "#000000", "#ffffff", "#ef4444", "#3b82f6", "#22c55e",
 ];
 
 const BACKGROUNDS = [
@@ -40,29 +38,57 @@ function ColorSidebar({
     userRole,
 }) {
     const isHost = userRole === "host";
-    const [showColorModal, setShowColorModal] = useState(false);
+    const [colorModalTarget, setColorModalTarget] = useState(null);
     const [showSizeSlider, setShowSizeSlider] = useState(false);
+    const [showBgPopup, setShowBgPopup] = useState(false);
+
+    const [recentColors, setRecentColors] = useState(() => {
+        try {
+            const saved = localStorage.getItem("proedu1-recent-colors");
+            if (saved) return JSON.parse(saved);
+        } catch {}
+        return DEFAULT_PRIMARY_COLORS;
+    });
+
+    const addRecentColor = (newColor) => {
+        setRecentColors(prev => {
+            let arr = prev.filter(c => c !== newColor);
+            arr.unshift(newColor);
+            if (arr.length > 5) arr = arr.slice(0, 5);
+            try {
+                localStorage.setItem("proedu1-recent-colors", JSON.stringify(arr));
+            } catch {}
+            return arr;
+        });
+    };
 
     return (
         <div className="color-sidebar">
             {/* ── Color Palette ── */}
             <div className="cs-section cs-colors">
-                {COLORS.map((c) => (
+                {recentColors.map((c) => (
                     <button
                         key={c}
                         className={`cs-color-btn ${color === c ? "active" : ""}`}
                         style={{ backgroundColor: c }}
-                        onClick={() => onColorChange(c)}
+                        onClick={() => { onColorChange(c); addRecentColor(c); }}
                         title={c}
                     />
                 ))}
                 {/* Full color picker trigger */}
                 <button
-                    className="cs-color-btn cs-rainbow-btn"
-                    onClick={() => setShowColorModal(true)}
+                    className="cs-size-trigger"
+                    style={{ marginTop: '2px', color: 'rgba(255, 255, 255, 0.85)' }}
+                    onClick={() => { setColorModalTarget("pen"); setShowBgPopup(false); setShowSizeSlider(false); }}
                     title="เลือกสีเพิ่มเติม"
                 >
-                    <span className="cs-rainbow-inner" style={{ backgroundColor: color }} />
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0, opacity: 0.85 }}>
+                        <circle cx="13.5" cy="6.5" r=".5" fill="currentColor"></circle>
+                        <circle cx="17.5" cy="10.5" r=".5" fill="currentColor"></circle>
+                        <circle cx="8.5" cy="7.5" r=".5" fill="currentColor"></circle>
+                        <circle cx="6.5" cy="12.5" r=".5" fill="currentColor"></circle>
+                        <path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10c.926 0 1.648-.746 1.648-1.688 0-.437-.18-.835-.437-1.125-.29-.289-.438-.652-.438-1.125a1.64 1.64 0 0 1 1.668-1.668h1.996c3.051 0 5.555-2.503 5.555-5.554C21.965 6.012 17.461 2 12 2z"></path>
+                    </svg>
                 </button>
             </div>
 
@@ -70,17 +96,14 @@ function ColorSidebar({
             <div className="cs-section cs-size">
                 <button
                     className="cs-size-trigger"
-                    onClick={() => setShowSizeSlider((v) => !v)}
+                    onClick={() => { setShowSizeSlider((v) => !v); setShowBgPopup(false); }}
                     title={`ขนาด: ${penSize}`}
                 >
-                    <span
-                        className="cs-size-dot"
-                        style={{
-                            width: Math.min(penSize * 2.5, 22) + "px",
-                            height: Math.min(penSize * 2.5, 22) + "px",
-                            backgroundColor: color,
-                        }}
-                    />
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0, opacity: 0.85 }}>
+                        <path d="M3 5h18" strokeWidth="1.5" />
+                        <path d="M3 12h18" strokeWidth="3" />
+                        <path d="M3 19h18" strokeWidth="5" />
+                    </svg>
                 </button>
                 {showSizeSlider && (
                     <div className="cs-size-popup">
@@ -102,48 +125,71 @@ function ColorSidebar({
             {isHost && (
                 <div className="cs-section cs-backgrounds">
                     <div className="cs-bg-divider" />
-                    {BACKGROUNDS.map((bg) => (
-                        <button
-                            key={bg.id}
-                            className={`cs-bg-btn ${background === bg.id ? "active" : ""}`}
-                            onClick={() => onBackgroundChange(bg.id)}
-                            title={bg.title}
-                        >
-                            {bg.label}
-                        </button>
-                    ))}
-                    <div className="cs-bg-divider" />
-                    {BG_COLORS.map((c) => (
-                        <button
-                            key={c}
-                            className={`cs-bg-btn cs-bgcolor-btn ${background === `color-${c}` ? "active" : ""}`}
-                            style={{ backgroundColor: c }}
-                            onClick={() => onBackgroundChange(`color-${c}`)}
-                            title={`พื้นสี ${c}`}
-                        />
-                    ))}
-                    <label
-                        className="cs-bg-btn cs-bgcolor-custom"
-                        title="เลือกสีพื้นหลังเอง"
+                    
+                    <button
+                        className="cs-size-trigger"
+                        onClick={() => { setShowBgPopup((v) => !v); setShowSizeSlider(false); }}
+                        title="เปลี่ยนพื้นหลัง"
                     >
-                        🎨
-                        <input
-                            type="color"
-                            style={{ position: 'absolute', opacity: 0, width: 0, height: 0 }}
-                            onChange={(e) => onBackgroundChange(`color-${e.target.value}`)}
-                        />
-                    </label>
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0, opacity: 0.85 }}>
+                            <rect x="3" y="3" width="7" height="7" rx="1" />
+                            <rect x="14" y="3" width="7" height="7" rx="1" />
+                            <rect x="14" y="14" width="7" height="7" rx="1" />
+                            <rect x="3" y="14" width="7" height="7" rx="1" />
+                        </svg>
+                    </button>
+
+                    {showBgPopup && (
+                        <div className="cs-bg-popup">
+                            <div className="cs-bg-popup-group">
+                                {BACKGROUNDS.map((bg) => (
+                                    <button
+                                        key={bg.id}
+                                        className={`cs-bg-btn ${background === bg.id ? "active" : ""}`}
+                                        onClick={() => { onBackgroundChange(bg.id); setShowBgPopup(false); }}
+                                        title={bg.title}
+                                    >
+                                        {bg.label}
+                                    </button>
+                                ))}
+                            </div>
+                            <div className="cs-bg-divider-horizontal" />
+                            <div className="cs-bg-popup-group">
+                                {BG_COLORS.map((c) => (
+                                    <button
+                                        key={c}
+                                        className={`cs-bg-btn cs-bgcolor-btn ${background === `color-${c}` ? "active" : ""}`}
+                                        style={{ backgroundColor: c }}
+                                        onClick={() => { onBackgroundChange(`color-${c}`); setShowBgPopup(false); }}
+                                        title={`พื้นสี ${c}`}
+                                    />
+                                ))}
+                                <button
+                                    className="cs-bg-btn cs-bgcolor-custom"
+                                    title="เลือกสีพื้นหลังเอง"
+                                    onClick={() => { setColorModalTarget("background"); setShowBgPopup(false); setShowSizeSlider(false); }}
+                                >
+                                    🎨
+                                </button>
+                            </div>
+                        </div>
+                    )}
                 </div>
             )}
 
             {/* Color Picker Modal */}
-            {showColorModal && (
+            {colorModalTarget && (
                 <ColorPickerModal
-                    currentColor={color}
-                    onClose={() => setShowColorModal(false)}
+                    currentColor={colorModalTarget === "pen" ? color : (background?.startsWith("color-") ? background.replace("color-", "") : "#ffffff")}
+                    onClose={() => setColorModalTarget(null)}
                     onSelectColor={(c) => {
-                        onColorChange(c);
-                        setShowColorModal(false);
+                        if (colorModalTarget === "pen") {
+                            onColorChange(c);
+                            addRecentColor(c);
+                        } else {
+                            onBackgroundChange(`color-${c}`);
+                        }
+                        setColorModalTarget(null);
                     }}
                 />
             )}
