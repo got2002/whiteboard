@@ -97,16 +97,16 @@ function ColorPickerModal({ currentColor, onClose, onSelectColor }) {
   const isDraggingSpectrum = useRef(false);
   const isDraggingSlider = useRef(false);
 
-  // Sync Hex to RGB & HSL
-  useEffect(() => {
-    const newRgb = hexToRgb(selectedColor);
+  const setAllFromHex = useCallback((hex) => {
+    const newRgb = hexToRgb(hex);
     setRgb(newRgb);
     setHsv(rgbToHsl(newRgb.r, newRgb.g, newRgb.b));
-  }, [selectedColor]);
+    setSelectedColor(hex);
+  }, []);
 
   // Handle Basic/Custom Color Click
   const handleColorBoxClick = (c) => {
-    setSelectedColor(c);
+    setAllFromHex(c);
   };
 
   // Add to Custom Colors
@@ -138,10 +138,20 @@ function ColorPickerModal({ currentColor, onClose, onSelectColor }) {
     const h = x / rect.width;
     const s = 1 - (y / rect.height); // Saturation มากอยู่บน
     
-    // อัปเดต HSL -> RGB -> Hex
-    const rgbCoords = hslToRgb(h, s, hsv.l);
-    setSelectedColor(rgbToHex(rgbCoords[0], rgbCoords[1], rgbCoords[2]));
-  }, [hsv.l]);
+    setHsv(prev => {
+        let l = prev.l;
+        // ถ้าความสว่าง (Lightness) เดิมเป็นสว่างสุด (ขาว) หรือมืดสุด (ดำ) 
+        // การลากเปลี่ยนเฉดสีจะไม่เกิดผลลัพธ์ ดังนั้นเราปรับให้อยู่ตรงกลางเพื่อให้เห็นสี
+        if (l < 0.05 || l > 0.95) {
+          l = 0.5;
+        }
+        const newHsv = { h, s, l };
+        const rgbCoords = hslToRgb(newHsv.h, newHsv.s, newHsv.l);
+        setRgb({ r: rgbCoords[0], g: rgbCoords[1], b: rgbCoords[2] });
+        setSelectedColor(rgbToHex(rgbCoords[0], rgbCoords[1], rgbCoords[2]));
+        return newHsv;
+    });
+  }, []);
 
   // ------------------------------------------------------------------
   // Slider Drag Logic (Lightness)
@@ -154,9 +164,14 @@ function ColorPickerModal({ currentColor, onClose, onSelectColor }) {
     
     const l = 1 - (y / rect.height);
     
-    const rgbCoords = hslToRgb(hsv.h, hsv.s, l);
-    setSelectedColor(rgbToHex(rgbCoords[0], rgbCoords[1], rgbCoords[2]));
-  }, [hsv.h, hsv.s]);
+    setHsv(prev => {
+        const newHsv = { h: prev.h, s: prev.s, l };
+        const rgbCoords = hslToRgb(newHsv.h, newHsv.s, newHsv.l);
+        setRgb({ r: rgbCoords[0], g: rgbCoords[1], b: rgbCoords[2] });
+        setSelectedColor(rgbToHex(rgbCoords[0], rgbCoords[1], rgbCoords[2]));
+        return newHsv;
+    });
+  }, []);
 
   // Global mouse events
   useEffect(() => {
@@ -227,7 +242,11 @@ function ColorPickerModal({ currentColor, onClose, onSelectColor }) {
                   value={selectedColor.toUpperCase()} 
                   onChange={e => {
                     const val = e.target.value;
-                    if (/^#[0-9A-F]{6}$/i.test(val)) setSelectedColor(val);
+                    if (/^#[0-9A-F]{6}$/i.test(val)) setAllFromHex(val);
+                    else setSelectedColor(val);
+                  }}
+                  onBlur={e => {
+                    if (!/^#[0-9A-F]{6}$/i.test(e.target.value)) setAllFromHex("#000000");
                   }}
                 />
               </div>
@@ -239,15 +258,15 @@ function ColorPickerModal({ currentColor, onClose, onSelectColor }) {
 
               <div className="cp-rgb-inputs">
                 <div className="cp-input-group">
-                  <input type="number" min="0" max="255" value={rgb.r} onChange={e => setSelectedColor(rgbToHex(Number(e.target.value), rgb.g, rgb.b))} />
+                  <input type="number" min="0" max="255" value={rgb.r} onChange={e => setAllFromHex(rgbToHex(Number(e.target.value), rgb.g, rgb.b))} />
                   <label>Red</label>
                 </div>
                 <div className="cp-input-group">
-                  <input type="number" min="0" max="255" value={rgb.g} onChange={e => setSelectedColor(rgbToHex(rgb.r, Number(e.target.value), rgb.b))} />
+                  <input type="number" min="0" max="255" value={rgb.g} onChange={e => setAllFromHex(rgbToHex(rgb.r, Number(e.target.value), rgb.b))} />
                   <label>Green</label>
                 </div>
                 <div className="cp-input-group">
-                  <input type="number" min="0" max="255" value={rgb.b} onChange={e => setSelectedColor(rgbToHex(rgb.r, rgb.g, Number(e.target.value)))} />
+                  <input type="number" min="0" max="255" value={rgb.b} onChange={e => setAllFromHex(rgbToHex(rgb.r, rgb.g, Number(e.target.value)))} />
                   <label>Blue</label>
                 </div>
               </div>

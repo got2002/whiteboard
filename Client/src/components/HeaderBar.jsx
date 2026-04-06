@@ -102,10 +102,10 @@ function HeaderBar({
                                         <span className="hdi-icon">📤</span><span>Save PD1</span>
                                     </button>
                                     <button className="header-dropdown-item" onClick={() => { onExport(); setShowMainMenu(false); }}>
-                                        <span className="hdi-icon">📤</span><span>Export PNG</span>
+                                        <span className="hdi-icon">📸</span><span>Screenshot</span>
                                     </button>
                                     <button className="header-dropdown-item" onClick={() => { onExportAll(); setShowMainMenu(false); }}>
-                                        <span className="hdi-icon">📦</span><span>Export All</span>
+                                        <span className="hdi-icon">📸</span><span>Screenshot All</span>
                                     </button>
                                     <button className={`header-dropdown-item ${autoSave ? "active" : ""}`} onClick={onToggleAutoSave}>
                                         <span className="hdi-icon">🔄</span><span>Auto Save {autoSave ? "✓" : ""}</span>
@@ -214,11 +214,23 @@ function HeaderBar({
                     </>
                 )}
 
+                {/* Screenshot */}
+                <button
+                    className="header-btn"
+                    onClick={onExport}
+                    title="แคปหน้าจอ (Screenshot)"
+                >
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path>
+                        <circle cx="12" cy="13" r="4"></circle>
+                    </svg>
+                </button>
+
                 {/* Recording */}
                 <button
                     className={`header-btn ${isRecording ? "header-btn-recording" : ""}`}
                     onClick={isRecording ? onStopRecord : onStartRecord}
-                    title={isRecording ? "หยุดบันทึก" : "บันทึกหน้าจอ"}
+                    title={isRecording ? "หยุดบันทึก" : "บันทึกวิดีโอหน้าจอ"}
                 >
                     {isRecording ? (
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="6" width="12" height="12" rx="2" /></svg>

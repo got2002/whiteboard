@@ -60,7 +60,23 @@ export function useFileOps({ pages, setPages, setCurrentPageIndex, canvasRef, cu
   const handleExport = () => {
     const canvas = canvasRef.current;
     if (!canvas) return;
-    const url = canvas.toDataURL("image/png");
+
+    const tempCanvas = document.createElement("canvas");
+    tempCanvas.width = canvas.width;
+    tempCanvas.height = canvas.height;
+    const ctx = tempCanvas.getContext("2d");
+
+    const page = pages[currentPageIndex];
+    const bg = page?.background || "white";
+    if (bg === "black") ctx.fillStyle = "#1a1a2e";
+    else if (bg === "lined") ctx.fillStyle = "#fefcf3";
+    else if (bg?.startsWith("color-")) ctx.fillStyle = bg.replace("color-", "");
+    else ctx.fillStyle = "#ffffff";
+
+    ctx.fillRect(0, 0, tempCanvas.width, tempCanvas.height);
+    ctx.drawImage(canvas, 0, 0);
+
+    const url = tempCanvas.toDataURL("image/png");
     const a = document.createElement("a");
     a.href = url;
     a.download = `proedu1-page-${currentPageIndex + 1}.png`;
