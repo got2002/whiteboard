@@ -62,6 +62,11 @@ export function useDrawing({ pages, setPages, userRole, isActive }) {
         } : p
       ));
     };
+    const handleDeleteStroke = ({ pageId, strokeId }) => {
+      setPages(prev => prev.map(p =>
+        p.id === pageId ? { ...p, strokes: p.strokes.filter(s => s.id !== strokeId) } : p
+      ));
+    };
     const handleHostToolChanged = ({ tool }) => setHostTool(tool);
     const handleHostPenStyleChanged = ({ penStyle }) => setHostPenStyle(penStyle);
 
@@ -71,6 +76,7 @@ export function useDrawing({ pages, setPages, userRole, isActive }) {
     drawingService.onRedo(handleRedo);
     drawingService.onClearPage(handleClearPage);
     drawingService.onStrokeUpdate(handleStrokeUpdate);
+    drawingService.onDeleteStroke(handleDeleteStroke);
     drawingService.onHostToolChanged(handleHostToolChanged);
     drawingService.onHostPenStyleChanged(handleHostPenStyleChanged);
 
@@ -81,6 +87,7 @@ export function useDrawing({ pages, setPages, userRole, isActive }) {
       drawingService.offRedo(handleRedo);
       drawingService.offClearPage(handleClearPage);
       drawingService.offStrokeUpdate(handleStrokeUpdate);
+      drawingService.offDeleteStroke(handleDeleteStroke);
       drawingService.offHostToolChanged(handleHostToolChanged);
       drawingService.offHostPenStyleChanged(handleHostPenStyleChanged);
     };
@@ -91,7 +98,7 @@ export function useDrawing({ pages, setPages, userRole, isActive }) {
     setPages(prev => prev.map(p =>
       p.id === pageId ? { ...p, strokes: [...p.strokes, stroke] } : p
     ));
-    setUndoStack(prev => [...prev, { pageId, stroke }]);
+    setUndoStack(prev => [...prev, { type: "add", pageId, stroke }]);
     setRedoStack([]);
     drawingService.emitStrokeComplete(pageId, stroke);
   }, [setPages]);
@@ -130,10 +137,23 @@ export function useDrawing({ pages, setPages, userRole, isActive }) {
     const last = undoStack[undoStack.length - 1];
     setUndoStack(prev => prev.slice(0, -1));
     setRedoStack(prev => [...prev, last]);
-    setPages(prev => prev.map(p =>
-      p.id === last.pageId ? { ...p, strokes: p.strokes.filter(s => s.id !== last.stroke.id) } : p
-    ));
-    drawingService.emitUndo(last.pageId, last.stroke.id);
+
+    if (last.type === "delete") {
+      setPages(prev => prev.map(p =>
+        p.id === last.pageId ? { ...p, strokes: [...p.strokes, last.stroke] } : p
+      ));
+      drawingService.emitRedo(last.pageId, last.stroke);
+    } else if (last.type === "clear") {
+      setPages(prev => prev.map(p =>
+        p.id === last.pageId ? { ...p, strokes: [...p.strokes, ...last.strokes] } : p
+      ));
+      last.strokes.forEach(s => drawingService.emitRedo(last.pageId, s));
+    } else {
+      setPages(prev => prev.map(p =>
+        p.id === last.pageId ? { ...p, strokes: p.strokes.filter(s => s.id !== last.stroke.id) } : p
+      ));
+      drawingService.emitUndo(last.pageId, last.stroke.id);
+    }
   }, [undoStack, setPages]);
 
   const handleRedo = useCallback(() => {
@@ -141,21 +161,51 @@ export function useDrawing({ pages, setPages, userRole, isActive }) {
     const last = redoStack[redoStack.length - 1];
     setRedoStack(prev => prev.slice(0, -1));
     setUndoStack(prev => [...prev, last]);
-    setPages(prev => prev.map(p =>
-      p.id === last.pageId ? { ...p, strokes: [...p.strokes, last.stroke] } : p
-    ));
-    drawingService.emitRedo(last.pageId, last.stroke);
+
+    if (last.type === "delete") {
+      setPages(prev => prev.map(p =>
+        p.id === last.pageId ? { ...p, strokes: p.strokes.filter(s => s.id !== last.stroke.id) } : p
+      ));
+      drawingService.emitDeleteStroke(last.pageId, last.stroke.id);
+    } else if (last.type === "clear") {
+      setPages(prev => prev.map(p =>
+        p.id === last.pageId ? { ...p, strokes: [] } : p
+      ));
+      drawingService.emitClearPage(last.pageId);
+    } else {
+      setPages(prev => prev.map(p =>
+        p.id === last.pageId ? { ...p, strokes: [...p.strokes, last.stroke] } : p
+      ));
+      drawingService.emitRedo(last.pageId, last.stroke);
+    }
   }, [redoStack, setPages]);
 
+  const handleDeleteStroke = useCallback((strokeId, pageId) => {
+    const page = pages.find(p => p.id === pageId);
+    if (!page) return;
+    const strokeObj = page.strokes.find(s => s.id === strokeId);
+
+    setPages(prev => prev.map(p =>
+      p.id === pageId ? { ...p, strokes: p.strokes.filter(s => s.id !== strokeId) } : p
+    ));
+    if (strokeObj) {
+      setUndoStack(prev => [...prev, { type: "delete", pageId, stroke: strokeObj }]);
+      setRedoStack([]);
+    }
+    drawingService.emitDeleteStroke(pageId, strokeId);
+  }, [pages, setPages]);
+
   const handleClear = useCallback((pageId) => {
-    if (!confirm("ลบทั้งหมดบนหน้านี้?")) return;
+    const page = pages.find(p => p.id === pageId);
+    if (page && page.strokes.length > 0) {
+      setUndoStack(prev => [...prev, { type: "clear", pageId, strokes: [...page.strokes] }]);
+      setRedoStack([]);
+    }
     setPages(prev => prev.map(p =>
       p.id === pageId ? { ...p, strokes: [] } : p
     ));
-    setUndoStack([]);
-    setRedoStack([]);
     drawingService.emitClearPage(pageId);
-  }, [setPages]);
+  }, [pages, setPages]);
 
   // ── Tool changes (with host sync) ──
   const handleToolChange = useCallback((t) => {
@@ -193,7 +243,7 @@ export function useDrawing({ pages, setPages, userRole, isActive }) {
     undoStack, redoStack, lastDrawRef,
     // Handlers
     handleStrokeComplete, handleDraw, handleTextRequest,
-    handleStrokeUpdate, handleStrokeResize,
+    handleStrokeUpdate, handleStrokeResize, handleDeleteStroke,
     handleUndo, handleRedo, handleClear,
     handleToolChange, handlePenStyleChange,
     handleModeChange, handleStampSelect,

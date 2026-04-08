@@ -27,7 +27,7 @@ const Canvas = forwardRef(function Canvas(
     onStrokeComplete, onDraw, onTextRequest, socket,
     onCursorMove, remoteCursors, laserPointers,
     currentPageIndex,
-    onStrokeUpdate, onStrokeResize, userRole,
+    onStrokeUpdate, onStrokeResize, onStrokeDelete, userRole,
   },
   ref
 ) {
@@ -250,6 +250,20 @@ const Canvas = forwardRef(function Canvas(
     }
   }, [redrawAll]);
 
+  // Keyboard Delete
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if ((e.key === "Backspace" || e.key === "Delete") && tool === "select" && selectedStrokeId) {
+        if (e.target.tagName !== "INPUT" && e.target.tagName !== "TEXTAREA") {
+          onStrokeDelete?.(selectedStrokeId);
+          setSelectedStrokeId(null);
+        }
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [tool, selectedStrokeId, onStrokeDelete]);
+
   // ============================================================
   // [H] Pointer Events
   // ============================================================
@@ -344,11 +358,15 @@ const Canvas = forwardRef(function Canvas(
       pCtx.clearRect(0, 0, preview.width, preview.height);
       pCtx.drawImage(canvasRef.current, 0, 0);
     } else {
-      const effectivePenStyle = (tool === "highlighter") ? "highlighter" : (tool === "eraser" ? "pen" : penStyle);
-      let strokeColor = tool === "eraser" ? "#000" : color;
+      const isPalm = e.pointerType === "touch" && (e.width > 25 || e.height > 25);
+      const effectiveToolForStroke = isPalm ? "eraser" : tool;
+      const effectivePenSizeForStroke = isPalm ? 100 : penSize;
+      
+      const effectivePenStyle = (effectiveToolForStroke === "highlighter") ? "highlighter" : (effectiveToolForStroke === "eraser" ? "pen" : penStyle);
+      let strokeColor = effectiveToolForStroke === "eraser" ? "#000" : color;
       let useSplitStyle = null;
-      if (tool === "pen" && effectivePenStyle.startsWith("split_")) useSplitStyle = effectivePenStyle;
-      else if (tool === "pen" && hostPenStyle && hostPenStyle.startsWith("split_")) useSplitStyle = hostPenStyle;
+      if (effectiveToolForStroke === "pen" && effectivePenStyle.startsWith("split_")) useSplitStyle = effectivePenStyle;
+      else if (effectiveToolForStroke === "pen" && hostPenStyle && hostPenStyle.startsWith("split_")) useSplitStyle = hostPenStyle;
       if (useSplitStyle) {
         const slots = parseInt(useSplitStyle.split("_")[1]);
         if (!isNaN(slots) && slots >= 2) {
@@ -359,7 +377,7 @@ const Canvas = forwardRef(function Canvas(
       }
       drawState.currentStroke = {
         id: Date.now().toString(36) + Math.random().toString(36).substr(2) + pId,
-        tool, penStyle: effectivePenStyle, color: strokeColor, size: penSize, points: [{ x, y }],
+        tool: effectiveToolForStroke, penStyle: effectivePenStyle, color: strokeColor, size: effectivePenSizeForStroke, points: [{ x, y }],
       };
     }
   };
@@ -473,10 +491,12 @@ const Canvas = forwardRef(function Canvas(
       });
       ctx.restore();
     } else {
-      const strokeColor = drawState.currentStroke ? drawState.currentStroke.color : (tool === "eraser" ? "#000" : color);
-      const effectiveStyle = (tool === "highlighter") ? "highlighter" : (tool === "eraser" ? "pen" : penStyle);
-      drawSegmentLocal(drawState.prevX, drawState.prevY, x, y, strokeColor, penSize, tool, effectiveStyle);
-      onDraw({ prevX: drawState.prevX, prevY: drawState.prevY, x, y, color: strokeColor, size: penSize, tool, penStyle: effectiveStyle });
+      const strokeTool = drawState.currentStroke ? drawState.currentStroke.tool : tool;
+      const strokeSize = drawState.currentStroke ? drawState.currentStroke.size : penSize;
+      const strokeColor = drawState.currentStroke ? drawState.currentStroke.color : (strokeTool === "eraser" ? "#000" : color);
+      const effectiveStyle = (strokeTool === "highlighter") ? "highlighter" : (strokeTool === "eraser" ? "pen" : penStyle);
+      drawSegmentLocal(drawState.prevX, drawState.prevY, x, y, strokeColor, strokeSize, strokeTool, effectiveStyle);
+      onDraw({ prevX: drawState.prevX, prevY: drawState.prevY, x, y, color: strokeColor, size: strokeSize, tool: strokeTool, penStyle: effectiveStyle });
       drawState.currentStroke?.points.push({ x, y });
       drawState.prevX = x; drawState.prevY = y;
     }
