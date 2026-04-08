@@ -29,6 +29,13 @@ module.exports = (io, socket) => {
     socket.broadcast.emit("undo", { pageId, strokeId });
   });
 
+  socket.on("delete-stroke", ({ pageId, strokeId }) => {
+    if (!hasPermission(socket.id, "contributor")) return;
+    const page = store.pages.find((p) => p.id === pageId);
+    if (page) page.strokes = page.strokes.filter((s) => s.id !== strokeId);
+    socket.broadcast.emit("delete-stroke", { pageId, strokeId });
+  });
+
   socket.on("redo", ({ pageId, stroke }) => {
     if (!hasPermission(socket.id, "contributor")) return;
     const page = store.pages.find((p) => p.id === pageId);

@@ -166,14 +166,17 @@ function ToolPalette({
     const penPopupRef = useRef(null);
     const [showShapePopup, setShowShapePopup] = useState(false);
     const shapePopupRef = useRef(null);
+    const [showEraserPopup, setShowEraserPopup] = useState(false);
+    const eraserPopupRef = useRef(null);
 
     // Close popups on outside click
     useEffect(() => {
         const handleClickOutside = (e) => {
             if (penPopupRef.current && !penPopupRef.current.contains(e.target)) setShowPenPopup(false);
             if (shapePopupRef.current && !shapePopupRef.current.contains(e.target)) setShowShapePopup(false);
+            if (eraserPopupRef.current && !eraserPopupRef.current.contains(e.target)) setShowEraserPopup(false);
         };
-        if (showPenPopup || showShapePopup) {
+        if (showPenPopup || showShapePopup || showEraserPopup) {
             document.addEventListener("mousedown", handleClickOutside);
             document.addEventListener("touchstart", handleClickOutside);
         }
@@ -181,7 +184,7 @@ function ToolPalette({
             document.removeEventListener("mousedown", handleClickOutside);
             document.removeEventListener("touchstart", handleClickOutside);
         };
-    }, [showPenPopup, showShapePopup]);
+    }, [showPenPopup, showShapePopup, showEraserPopup]);
 
     const handlePenStyleSelect = (styleId) => {
         onPenStyleChange(styleId);
@@ -201,6 +204,7 @@ function ToolPalette({
             setShowPenPopup(true);
         }
         setShowShapePopup(false);
+        setShowEraserPopup(false);
     };
 
     const handleShapeClick = () => {
@@ -210,6 +214,7 @@ function ToolPalette({
             setShowShapePopup(true);
         }
         setShowPenPopup(false);
+        setShowEraserPopup(false);
     };
 
     return (
@@ -253,12 +258,49 @@ function ToolPalette({
                     </div>
                 )}
 
-                <button className={`tp-btn ${tool === "eraser" ? "active" : ""}`} onClick={() => { onToolChange("eraser"); setShowPenPopup(false); }} title="ยางลบ (E)">
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                        <path d="M20 20H7L3 16a1 1 0 0 1 0-1.4l9.6-9.6a2 2 0 0 1 2.8 0l5.2 5.2a2 2 0 0 1 0 2.8L15 18.6" />
-                    </svg>
-                </button>
-                <button className={`tp-btn ${tool === "text" ? "active" : ""}`} onClick={() => { onToolChange("text"); setShowPenPopup(false); }} title="ข้อความ (T)">
+                <div ref={eraserPopupRef} style={{ position: "relative" }}>
+                    <button className={`tp-btn ${tool === "eraser" ? "active" : ""}`} onClick={() => {
+                        if (tool === "eraser") {
+                            setShowEraserPopup(v => !v);
+                        } else {
+                            onToolChange("eraser");
+                            setShowEraserPopup(true);
+                        }
+                        setShowPenPopup(false);
+                        setShowShapePopup(false);
+                    }} title="ยางลบ (E)">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <path d="M20 20H7L3 16a1 1 0 0 1 0-1.4l9.6-9.6a2 2 0 0 1 2.8 0l5.2 5.2a2 2 0 0 1 0 2.8L15 18.6" />
+                        </svg>
+                    </button>
+                    {showEraserPopup && (
+                        <div className="tp-popup pen-popup" style={{ width: "200px" }}>
+                            <div className="pen-popup-header"><span className="pen-popup-title">ยางลบ</span></div>
+                            {onPenSizeChange && (
+                                <div className="pen-slider-section" style={{ marginTop: "12px" }}>
+                                    <span className="pen-slider-label">ขนาด</span>
+                                    <input
+                                        type="range"
+                                        className="pen-slider"
+                                        min={1}
+                                        max={100}
+                                        value={penSize}
+                                        onChange={(e) => onPenSizeChange(Number(e.target.value))}
+                                        title={`ขนาด: ${penSize}`}
+                                    />
+                                    <span className="pen-slider-value">{penSize}</span>
+                                </div>
+                            )}
+                            <div style={{ marginTop: "16px", display: "flex", justifyContent: "center" }}>
+                                <button className="tp-btn tp-danger" style={{ width: "100%", borderRadius: "8px", justifyContent: "center" }} onClick={() => { onClear(); setShowEraserPopup(false); }}>
+                                    Clear Page 🗑️
+                                </button>
+                            </div>
+                        </div>
+                    )}
+                </div>
+
+                <button className={`tp-btn ${tool === "text" ? "active" : ""}`} onClick={() => { onToolChange("text"); setShowPenPopup(false); setShowEraserPopup(false); }} title="ข้อความ (T)">
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                         <path d="M4 7V4h16v3M9 20h6M12 4v16" />
                     </svg>

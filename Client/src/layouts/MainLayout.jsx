@@ -103,6 +103,10 @@ export default function MainLayout() {
     drawingHook.handleStrokeResize(strokeId, changes, currentPage.id);
   }, [drawingHook.handleStrokeResize, currentPage.id]);
 
+  const handleDeleteStroke = useCallback((strokeId) => {
+    drawingHook.handleDeleteStroke(strokeId, currentPage.id);
+  }, [drawingHook.handleDeleteStroke, currentPage.id]);
+
   const handleClear = useCallback(() => {
     drawingHook.handleClear(currentPage.id);
   }, [drawingHook.handleClear, currentPage.id]);
@@ -199,6 +203,7 @@ export default function MainLayout() {
         currentPageIndex={currentPageIndex}
         onStrokeUpdate={handleStrokeUpdate}
         onStrokeResize={handleStrokeResize}
+        onStrokeDelete={handleDeleteStroke}
         userRole={userRole}
       />
 
