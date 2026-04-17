@@ -33,15 +33,18 @@ export function useUser({ setPages, setHostTool, setHostPenStyle }) {
       if (sip) setServerIp(sip);
     };
     const handleUserCount = (count) => setUserCount(count);
+    const handleSetUserAck = ({ role }) => setUserRole(role);
 
     userService.onHostExists(handleHostExists);
     userService.onInitState(handleInitState);
     userService.onUserCount(handleUserCount);
+    userService.onSetUserAck(handleSetUserAck);
 
     return () => {
       userService.offHostExists(handleHostExists);
       userService.offInitState(handleInitState);
       userService.offUserCount(handleUserCount);
+      userService.offSetUserAck(handleSetUserAck);
     };
   }, [setPages, setHostTool, setHostPenStyle]);
 

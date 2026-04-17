@@ -263,9 +263,32 @@ export function drawTextOnCtx(ctx, textStroke) {
   ctx.save();
   ctx.globalCompositeOperation = "source-over";
   ctx.fillStyle = textStroke.color;
-  ctx.font = `${textStroke.fontSize || 20}px Inter, sans-serif`;
+  const fontSize = textStroke.fontSize || 20;
+  const fontFamily = textStroke.fontFamily || "Inter, sans-serif";
+  const fontWeight = textStroke.fontWeight || "normal";
+  const fontStyle = textStroke.fontStyle || "normal";
+  const isUnderline = textStroke.textDecoration === "underline";
+
+  ctx.font = `${fontStyle} ${fontWeight} ${fontSize}px ${fontFamily}`;
   ctx.textBaseline = "top";
-  ctx.fillText(textStroke.text, textStroke.x, textStroke.y);
+  const lines = textStroke.text.split("\n");
+  const lineHeight = fontSize * 1.3;
+  
+  lines.forEach((line, i) => {
+    const yPos = textStroke.y + i * lineHeight;
+    ctx.fillText(line, textStroke.x, yPos);
+    
+    if (isUnderline) {
+      const metrics = ctx.measureText(line);
+      const underlineY = yPos + fontSize * 1.15;
+      ctx.beginPath();
+      ctx.strokeStyle = textStroke.color;
+      ctx.lineWidth = Math.max(1, fontSize * 0.06);
+      ctx.moveTo(textStroke.x, underlineY);
+      ctx.lineTo(textStroke.x + metrics.width, underlineY);
+      ctx.stroke();
+    }
+  });
   ctx.restore();
 }
 
