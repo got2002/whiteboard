@@ -49,6 +49,10 @@ const Canvas = forwardRef(function Canvas(
   const resizeDragRef = useRef(null);
   const hoveredHandleRef = useRef(null);
 
+  // Inline Text Editing
+  const [inlineText, setInlineText] = useState(null); // { x, y, screenX, screenY, fontSize }
+  const inlineTextRef = useRef(null);
+
   // Slot Names state
   const [slotTitles, setSlotTitles] = useState({});
 
@@ -304,7 +308,21 @@ const Canvas = forwardRef(function Canvas(
 
     if (tool === "text") {
       const rect = canvasRef.current.getBoundingClientRect();
-      onTextRequest?.((e.clientX - rect.left - panOffset.current.x) / zoom.current, (e.clientY - rect.top - panOffset.current.y) / zoom.current);
+      const canvasX = (e.clientX - rect.left - panOffset.current.x) / zoom.current;
+      const canvasY = (e.clientY - rect.top - panOffset.current.y) / zoom.current;
+      setInlineText({
+        x: canvasX,
+        y: canvasY,
+        screenX: e.clientX,
+        screenY: e.clientY,
+        fontSize: 20,
+        color: color,
+        fontFamily: "Inter, sans-serif",
+        fontWeight: "normal",
+        fontStyle: "normal",
+        textDecoration: "none",
+      });
+      setTimeout(() => inlineTextRef.current?.focus(), 50);
       return;
     }
 
@@ -425,7 +443,7 @@ const Canvas = forwardRef(function Canvas(
     if (!rect) return;
     const x = (e.clientX - rect.left - panOffset.current.x) / zoom.current;
     const y = (e.clientY - rect.top - panOffset.current.y) / zoom.current;
-    onCursorMove?.(x, y);
+    onCursorMove?.({ x, y });
 
     // Hover detection for select tool
     if (tool === "select" && selectedStrokeId && !resizeDragRef.current && !selectDragStart.current) {
@@ -630,17 +648,281 @@ const Canvas = forwardRef(function Canvas(
   const bgClass = isCustomColor ? "" : `bg-${bg}`;
   const bgStyle = isCustomColor ? { backgroundColor: bg.replace("color-", "") } : {};
 
+  // ── Font options ──
+  const FONT_FAMILIES = [
+    { label: "Inter", value: "Inter, sans-serif" },
+    { label: "Arial", value: "Arial, sans-serif" },
+    { label: "Georgia", value: "Georgia, serif" },
+    { label: "Times New Roman", value: "'Times New Roman', serif" },
+    { label: "Courier New", value: "'Courier New', monospace" },
+    { label: "Comic Sans", value: "'Comic Sans MS', cursive" },
+    { label: "Impact", value: "Impact, sans-serif" },
+    { label: "Tahoma", value: "Tahoma, sans-serif" },
+    { label: "Verdana", value: "Verdana, sans-serif" },
+    { label: "Trebuchet MS", value: "'Trebuchet MS', sans-serif" },
+    { label: "Sarabun", value: "'Sarabun', sans-serif" },
+    { label: "Prompt", value: "'Prompt', sans-serif" },
+  ];
+
+  const TEXT_COLORS = [
+    "#000000", "#ffffff", "#ef4444", "#f97316", "#eab308",
+    "#22c55e", "#3b82f6", "#8b5cf6", "#ec4899", "#06b6d4",
+  ];
+
+  // ── Inline Text Submit ──
+  const handleInlineTextSubmit = () => {
+    if (!inlineText) return;
+    const val = inlineTextRef.current?.value?.trim();
+    if (val) {
+      const stroke = {
+        id: `text-${Date.now()}`,
+        type: "text",
+        text: val,
+        x: inlineText.x,
+        y: inlineText.y,
+        color: inlineText.color,
+        fontSize: inlineText.fontSize,
+        fontFamily: inlineText.fontFamily,
+        fontWeight: inlineText.fontWeight || "normal",
+        fontStyle: inlineText.fontStyle || "normal",
+        textDecoration: inlineText.textDecoration || "none",
+      };
+      onStrokeComplete(stroke);
+    }
+    setInlineText(null);
+  };
+
+  const handleInlineTextKeyDown = (e) => {
+    e.stopPropagation();
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault();
+      handleInlineTextSubmit();
+    }
+    if (e.key === "Escape") {
+      setInlineText(null);
+    }
+  };
+
   return (
     <div className={`canvas-bg ${bgClass}`} style={bgStyle}>
       <canvas
         ref={canvasRef}
-        onPointerDown={handlePointerDown}
+        onPointerDown={(e) => {
+          // ถ้ากดนอกกล่อง inline text → submit แล้วจัดการ pointer ตามปกติ
+          if (inlineText && e.target === canvasRef.current) {
+            handleInlineTextSubmit();
+          }
+          handlePointerDown(e);
+        }}
         onPointerMove={handlePointerMove}
         onPointerUp={handlePointerUp}
         onPointerLeave={handlePointerUp}
         className="drawing-canvas"
         style={{ cursor: cursorStyle, touchAction: 'none' }}
       />
+
+      {/* Inline Text Input */}
+      {inlineText && (
+        <div
+          className="inline-text-container"
+          style={{
+            position: "fixed",
+            left: inlineText.screenX + "px",
+            top: inlineText.screenY + "px",
+            zIndex: 100,
+            display: "flex",
+            flexDirection: "column",
+            gap: "0px",
+          }}
+          onPointerDown={(e) => e.stopPropagation()}
+        >
+          {/* Toolbar */}
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: "6px",
+              background: "rgba(20, 20, 30, 0.95)",
+              backdropFilter: "blur(16px)",
+              borderRadius: "10px 10px 0 0",
+              padding: "6px 10px",
+              boxShadow: "0 -4px 20px rgba(0,0,0,0.3)",
+              transform: "translateY(-100%)",
+              flexWrap: "wrap",
+            }}
+          >
+            {/* Color Presets */}
+            <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+              {TEXT_COLORS.map(c => (
+                <button
+                  key={c}
+                  className={`cs-color-btn ${inlineText.color === c ? "active" : ""}`}
+                  tabIndex={-1}
+                  onClick={() => setInlineText(prev => ({ ...prev, color: c }))}
+                  style={{ backgroundColor: c }}
+                  title={c}
+                />
+              ))}
+              {/* Custom color input */}
+              <div className="cs-color-btn cs-rainbow-btn" style={{ cursor: "pointer" }} title="เลือกสีอื่นๆ">
+                <input
+                  type="color"
+                  value={inlineText.color}
+                  onChange={(e) => setInlineText(prev => ({ ...prev, color: e.target.value }))}
+                  tabIndex={-1}
+                  style={{
+                    width: "100%", height: "100%", opacity: 0,
+                    cursor: "pointer", position: "absolute", zIndex: 2, top: 0, left: 0
+                  }}
+                />
+                <span className="cs-rainbow-inner" style={{ position: "absolute", top: "50%", left: "50%", transform: "translate(-50%, -50%)" }}></span>
+              </div>
+            </div>
+
+            {/* Separator */}
+            <div style={{ width: "1px", height: "18px", background: "rgba(255,255,255,0.15)" }} />
+
+            {/* Font Size */}
+            <select
+              value={inlineText.fontSize}
+              onChange={(e) => setInlineText(prev => ({ ...prev, fontSize: parseInt(e.target.value) }))}
+              onPointerDown={(e) => e.stopPropagation()}
+              tabIndex={-1}
+              style={{
+                background: "rgba(255,255,255,0.08)", color: "#fff",
+                border: "1px solid rgba(255,255,255,0.15)", borderRadius: "5px",
+                padding: "2px 4px", fontSize: "11px", cursor: "pointer", outline: "none",
+                maxWidth: "58px",
+              }}
+            >
+              {[12, 14, 16, 18, 20, 24, 28, 32, 36, 40, 48, 56, 64, 72, 96].map(s => (
+                <option key={s} value={s} style={{ background: "#1e1e2e" }}>{s}px</option>
+              ))}
+            </select>
+
+            {/* Separator */}
+            <div style={{ width: "1px", height: "18px", background: "rgba(255,255,255,0.15)" }} />
+
+            {/* Font Family */}
+            <select
+              value={inlineText.fontFamily}
+              onChange={(e) => setInlineText(prev => ({ ...prev, fontFamily: e.target.value }))}
+              onPointerDown={(e) => e.stopPropagation()}
+              tabIndex={-1}
+              style={{
+                background: "rgba(255,255,255,0.08)", color: "#fff",
+                border: "1px solid rgba(255,255,255,0.15)", borderRadius: "5px",
+                padding: "2px 4px", fontSize: "11px", cursor: "pointer", outline: "none",
+                maxWidth: "110px",
+              }}
+            >
+              {FONT_FAMILIES.map(f => (
+                <option key={f.value} value={f.value} style={{ background: "#1e1e2e", fontFamily: f.value }}>{f.label}</option>
+              ))}
+            </select>
+
+            {/* Separator */}
+            <div style={{ width: "1px", height: "18px", background: "rgba(255,255,255,0.15)" }} />
+
+            {/* Formatting */}
+            <div style={{ display: "flex", gap: "2px" }}>
+              <button
+                tabIndex={-1}
+                onClick={() => setInlineText(prev => ({ ...prev, fontWeight: prev.fontWeight === "bold" ? "normal" : "bold" }))}
+                style={{
+                  width: "24px", height: "24px", border: "none", borderRadius: "4px",
+                  color: "#fff", cursor: "pointer", display: "flex", alignItems: "center",
+                  justifyContent: "center", fontSize: "14px",
+                  background: inlineText.fontWeight === "bold" ? "rgba(99, 102, 241, 0.4)" : "transparent"
+                }}
+                title="ตัวหนา"
+              ><b>B</b></button>
+              <button
+                tabIndex={-1}
+                onClick={() => setInlineText(prev => ({ ...prev, fontStyle: prev.fontStyle === "italic" ? "normal" : "italic" }))}
+                style={{
+                  width: "24px", height: "24px", border: "none", borderRadius: "4px",
+                  color: "#fff", cursor: "pointer", display: "flex", alignItems: "center",
+                  justifyContent: "center", fontSize: "14px", fontFamily: "serif",
+                  background: inlineText.fontStyle === "italic" ? "rgba(99, 102, 241, 0.4)" : "transparent"
+                }}
+                title="ตัวเอียง"
+              ><i>I</i></button>
+              <button
+                tabIndex={-1}
+                onClick={() => setInlineText(prev => ({ ...prev, textDecoration: prev.textDecoration === "underline" ? "none" : "underline" }))}
+                style={{
+                  width: "24px", height: "24px", border: "none", borderRadius: "4px",
+                  color: "#fff", cursor: "pointer", display: "flex", alignItems: "center",
+                  justifyContent: "center", fontSize: "14px",
+                  background: inlineText.textDecoration === "underline" ? "rgba(99, 102, 241, 0.4)" : "transparent"
+                }}
+                title="ขีดเส้นใต้"
+              ><u>U</u></button>
+            </div>
+
+            {/* Separator */}
+            <div style={{ width: "1px", height: "18px", background: "rgba(255,255,255,0.15)" }} />
+
+            {/* Actions */}
+            <button
+              tabIndex={-1}
+              onClick={handleInlineTextSubmit}
+              style={{
+                background: "#3b82f6", color: "#fff", border: "none",
+                borderRadius: "5px", padding: "3px 12px", fontSize: "11px",
+                fontWeight: 600, cursor: "pointer", whiteSpace: "nowrap",
+              }}
+            >
+              ✓ ตกลง
+            </button>
+            <button
+              tabIndex={-1}
+              onClick={() => setInlineText(null)}
+              style={{
+                background: "rgba(255,255,255,0.08)", color: "#94a3b8",
+                border: "none", borderRadius: "5px", padding: "3px 8px",
+                fontSize: "11px", cursor: "pointer",
+              }}
+            >
+              ✕
+            </button>
+          </div>
+
+          {/* Text Input Area */}
+          <textarea
+            ref={inlineTextRef}
+            onKeyDown={handleInlineTextKeyDown}
+            onBlur={(e) => {
+              // ป้องกัน blur เมื่อกดปุ่ม controls
+              if (e.relatedTarget?.closest?.(".inline-text-container")) return;
+              handleInlineTextSubmit();
+            }}
+            placeholder="พิมพ์ข้อความ..."
+            style={{
+              background: "rgba(255,255,255,0.05)",
+              border: "2px solid rgba(59, 130, 246, 0.5)",
+              borderTop: "none",
+              borderRadius: "0 0 6px 6px",
+              color: inlineText.color,
+              fontSize: inlineText.fontSize + "px",
+              fontFamily: inlineText.fontFamily,
+              fontWeight: inlineText.fontWeight,
+              fontStyle: inlineText.fontStyle,
+              textDecoration: inlineText.textDecoration,
+              lineHeight: "1.3",
+              padding: "6px 8px",
+              minWidth: "160px",
+              maxWidth: "600px",
+              minHeight: Math.max(36, inlineText.fontSize * 1.6) + "px",
+              resize: "both",
+              outline: "none",
+              caretColor: inlineText.color,
+            }}
+            rows={1}
+          />
+        </div>
+      )}
 
       {/* Selection + Resize Handles Overlay */}
       {tool === "select" && selectedStrokeId && (() => {
