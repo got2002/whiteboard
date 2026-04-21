@@ -16,6 +16,7 @@ import {
 import { drawSegment, drawPenStroke, drawTextOnCtx, drawStampOnCtx, drawImageOnCtx } from "../utils/strokeRenderer";
 import { SHAPE_TOOLS, drawShapeOnCtx } from "../utils/shapeRenderer";
 import { getStrokeBounds, hitTestHandle, findStrokeAt, HANDLE_SIZE } from "../utils/hitTestUtils";
+import ColorPickerModal from "./ColorPickerModal";
 
 // สีคงที่สำหรับ Split Board
 const SLOT_COLORS = ["#ef4444", "#3b82f6", "#22c55e", "#f97316", "#a855f7", "#06b6d4", "#ec4899", "#eab308", "#6b7280", "#000000"];
@@ -52,6 +53,7 @@ const Canvas = forwardRef(function Canvas(
   // Inline Text Editing
   const [inlineText, setInlineText] = useState(null); // { x, y, screenX, screenY, fontSize }
   const inlineTextRef = useRef(null);
+  const [showTextColorModal, setShowTextColorModal] = useState(false);
 
   // Slot Names state
   const [slotTitles, setSlotTitles] = useState({});
@@ -763,20 +765,23 @@ const Canvas = forwardRef(function Canvas(
                   title={c}
                 />
               ))}
-              {/* Custom color input */}
-              <div className="cs-color-btn cs-rainbow-btn" style={{ cursor: "pointer" }} title="เลือกสีอื่นๆ">
-                <input
-                  type="color"
-                  value={inlineText.color}
-                  onChange={(e) => setInlineText(prev => ({ ...prev, color: e.target.value }))}
-                  tabIndex={-1}
-                  style={{
-                    width: "100%", height: "100%", opacity: 0,
-                    cursor: "pointer", position: "absolute", zIndex: 2, top: 0, left: 0
-                  }}
-                />
-                <span className="cs-rainbow-inner" style={{ position: "absolute", top: "50%", left: "50%", transform: "translate(-50%, -50%)" }}></span>
-              </div>
+              {/* Custom color input via Modal */}
+              <button
+                  className="cs-size-trigger"
+                  type="button"
+                  style={{ color: 'rgba(255, 255, 255, 0.85)', background: 'transparent', border: 'none', cursor: 'pointer', padding: '4px', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '6px' }}
+                  onClick={() => setShowTextColorModal(true)}
+                  title="เลือกสีเพิ่มเติม"
+                  onPointerDown={(e) => e.stopPropagation()}
+              >
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0, opacity: 0.85 }}>
+                      <circle cx="13.5" cy="6.5" r=".5" fill="currentColor"></circle>
+                      <circle cx="17.5" cy="10.5" r=".5" fill="currentColor"></circle>
+                      <circle cx="8.5" cy="7.5" r=".5" fill="currentColor"></circle>
+                      <circle cx="6.5" cy="12.5" r=".5" fill="currentColor"></circle>
+                      <path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10c.926 0 1.648-.746 1.648-1.688 0-.437-.18-.835-.437-1.125-.29-.289-.438-.652-.438-1.125a1.64 1.64 0 0 1 1.668-1.668h1.996c3.051 0 5.555-2.503 5.555-5.554C21.965 6.012 17.461 2 12 2z"></path>
+                  </svg>
+              </button>
             </div>
 
             {/* Separator */}
@@ -984,6 +989,17 @@ const Canvas = forwardRef(function Canvas(
           style={{ left: (lp.x * zoom.current + panOffset.current.x) + "px", top: (lp.y * zoom.current + panOffset.current.y) + "px", "--laser-color": lp.color, transform: `translate(-50%, -50%) scale(${zoom.current})` }}
         />
       ))}
+
+      {showTextColorModal && !!inlineText && (
+        <ColorPickerModal
+           currentColor={inlineText.color}
+           onClose={() => setShowTextColorModal(false)}
+           onSelectColor={(c) => {
+               setInlineText(prev => ({ ...prev, color: c }));
+               setShowTextColorModal(false);
+           }}
+        />
+      )}
     </div>
   );
 });

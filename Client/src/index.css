@@ -3435,41 +3435,45 @@ html.on-screen-mode #root {
   right: 64px;
   transform: translateY(-50%);
   animation: cpModalSlide 0.2s ease;
-  background: #ffffff;
-  border-radius: 8px;
+  background: rgba(15, 15, 26, 0.95);
+  backdrop-filter: blur(24px) saturate(1.8);
+  -webkit-backdrop-filter: blur(24px) saturate(1.8);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 16px;
   width: 480px;
-  box-shadow: 0 8px 32px rgba(0,0,0,0.25);
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(255, 255, 255, 0.04) inset;
   display: flex;
   flex-direction: column;
-  font-family: 'Segoe UI', system-ui, sans-serif;
-  color: #333;
+  font-family: 'Inter', system-ui, sans-serif;
+  color: #fff;
   overflow: hidden;
 }
 
 .cp-header {
-  background: #ffffff;
-  padding: 12px 16px 4px 16px;
+  background: transparent;
+  padding: 16px 20px 4px 20px;
   display: flex;
   justify-content: space-between;
   align-items: center;
-  font-size: 14px;
+  font-size: 15px;
   font-weight: 600;
-  color: #111;
+  color: #fff;
 }
 
 .cp-close-btn {
   background: transparent;
   border: none;
-  font-size: 14px;
+  font-size: 16px;
   cursor: pointer;
-  color: #888;
+  color: rgba(255, 255, 255, 0.5);
+  transition: color 0.15s ease;
 }
-.cp-close-btn:hover { color: #000; }
+.cp-close-btn:hover { color: #fff; }
 
 .cp-body {
   display: flex;
   flex-direction: column;
-  padding: 16px;
+  padding: 20px;
   gap: 24px;
 }
 
@@ -3491,10 +3495,11 @@ html.on-screen-mode #root {
   width: 200px;
   height: 150px;
   cursor: crosshair;
-  background: linear-gradient(to bottom, transparent, #fff),
+  background: linear-gradient(to bottom, transparent, #000),
               linear-gradient(to right, #f00 0%, #ff0 17%, #0f0 33%, #0ff 50%, #00f 67%, #f0f 83%, #f00 100%);
-  border-radius: 4px;
+  border-radius: 8px;
   overflow: hidden;
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.1) inset;
 }
 
 .cp-spectrum-pointer {
@@ -3505,7 +3510,7 @@ html.on-screen-mode #root {
   border-radius: 50%;
   transform: translate(-50%, -50%);
   pointer-events: none;
-  box-shadow: 0 0 4px rgba(0,0,0,0.4);
+  box-shadow: 0 0 6px rgba(0,0,0,0.6);
 }
 
 .cp-slider-track {
@@ -3514,27 +3519,28 @@ html.on-screen-mode #root {
   height: 150px;
   cursor: ns-resize;
   border-radius: 12px;
-  background: #f0f0f0;
+  background: rgba(255, 255, 255, 0.05);
   display: flex;
   justify-content: center;
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.1) inset;
 }
 
 .cp-slider-bg {
-  width: 12px;
+  width: 16px;
   height: 100%;
-  border-radius: 6px;
+  border-radius: 8px;
 }
 
 .cp-slider-pointer {
   position: absolute;
   left: 50%;
   transform: translateX(-50%) translateY(-50%);
-  width: 20px;
-  height: 20px;
+  width: 22px;
+  height: 22px;
   background: #fff;
-  border: 1px solid #ccc;
+  border: 1px solid rgba(255,255,255,0.8);
   border-radius: 50%;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+  box-shadow: 0 2px 8px rgba(0,0,0,0.4);
   pointer-events: none;
 }
 
@@ -3551,18 +3557,21 @@ html.on-screen-mode #root {
   align-items: center;
   gap: 8px;
   font-size: 11px;
-  color: #555;
+  color: rgba(255, 255, 255, 0.7);
 }
 
 .cp-input-group input {
   width: 60px;
-  padding: 4px 8px;
-  border: 1px solid #ddd;
-  border-radius: 4px;
+  padding: 6px 8px;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  background: rgba(15, 15, 26, 0.5);
+  color: #fff;
+  border-radius: 6px;
   font-size: 12px;
   outline: none;
+  transition: border-color 0.15s ease;
 }
-.cp-input-group input:focus { border-color: #999; }
+.cp-input-group input:focus { border-color: #818cf8; }
 
 .cp-input-group.hex-group input {
   width: 100px;
@@ -3572,11 +3581,12 @@ html.on-screen-mode #root {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  border: 1px solid #ddd;
-  border-radius: 4px;
-  padding: 4px 8px;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  background: rgba(15, 15, 26, 0.3);
+  border-radius: 6px;
+  padding: 6px 8px;
   font-size: 11px;
-  color: #333;
+  color: rgba(255, 255, 255, 0.8);
   width: 100px;
   cursor: pointer;
 }
@@ -3609,7 +3619,7 @@ html.on-screen-mode #root {
 .cp-label {
   font-size: 11px;
   font-weight: 500;
-  color: #555;
+  color: rgba(255, 255, 255, 0.5);
 }
 
 .custom-label-row {
@@ -3623,14 +3633,15 @@ html.on-screen-mode #root {
   background: none;
   border: none;
   font-size: 16px;
-  color: #555;
+  color: rgba(255, 255, 255, 0.5);
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
   padding: 0 4px;
+  transition: color 0.15s ease;
 }
-.cp-add-custom-icon:hover { color: #000; }
+.cp-add-custom-icon:hover { color: #fff; }
 
 .cp-grid {
   display: grid;
@@ -3646,47 +3657,50 @@ html.on-screen-mode #root {
 }
 
 .cp-color-box {
-  width: 18px;
-  height: 18px;
+  width: 20px;
+  height: 20px;
   border-radius: 50%;
   cursor: pointer;
-  box-shadow: inset 0 0 0 1px rgba(0,0,0,0.1);
-  transition: transform 0.1s;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.1);
+  transition: transform 0.1s, box-shadow 0.1s;
 }
 
 .cp-color-box:hover {
   transform: scale(1.15);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.2);
 }
 
 .cp-color-box.active {
-  box-shadow: inset 0 0 0 1px rgba(0,0,0,0.2), 0 0 0 2px #fff, 0 0 0 3px #000;
+  box-shadow: inset 0 0 0 1px rgba(0,0,0,0.5), 0 0 0 2px #1e1e2d, 0 0 0 4px #818cf8;
 }
 
 .cp-color-box.empty {
-  border: 1px dashed #ccc;
+  border: 1px dashed rgba(255, 255, 255, 0.2);
   background: transparent !important;
   box-shadow: none;
 }
 
 /* Footer buttons */
 .cp-footer {
-  padding: 12px 16px 16px;
+  padding: 12px 20px 20px 20px;
   display: flex;
   justify-content: flex-start;
-  gap: 8px;
-  background: #ffffff;
+  gap: 10px;
+  background: transparent;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
 }
 
 .cp-btn {
-  padding: 6px 32px;
-  border: 1px solid #ddd;
-  background: #fdfdfd;
-  color: #333;
-  border-radius: 4px;
+  padding: 8px 32px;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  background: rgba(255, 255, 255, 0.05);
+  color: #fff;
+  border-radius: 8px;
   cursor: pointer;
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 500;
+  transition: all 0.15s ease;
 }
-.cp-btn:hover { background: #f0f0f0; }
-.cp-btn.fill { background: #236972; color: white; border: none; }
-.cp-btn.fill:hover { background: #1c555c; }
+.cp-btn:hover { background: rgba(255, 255, 255, 0.1); }
+.cp-btn.fill { background: #818cf8; color: white; border: none; }
+.cp-btn.fill:hover { background: #6366f1; }
