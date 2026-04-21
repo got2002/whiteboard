@@ -611,7 +611,45 @@ const Canvas = forwardRef(function Canvas(
   let cursorStyle = "default";
   const effectiveToolForCursor = (userRole === "viewer" || isSpacePressed) ? "pan" : tool;
   if (effectiveToolForCursor === "pen" || effectiveToolForCursor === "highlighter") cursorStyle = "crosshair";
-  else if (effectiveToolForCursor === "eraser") cursorStyle = "cell";
+  //else if (effectiveToolForCursor === "eraser") cursorStyle = "cell";
+  //Tul change cursor of eraser
+  // else if (effectiveToolForCursor === "eraser") {
+  //   const cursorSize = penSize;
+  
+  //   const cursorSvg = `
+  //     <svg xmlns="http://www.w3.org/2000/svg" width="${cursorSize}" height="${cursorSize}">
+  //       <circle 
+  //         cx="${cursorSize /2 }" 
+  //         cy="${cursorSize / 2}" 
+  //         r="${(cursorSize / 2 - 2)}"
+  //         fill="rgba(150,150,150,0.25)"
+  //         stroke="rgba(80,80,80,0.9)"
+  //         stroke-width="0"
+  //       />
+  //     </svg>
+  // `;
+  else if (effectiveToolForCursor === "eraser") {
+    const MAX_CURSOR_SIZE = 64; // safe สำหรับ browser
+    const size = Math.min(penSize, MAX_CURSOR_SIZE);
+
+    const cursorSvg = `
+      <svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}">
+        <circle 
+          cx="${size / 2}" 
+          cy="${size / 2}" 
+          r="${size / 2 - 2}"
+          fill="rgba(150,150,150,0.25)"
+          stroke="rgba(80,80,80,0.9)"
+          stroke-width="2"
+        />
+      </svg>
+    `;
+
+    const encoded = encodeURIComponent(cursorSvg);
+    cursorStyle = `url("data:image/svg+xml,${encoded}") ${size/2} ${size/2}, auto`;
+  }
+
+
   else if (effectiveToolForCursor === "text") cursorStyle = "text";
   else if (effectiveToolForCursor === "laser") cursorStyle = "none";
   else if (effectiveToolForCursor === "select") {
