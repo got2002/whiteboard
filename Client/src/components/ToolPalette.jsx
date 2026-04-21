@@ -11,6 +11,7 @@
 // ============================================================
 
 import { useState, useRef, useEffect } from "react";
+import { useDraggable } from "../hooks/useDraggable";
 
 // ── Pen Styles (from old Toolbar) ──
 const PenSvg = ({ children }) => (
@@ -169,6 +170,11 @@ function ToolPalette({
     const [showEraserPopup, setShowEraserPopup] = useState(false);
     const eraserPopupRef = useRef(null);
 
+    // ── Draggable ──
+    const { handleRef: dragHandleRef, dragStyle, isDragging, resetPosition, handlePointerDown } = useDraggable({
+        storageKey: "proedu1-tool-palette-pos",
+    });
+
     // Close popups on outside click
     useEffect(() => {
         const handleClickOutside = (e) => {
@@ -218,7 +224,24 @@ function ToolPalette({
     };
 
     return (
-        <div className="tool-palette">
+        <div className={`tool-palette ${isDragging ? "is-dragging" : ""}`} data-draggable style={dragStyle}>
+            {/* ── Drag Handle ── */}
+            <div
+                className="tp-drag-handle"
+                ref={dragHandleRef}
+                onMouseDown={handlePointerDown}
+                onTouchStart={handlePointerDown}
+                onDoubleClick={resetPosition}
+                title="ลากเพื่อย้ายตำแหน่ง (ดับเบิลคลิกเพื่อรีเซ็ต)"
+            >
+                <svg width="10" height="16" viewBox="0 0 10 16" fill="currentColor">
+                    <circle cx="3" cy="2" r="1.2" /><circle cx="7" cy="2" r="1.2" />
+                    <circle cx="3" cy="6" r="1.2" /><circle cx="7" cy="6" r="1.2" />
+                    <circle cx="3" cy="10" r="1.2" /><circle cx="7" cy="10" r="1.2" />
+                    <circle cx="3" cy="14" r="1.2" /><circle cx="7" cy="14" r="1.2" />
+                </svg>
+            </div>
+
             {/* ── Drawing Tools ── */}
             <div className="tp-group" ref={penPopupRef}>
                 <button className={`tp-btn ${isPenActive ? "active" : ""}`} onClick={handlePenClick} title="ปากกา">

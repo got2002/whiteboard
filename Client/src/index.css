@@ -515,6 +515,78 @@ html.on-screen-mode #root {
   border-bottom: 3px solid rgba(255, 255, 255, 0.35);
 }
 
+/* ── Drag Handle (ToolPalette) ── */
+.tp-drag-handle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  min-height: 36px;
+  cursor: grab;
+  color: rgba(255, 255, 255, 0.25);
+  transition: color 0.15s ease;
+  flex-shrink: 0;
+  border-right: 1px solid rgba(255, 255, 255, 0.06);
+  margin-right: 6px;
+  padding-right: 6px;
+  user-select: none;
+  -webkit-user-select: none;
+  touch-action: none;
+}
+
+.tp-drag-handle:hover {
+  color: rgba(255, 255, 255, 0.6);
+}
+
+.tp-drag-handle:active,
+.tool-palette.is-dragging .tp-drag-handle {
+  cursor: grabbing;
+  color: #818cf8;
+}
+
+.tool-palette.is-dragging {
+  opacity: 0.92;
+  box-shadow:
+    0 12px 40px rgba(0, 0, 0, 0.5),
+    0 0 0 2px rgba(129, 140, 248, 0.3);
+}
+
+/* ── Drag Handle (ColorSidebar) ── */
+.cs-drag-handle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 14px;
+  width: 100%;
+  cursor: grab;
+  color: rgba(255, 255, 255, 0.25);
+  transition: color 0.15s ease;
+  flex-shrink: 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  margin-bottom: 6px;
+  padding-bottom: 6px;
+  user-select: none;
+  -webkit-user-select: none;
+  touch-action: none;
+}
+
+.cs-drag-handle:hover {
+  color: rgba(255, 255, 255, 0.6);
+}
+
+.cs-drag-handle:active,
+.color-sidebar.is-dragging .cs-drag-handle {
+  cursor: grabbing;
+  color: #818cf8;
+}
+
+.color-sidebar.is-dragging {
+  opacity: 0.92;
+  box-shadow:
+    0 12px 40px rgba(0, 0, 0, 0.5),
+    0 0 0 2px rgba(129, 140, 248, 0.3);
+}
+
 /* Tool Palette Popup (reuse pen-popup styles) */
 .tp-popup {
   position: absolute;
