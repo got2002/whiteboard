@@ -8,6 +8,7 @@
 
 import { useState, useEffect } from "react";
 import ColorPickerModal from "./ColorPickerModal";
+import { useDraggable } from "../hooks/useDraggable";
 
 const DEFAULT_PRIMARY_COLORS = [
     "#000000", "#ffffff", "#ef4444", "#3b82f6", "#22c55e",
@@ -42,6 +43,11 @@ function ColorSidebar({
     const [showSizeSlider, setShowSizeSlider] = useState(false);
     const [showBgPopup, setShowBgPopup] = useState(false);
 
+    // ── Draggable ──
+    const { handleRef: dragHandleRef, dragStyle, isDragging, resetPosition, handlePointerDown } = useDraggable({
+        storageKey: "proedu1-color-sidebar-pos",
+    });
+
     const [recentColors, setRecentColors] = useState(() => {
         try {
             const saved = localStorage.getItem("proedu1-recent-colors");
@@ -63,7 +69,22 @@ function ColorSidebar({
     };
 
     return (
-        <div className="color-sidebar">
+        <div className={`color-sidebar ${isDragging ? "is-dragging" : ""}`} data-draggable style={dragStyle}>
+            {/* ── Drag Handle ── */}
+            <div
+                className="cs-drag-handle"
+                ref={dragHandleRef}
+                onMouseDown={handlePointerDown}
+                onTouchStart={handlePointerDown}
+                onDoubleClick={resetPosition}
+                title="ลากเพื่อย้ายตำแหน่ง (ดับเบิลคลิกเพื่อรีเซ็ต)"
+            >
+                <svg width="16" height="8" viewBox="0 0 16 8" fill="currentColor">
+                    <circle cx="2" cy="2" r="1.2" /><circle cx="6" cy="2" r="1.2" /><circle cx="10" cy="2" r="1.2" /><circle cx="14" cy="2" r="1.2" />
+                    <circle cx="2" cy="6" r="1.2" /><circle cx="6" cy="6" r="1.2" /><circle cx="10" cy="6" r="1.2" /><circle cx="14" cy="6" r="1.2" />
+                </svg>
+            </div>
+
             {/* ── Color Palette ── */}
             <div className="cs-section cs-colors">
                 {recentColors.map((c) => (
