@@ -7,5 +7,6 @@ const URL = import.meta.env.VITE_SERVER_URL || defaultUrl;
 
 
 export const socket = io(URL, {
-  transports: ["websocket"],
+  // ใช้ทั้ง polling และ websocket เพื่อให้ Safari ทำงานได้แน่นอน
+  transports: ["polling", "websocket"],
 });
