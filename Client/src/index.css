@@ -191,6 +191,7 @@ html.on-screen-mode #root {
   border-bottom: 1px solid rgba(255, 255, 255, 0.06);
   box-shadow: 0 2px 20px rgba(0, 0, 0, 0.3);
   z-index: 100;
+  -webkit-app-region: drag;       /* ลากหน้าต่างได้จาก header bar */
 }
 
 .header-left,
@@ -198,6 +199,7 @@ html.on-screen-mode #root {
   display: flex;
   align-items: center;
   gap: 4px;
+  -webkit-app-region: no-drag;    /* ปุ่มกดได้ปกติ */
 }
 
 .header-btn {
