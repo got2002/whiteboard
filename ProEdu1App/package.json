@@ -1,0 +1,42 @@
+{
+    "name": "proedu1-app",
+    "version": "1.0.0",
+    "description": "EClass-style ProEdu1 — Desktop App",
+    "main": "electron/main.js",
+    "author": "ProEdu1 Team",
+    "license": "MIT",
+    "scripts": {
+        "electron:dev": "concurrently \"cd Client && npm run dev\" \"wait-on http://localhost:5173 && set ELECTRON_DEV=1 && electron .\"",
+        "build": "cd Client && npm run build",
+        "start": "npm run build && electron .",
+        "dist": "npm run build && electron-builder",
+        "postinstall": "cd Client && npm install"
+    },
+    "dependencies": {
+        "express": "^5.2.1",
+        "socket.io": "^4.8.3"
+    },
+    "devDependencies": {
+        "concurrently": "^9.1.2",
+        "electron": "^35.1.2",
+        "electron-builder": "^26.0.12",
+        "electron-packager": "^17.1.2",
+        "wait-on": "^8.0.3"
+    },
+    "build": {
+        "appId": "com.proedu1.app",
+        "productName": "ProEdu1",
+        "files": [
+            "electron/**/*",
+            "server/**/*",
+            "Client/dist/**/*",
+            "package.json"
+        ],
+        "directories": {
+            "output": "release"
+        },
+        "win": {
+            "target": "dir"
+        }
+    }
+}

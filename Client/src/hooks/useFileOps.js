@@ -99,33 +99,16 @@ export function useFileOps({ pages, setPages, setCurrentPageIndex, canvasRef, cu
         const img = new Image();
         img.onload = () => {
           let w = img.width, h = img.height;
-          const maxSize = 800; // Increased max size for better quality
+          const maxSize = 400;
           if (w > maxSize || h > maxSize) {
             const scale = maxSize / Math.max(w, h);
             w *= scale;
             h *= scale;
           }
-          
-          // Draw to canvas to compress base64 data
-          const canvas = document.createElement("canvas");
-          canvas.width = w;
-          canvas.height = h;
-          const ctx = canvas.getContext("2d");
-          ctx.drawImage(img, 0, 0, w, h);
-          
-          // Use WebP to maintain transparency and reduce size drastically, fallback to PNG
-          let mimeType = "image/webp";
-          let compressedDataURL = canvas.toDataURL(mimeType, 0.8);
-          
-          // If browser doesn't support webp, it returns image/png
-          if (!compressedDataURL.startsWith("data:image/webp")) {
-             compressedDataURL = canvas.toDataURL("image/png");
-          }
-
           const stroke = {
             id: `img-${Date.now()}`,
             type: "image",
-            dataURL: compressedDataURL,
+            dataURL: ev.target.result,
             x: 100, y: 100,
             width: w, height: h,
           };

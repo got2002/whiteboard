@@ -5,7 +5,7 @@
 // ประกอบร่าง Hooks + Components ตามโครงสร้างที่พี่ตุลจัดไว้
 // ============================================================
 
-import { useRef, useState, useCallback, useEffect } from "react";
+import { useRef, useState, useCallback } from "react";
 import { QRCodeSVG } from "qrcode.react";
 import { socket } from "../core/socket";
 
@@ -16,10 +16,10 @@ import { useDrawing } from "../feature/drawing/useDrawing";
 import { useCollaboration } from "../feature/collaboration/useCollaboration";
 import { usePermission } from "../feature/permission/usePermission";
 
+// ── Shared Hooks ──
 import { useFileOps } from "../hooks/useFileOps";
 import { useRecording } from "../hooks/useRecording";
 import { useKeyboardShortcuts } from "../hooks/useKeyboardShortcuts";
-import { useScreenShare } from "../hooks/useScreenShare";
 
 // ── UI Components ──
 import Canvas from "../components/Canvas";
@@ -51,8 +51,6 @@ export default function MainLayout() {
   const [showWebcam, setShowWebcam] = useState(false);
   const [isOnScreen, setIsOnScreen] = useState(false);
 
-  // (ย้าย useEffect ลงไปด้านล่างเพื่อให้รู้จัก remoteScreen และ userRole)
-
   // ════════════════════════════════════════════════════════════
   // Hook: Pages (ต้องสร้างก่อนเพราะ Hooks อื่นต้องใช้)
   // ════════════════════════════════════════════════════════════
@@ -76,7 +74,7 @@ export default function MainLayout() {
     setHostTool: drawingHook.setHostTool,
     setHostPenStyle: drawingHook.setHostPenStyle,
   });
-  const { username, userRole, setUserRole, userColor, userCount, hostExists, showNameDialog, serverIp, waitingForAck } = userHook;
+  const { username, userRole, setUserRole, userColor, userCount, hostExists, showNameDialog, serverIp } = userHook;
   const isActive = !showNameDialog;
 
   // ── อัปเดต userRole ให้กับ hooks ที่ต้องการ (ผ่าน callbacks) ──
@@ -161,23 +159,6 @@ export default function MainLayout() {
   });
 
   // ════════════════════════════════════════════════════════════
-  // Hook: Screen Share
-  // ════════════════════════════════════════════════════════════
-  const { remoteScreen } = useScreenShare({
-    isOnScreen,
-    isHost: userRole === "host"
-  });
-
-  // ── Sync On-Screen class ให้ <html> element ──
-  useEffect(() => {
-    if (isOnScreen || (userRole !== "host" && remoteScreen)) {
-      document.documentElement.classList.add('on-screen-mode');
-    } else {
-      document.documentElement.classList.remove('on-screen-mode');
-    }
-  }, [isOnScreen, userRole, remoteScreen]);
-
-  // ════════════════════════════════════════════════════════════
   // Derived: QR Code URL
   // ════════════════════════════════════════════════════════════
   const serverUrl = socket.io?.uri || "http://localhost:3000";
@@ -189,40 +170,18 @@ export default function MainLayout() {
   // ════════════════════════════════════════════════════════════
   // Render: Name Dialog (ก่อน login)
   // ════════════════════════════════════════════════════════════
-  console.log("[MainLayout] render — showNameDialog:", showNameDialog, "username:", username, "userRole:", userRole);
-
   if (showNameDialog) {
-    return <NameDialog onSubmit={userHook.handleNameSubmit} hostExists={hostExists} waitingForAck={waitingForAck} />;
+    return <NameDialog onSubmit={userHook.handleNameSubmit} hostExists={hostExists} />;
   }
 
   // ════════════════════════════════════════════════════════════
   // Render: Main App
   // ════════════════════════════════════════════════════════════
-  const isViewerSeeingScreen = userRole !== "host" && remoteScreen;
-
   return (
     <div
-      className={`app bg-${currentPage.background} ${isOnScreen || isViewerSeeingScreen ? "on-screen" : ""}`}
+      className={`app-container bg-${currentPage.background} ${isOnScreen ? "on-screen-mode" : ""}`}
       style={{ width: "100vw", height: "100vh", overflow: "hidden", position: "relative" }}
     >
-      {/* Remote Screen Background (สำหรับ Viewer) */}
-      {isViewerSeeingScreen && (
-        <img
-          src={remoteScreen}
-          alt="Host Screen"
-          style={{
-            position: "absolute",
-            top: 0,
-            left: 0,
-            width: "100%",
-            height: "100%",
-            objectFit: "contain",
-            zIndex: 0,
-            pointerEvents: "none"
-          }}
-        />
-      )}
-
       {/* Canvas */}
       <Canvas
         ref={canvasRef}
@@ -248,42 +207,40 @@ export default function MainLayout() {
         userRole={userRole}
       />
 
-      {/* Header Bar — ซ่อนสำหรับ viewer */}
-      {userRole !== "viewer" && (
-        <HeaderBar
-          currentPageIndex={currentPageIndex}
-          totalPages={pages.length}
-          onPrevPage={pageHook.handlePrevPage}
-          onNextPage={pageHook.handleNextPage}
-          onTogglePages={() => setShowPagePanel(v => !v)}
-          onAddPage={pageHook.handleAddPage}
-          onNewBoard={fileHook.handleNewBoard}
-          onLoadProject={fileHook.handleLoadProject}
-          onSaveProject={fileHook.handleSaveProject}
-          onSaveIWB={fileHook.handleSaveIWB}
-          onSavePD1={fileHook.handleSavePD1}
-          onExport={fileHook.handleExport}
-          onExportAll={fileHook.handleExportAll}
-          autoSave={fileHook.autoSave}
-          onToggleAutoSave={fileHook.handleToggleAutoSave}
-          onInsertImage={fileHook.handleInsertImage}
-          mode={drawingHook.mode}
-          onModeChange={drawingHook.handleModeChange}
-          userCount={userCount}
-          onToggleUserPanel={() => setShowUserPanel(v => !v)}
-          showQR={showQR}
-          onToggleQR={() => setShowQR(v => !v)}
-          isRecording={recHook.isRecording}
-          onStartRecord={recHook.startRecording}
-          onStopRecord={recHook.stopRecording}
-          showWebcam={showWebcam}
-          onToggleWebcam={() => setShowWebcam(v => !v)}
-          userRole={userRole}
-          pendingRequests={permHook.pendingRequests.length}
-          onTogglePermissionPanel={() => setShowPermissionPanel(v => !v)}
-          onToggleOnScreen={(val) => setIsOnScreen(val)}
-        />
-      )}
+      {/* Header Bar */}
+      <HeaderBar
+        currentPageIndex={currentPageIndex}
+        totalPages={pages.length}
+        onPrevPage={pageHook.handlePrevPage}
+        onNextPage={pageHook.handleNextPage}
+        onTogglePages={() => setShowPagePanel(v => !v)}
+        onAddPage={pageHook.handleAddPage}
+        onNewBoard={fileHook.handleNewBoard}
+        onLoadProject={fileHook.handleLoadProject}
+        onSaveProject={fileHook.handleSaveProject}
+        onSaveIWB={fileHook.handleSaveIWB}
+        onSavePD1={fileHook.handleSavePD1}
+        onExport={fileHook.handleExport}
+        onExportAll={fileHook.handleExportAll}
+        autoSave={fileHook.autoSave}
+        onToggleAutoSave={fileHook.handleToggleAutoSave}
+        onInsertImage={fileHook.handleInsertImage}
+        mode={drawingHook.mode}
+        onModeChange={drawingHook.handleModeChange}
+        userCount={userCount}
+        onToggleUserPanel={() => setShowUserPanel(v => !v)}
+        showQR={showQR}
+        onToggleQR={() => setShowQR(v => !v)}
+        isRecording={recHook.isRecording}
+        onStartRecord={recHook.startRecording}
+        onStopRecord={recHook.stopRecording}
+        showWebcam={showWebcam}
+        onToggleWebcam={() => setShowWebcam(v => !v)}
+        userRole={userRole}
+        pendingRequests={permHook.pendingRequests.length}
+        onTogglePermissionPanel={() => setShowPermissionPanel(v => !v)}
+        onToggleOnScreen={(val) => setIsOnScreen(val)}
+      />
 
       {/* Tool Palette — host/contributor only */}
       {userRole !== "viewer" && showToolbars && (
@@ -363,7 +320,7 @@ export default function MainLayout() {
       )}
 
       {/* Focus Drawer Button — clients only */}
-      {userRole !== "host" && (
+      {userCount > 1 && userRole !== "host" && (
         <button
           className="focus-drawer-btn"
           onClick={() => {
