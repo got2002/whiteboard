@@ -9,23 +9,20 @@
 // Props:
 //  - onSubmit(name, role)  → callback
 //  - hostExists            → boolean
+//  - waitingForAck         → boolean (กำลังรอ server ตอบกลับ)
 //
 // ============================================================
 
-import { useState, useRef, useEffect } from "react";
+import { useState } from "react";
 
-function NameDialog({ onSubmit, hostExists }) {
+function NameDialog({ onSubmit, hostExists, waitingForAck }) {
     const [name, setName] = useState("");
-    const inputRef = useRef(null);
-
-    useEffect(() => {
-        inputRef.current?.focus();
-    }, []);
 
     // กำหนด role อัตโนมัติ
     const autoRole = hostExists ? "viewer" : "host";
 
     const handleSubmit = () => {
+        if (waitingForAck) return; // ป้องกัน double click
         const trimmed = name.trim();
         const finalName = trimmed || (autoRole === "host"
             ? `ครู ${Math.floor(100 + Math.random() * 900)}`
@@ -51,7 +48,6 @@ function NameDialog({ onSubmit, hostExists }) {
 
                 {/* ช่องพิมพ์ชื่อ */}
                 <input
-                    ref={inputRef}
                     type="text"
                     className="name-dialog-input"
                     value={name}
@@ -59,16 +55,24 @@ function NameDialog({ onSubmit, hostExists }) {
                     onKeyDown={handleKeyDown}
                     placeholder="ชื่อของคุณ..."
                     maxLength={20}
+                    autoComplete="off"
+                    disabled={waitingForAck}
                 />
 
                 {/* ปุ่มเข้าร่วม */}
-                <button className="name-dialog-btn" onClick={handleSubmit}>
-                    เข้าร่วม
+                <button 
+                    className={`name-dialog-btn ${waitingForAck ? "name-dialog-btn-disabled" : ""}`}
+                    onClick={handleSubmit}
+                    disabled={waitingForAck}
+                >
+                    {waitingForAck ? "กำลังเชื่อมต่อ..." : "เข้าร่วม"}
                 </button>
 
                 {/* คำแนะนำ */}
                 <p className="name-dialog-hint">
-                    ถ้าไม่ใส่ชื่อ จะใช้ชื่อสุ่มอัตโนมัติ
+                    {waitingForAck 
+                        ? "รอสักครู่ กำลังเชื่อมต่อกับกระดาน..." 
+                        : "ถ้าไม่ใส่ชื่อ จะใช้ชื่อสุ่มอัตโนมัติ"}
                 </p>
             </div>
         </div>

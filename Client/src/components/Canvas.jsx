@@ -35,6 +35,8 @@ const Canvas = forwardRef(function Canvas(
   // ── Refs ──
   const canvasRef = useRef(null);
   const ctxRef = useRef(null);
+  const bgCanvasRef = useRef(null);
+  const bgCtxRef = useRef(null);
   const isDrawing = useRef(false);
   const currentStroke = useRef(null);
   const prevX = useRef(0);
@@ -75,8 +77,10 @@ const Canvas = forwardRef(function Canvas(
   // ============================================================
   const setupCanvas = useCallback(() => {
     const canvas = canvasRef.current;
-    if (!canvas) return;
+    const bgCanvas = bgCanvasRef.current;
+    if (!canvas || !bgCanvas) return;
     const ctx = canvas.getContext("2d");
+    const bgCtx = bgCanvas.getContext("2d");
     const dpr = window.devicePixelRatio || 1;
 
     canvas.width = window.innerWidth * dpr;
@@ -84,11 +88,22 @@ const Canvas = forwardRef(function Canvas(
     canvas.style.width = window.innerWidth + "px";
     canvas.style.height = window.innerHeight + "px";
 
+    bgCanvas.width = canvas.width;
+    bgCanvas.height = canvas.height;
+    bgCanvas.style.width = canvas.style.width;
+    bgCanvas.style.height = canvas.style.height;
+
     ctx.setTransform(1, 0, 0, 1, 0, 0);
     ctx.scale(dpr, dpr);
     ctx.lineCap = "round";
     ctx.lineJoin = "round";
     ctxRef.current = ctx;
+
+    bgCtx.setTransform(1, 0, 0, 1, 0, 0);
+    bgCtx.scale(dpr, dpr);
+    bgCtx.lineCap = "round";
+    bgCtx.lineJoin = "round";
+    bgCtxRef.current = bgCtx;
 
     let preview = previewCanvasRef.current;
     if (!preview) { preview = document.createElement("canvas"); previewCanvasRef.current = preview; }
@@ -115,14 +130,15 @@ const Canvas = forwardRef(function Canvas(
   // ============================================================
   // [E] drawStroke — ใช้ utility functions
   // ============================================================
-  const drawStroke = useCallback((stroke) => {
-    const ctx = ctxRef.current;
-    if (!ctx) return;
-    if (stroke.type === "shape") { drawShapeOnCtx(ctx, stroke); return; }
-    if (stroke.type === "text") { drawTextOnCtx(ctx, stroke); return; }
-    if (stroke.type === "stamp") { drawStampOnCtx(ctx, stroke); return; }
-    if (stroke.type === "image") { drawImageOnCtx(ctx, stroke); return; }
-    drawPenStroke(ctx, stroke);
+  const drawStroke = useCallback((stroke, bCtx, fCtx) => {
+    const targetBg = bCtx || bgCtxRef.current;
+    const targetFg = fCtx || ctxRef.current;
+    if (!targetBg || !targetFg) return;
+    if (stroke.type === "shape") { drawShapeOnCtx(targetBg, stroke); return; }
+    if (stroke.type === "text") { drawTextOnCtx(targetBg, stroke); return; }
+    if (stroke.type === "stamp") { drawStampOnCtx(targetBg, stroke); return; }
+    if (stroke.type === "image") { drawImageOnCtx(targetBg, stroke); return; }
+    drawPenStroke(targetFg, stroke);
   }, []);
 
   // ============================================================
@@ -130,17 +146,28 @@ const Canvas = forwardRef(function Canvas(
   // ============================================================
   const redrawAll = useCallback(() => {
     const ctx = ctxRef.current;
-    if (!ctx) return;
+    const bgCtx = bgCtxRef.current;
+    if (!ctx || !bgCtx) return;
     const dpr = window.devicePixelRatio || 1;
+    
     ctx.save();
+    bgCtx.save();
     ctx.setTransform(1, 0, 0, 1, 0, 0);
+    bgCtx.setTransform(1, 0, 0, 1, 0, 0);
     ctx.clearRect(0, 0, window.innerWidth * dpr, window.innerHeight * dpr);
+    bgCtx.clearRect(0, 0, window.innerWidth * dpr, window.innerHeight * dpr);
+    
     ctx.scale(dpr, dpr);
     ctx.translate(panOffset.current.x, panOffset.current.y);
     ctx.scale(zoom.current, zoom.current);
+    
+    bgCtx.scale(dpr, dpr);
+    bgCtx.translate(panOffset.current.x, panOffset.current.y);
+    bgCtx.scale(zoom.current, zoom.current);
 
-    if (page?.strokes) page.strokes.forEach(drawStroke);
+    if (page?.strokes) page.strokes.forEach(s => drawStroke(s, bgCtx, ctx));
     ctx.restore();
+    bgCtx.restore();
 
     // Split Board dividers
     const isSplitActiveLocally = tool === "pen" && typeof penStyle === "string" && penStyle.startsWith("split_");
@@ -150,27 +177,27 @@ const Canvas = forwardRef(function Canvas(
     if (activeSplitStyle) {
       const slots = parseInt(activeSplitStyle.split("_")[1]);
       if (!isNaN(slots) && slots >= 2) {
-        ctx.save();
-        ctx.strokeStyle = "rgba(100, 100, 100, 0.4)";
-        ctx.lineWidth = 2;
-        ctx.setLineDash([15, 15]);
+        bgCtx.save();
+        bgCtx.strokeStyle = "rgba(100, 100, 100, 0.4)";
+        bgCtx.lineWidth = 2;
+        bgCtx.setLineDash([15, 15]);
         const slotWidth = window.innerWidth / slots;
-        ctx.beginPath();
+        bgCtx.beginPath();
         for (let i = 1; i < slots; i++) {
           const lx = i * slotWidth;
-          ctx.moveTo(lx, 0); ctx.lineTo(lx, window.innerHeight);
+          bgCtx.moveTo(lx, 0); bgCtx.lineTo(lx, window.innerHeight);
         }
-        ctx.stroke();
-        ctx.setLineDash([]);
+        bgCtx.stroke();
+        bgCtx.setLineDash([]);
         for (let i = 0; i < slots; i++) {
-          ctx.fillStyle = SLOT_COLORS[i % SLOT_COLORS.length];
-          ctx.globalAlpha = 0.5;
-          ctx.beginPath();
-          ctx.roundRect(i * slotWidth + 10, 10, 20, 20, 4);
-          ctx.fill();
-          ctx.globalAlpha = 1;
+          bgCtx.fillStyle = SLOT_COLORS[i % SLOT_COLORS.length];
+          bgCtx.globalAlpha = 0.5;
+          bgCtx.beginPath();
+          bgCtx.roundRect(i * slotWidth + 10, 10, 20, 20, 4);
+          bgCtx.fill();
+          bgCtx.globalAlpha = 1;
         }
-        ctx.restore();
+        bgCtx.restore();
       }
     }
 
@@ -208,6 +235,7 @@ const Canvas = forwardRef(function Canvas(
           sCtx.beginPath(); sCtx.moveTo(70 * dpr, 0); sCtx.lineTo(70 * dpr, h); sCtx.stroke();
         }
       }
+      sCtx.drawImage(bgCanvasRef.current, 0, 0);
       sCtx.drawImage(canvasRef.current, 0, 0);
     }
   }, [page?.strokes, drawStroke, tool, penStyle, hostTool, hostPenStyle, page?.background]);
@@ -234,14 +262,14 @@ const Canvas = forwardRef(function Canvas(
   // Remote draw listener
   useEffect(() => {
     const handleRemoteDraw = (data) => {
-      if (data.pageId === page?.id) {
+      if (data.pageIndex === currentPageIndex) {
         if (data.type === "shape-preview") return;
         drawSegmentLocal(data.prevX, data.prevY, data.x, data.y, data.color, data.size, data.tool, data.penStyle);
       }
     };
     socket.on("draw", handleRemoteDraw);
     return () => socket.off("draw", handleRemoteDraw);
-  }, [page?.id, socket, drawSegmentLocal]);
+  }, [currentPageIndex, socket, drawSegmentLocal]);
 
   // Focus method
   useEffect(() => {
@@ -378,9 +406,8 @@ const Canvas = forwardRef(function Canvas(
       pCtx.clearRect(0, 0, preview.width, preview.height);
       pCtx.drawImage(canvasRef.current, 0, 0);
     } else {
-      const isPalm = e.pointerType === "touch" && (e.width > 25 || e.height > 25);
-      const effectiveToolForStroke = isPalm ? "eraser" : tool;
-      const effectivePenSizeForStroke = isPalm ? 100 : penSize;
+      const effectiveToolForStroke = tool;
+      const effectivePenSizeForStroke = penSize;
       
       const effectivePenStyle = (effectiveToolForStroke === "highlighter") ? "highlighter" : (effectiveToolForStroke === "eraser" ? "pen" : penStyle);
       let strokeColor = effectiveToolForStroke === "eraser" ? "#000" : color;
@@ -611,42 +638,24 @@ const Canvas = forwardRef(function Canvas(
   let cursorStyle = "default";
   const effectiveToolForCursor = (userRole === "viewer" || isSpacePressed) ? "pan" : tool;
   if (effectiveToolForCursor === "pen" || effectiveToolForCursor === "highlighter") cursorStyle = "crosshair";
-  //else if (effectiveToolForCursor === "eraser") cursorStyle = "cell";
-  //Tul change cursor of eraser
-  // else if (effectiveToolForCursor === "eraser") {
-  //   const cursorSize = penSize;
-  
-  //   const cursorSvg = `
-  //     <svg xmlns="http://www.w3.org/2000/svg" width="${cursorSize}" height="${cursorSize}">
-  //       <circle 
-  //         cx="${cursorSize /2 }" 
-  //         cy="${cursorSize / 2}" 
-  //         r="${(cursorSize / 2 - 2)}"
-  //         fill="rgba(150,150,150,0.25)"
-  //         stroke="rgba(80,80,80,0.9)"
-  //         stroke-width="0"
-  //       />
-  //     </svg>
-  // `;
   else if (effectiveToolForCursor === "eraser") {
-    const MAX_CURSOR_SIZE = 64; // safe สำหรับ browser
-    const size = Math.min(penSize, MAX_CURSOR_SIZE);
+    const actualSize = penSize * 5; // eraser uses size * 5 in strokeRenderer
+    const size = Math.max(32, Math.min(Math.round(actualSize), 128)); 
+    const hs = Math.round(size / 2);
 
+    // วาดวงกลมบอกขนาดพื้นที่ลบ + ไอคอนรูปยางลบตรงกลาง
     const cursorSvg = `
-      <svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}">
-        <circle 
-          cx="${size / 2}" 
-          cy="${size / 2}" 
-          r="${size / 2 - 2}"
-          fill="rgba(150,150,150,0.25)"
-          stroke="rgba(80,80,80,0.9)"
-          stroke-width="2"
-        />
+      <svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="0 0 ${size} ${size}">
+        <circle cx="${hs}" cy="${hs}" r="${Math.max(1, hs - 2)}" fill="rgba(239, 68, 68, 0.15)" stroke="rgba(239, 68, 68, 0.6)" stroke-width="1.5" stroke-dasharray="4,2" />
+        <g transform="translate(${hs - 10}, ${hs - 10})">
+          <rect x="0" y="0" width="20" height="20" rx="4" fill="#ffffff" stroke="#ef4444" stroke-width="2"/>
+          <rect x="0" y="10" width="20" height="10" rx="4" fill="#ef4444" />
+        </g>
       </svg>
-    `;
+    `.trim().replace(/\s+/g, ' '); // ลบเว้นวรรคส่วนเกิน
 
     const encoded = encodeURIComponent(cursorSvg);
-    cursorStyle = `url("data:image/svg+xml,${encoded}") ${size/2} ${size/2}, auto`;
+    cursorStyle = `url("data:image/svg+xml,${encoded}") ${hs} ${hs}, auto`;
   }
 
 
@@ -746,6 +755,11 @@ const Canvas = forwardRef(function Canvas(
   return (
     <div className={`canvas-bg ${bgClass}`} style={bgStyle}>
       <canvas
+        ref={bgCanvasRef}
+        className="drawing-canvas bg-canvas"
+        style={{ position: "absolute", top: 0, left: 0, width: "100%", height: "100%", pointerEvents: "none", zIndex: 1, transform: "translateZ(0)", willChange: "transform" }}
+      />
+      <canvas
         ref={canvasRef}
         onPointerDown={(e) => {
           // ถ้ากดนอกกล่อง inline text → submit แล้วจัดการ pointer ตามปกติ
@@ -758,7 +772,7 @@ const Canvas = forwardRef(function Canvas(
         onPointerUp={handlePointerUp}
         onPointerLeave={handlePointerUp}
         className="drawing-canvas"
-        style={{ cursor: cursorStyle, touchAction: 'none' }}
+        style={{ cursor: cursorStyle, touchAction: 'none', position: "absolute", top: 0, left: 0, zIndex: 2, transform: "translateZ(0)", willChange: "transform" }}
       />
 
       {/* Inline Text Input */}

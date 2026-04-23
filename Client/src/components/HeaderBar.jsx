@@ -95,10 +95,10 @@ function HeaderBar({
                                     <button className="header-dropdown-item" onClick={() => { onSaveProject(); setShowMainMenu(false); }}>
                                         <span className="hdi-icon">💾</span><span>Save</span>
                                     </button>
-                                    <button className="header-dropdown-item" onClick={() => { onSaveProject(); onSaveIWB(false); }}>
+                                    <button className="header-dropdown-item" onClick={() => { onSaveIWB(); setShowMainMenu(false); }}>
                                         <span className="hdi-icon">📤</span><span>Save IWB</span>
                                     </button>
-                                    <button className="header-dropdown-item" onClick={() => { onSaveProject(); onSavePD1(false); }}>
+                                    <button className="header-dropdown-item" onClick={() => { onSavePD1(); setShowMainMenu(false); }}>
                                         <span className="hdi-icon">📤</span><span>Save PD1</span>
                                     </button>
                                     <button className="header-dropdown-item" onClick={() => { onExport(); setShowMainMenu(false); }}>
@@ -165,54 +165,58 @@ function HeaderBar({
 
             {/* ── Right Section ── */}
             <div className="header-right">
-                {/* On-Screen & Fullscreen — Electron only */}
-                {typeof window !== "undefined" && window.electronAPI?.isElectron && (
-                    <>
-                        <button
-                            className={`header-btn ${isOnScreen ? "header-btn-active" : ""}`}
-                            style={{ width: "auto", padding: "0 10px", gap: "6px" }}
-                            onClick={async () => {
+                {/* On-Screen & Fullscreen */}
+                <>
+                    <button
+                        className={`header-btn ${isOnScreen ? "header-btn-active" : ""}`}
+                        style={{ width: "auto", padding: "0 10px", gap: "6px", opacity: typeof window !== "undefined" && window.electronAPI?.isElectron ? 1 : 0.6 }}
+                        onClick={async () => {
+                            if (typeof window !== "undefined" && window.electronAPI?.isElectron) {
                                 const next = !isOnScreen;
                                 await window.electronAPI.toggleOnScreen(next);
                                 setIsOnScreen(next);
-                                if (next) setIsFullScreen(false);
                                 if (onToggleOnScreen) onToggleOnScreen(next);
-                            }}
-                            title="On Screen (เขียนบนหน้าจอ)"
-                        >
-                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
-                                <rect x="2" y="3" width="20" height="14" rx="2" /><path d="M8 21h8" /><path d="M12 17v4" />
-                                {isOnScreen && <path d="M7 10l5-4 5 4" strokeWidth="2.5" />}
-                            </svg>
-                            <span style={{ fontSize: "11px", whiteSpace: "nowrap", fontWeight: "600" }}>On Screen</span>
-                        </button>
+                            } else {
+                                alert("โหมดโปร่งใส (On Screen) จะใช้งานได้เมื่อรันผ่านโปรแกรม (ProEdu1.exe) เท่านั้นครับ");
+                            }
+                        }}
+                        title="On Screen (เขียนบนหน้าจอ)"
+                    >
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
+                            <rect x="2" y="3" width="20" height="14" rx="2" /><path d="M8 21h8" /><path d="M12 17v4" />
+                            {isOnScreen && <path d="M7 10l5-4 5 4" strokeWidth="2.5" />}
+                        </svg>
+                        <span style={{ fontSize: "11px", whiteSpace: "nowrap", fontWeight: "600" }}>On Screen</span>
+                    </button>
 
-                        <button
-                            className={`header-btn ${isFullScreen ? "header-btn-active" : ""}`}
-                            style={{ width: "auto", padding: "0 10px", gap: "6px" }}
-                            onClick={async () => {
+                    <button
+                        className={`header-btn ${isFullScreen ? "header-btn-active" : ""}`}
+                        style={{ width: "auto", padding: "0 10px", gap: "6px", opacity: typeof window !== "undefined" && window.electronAPI?.isElectron ? 1 : 0.6 }}
+                        onClick={async () => {
+                            if (typeof window !== "undefined" && window.electronAPI?.isElectron) {
                                 const next = !isFullScreen;
                                 const result = await window.electronAPI.toggleFullscreen(next);
                                 setIsFullScreen(result);
-                                if (result) setIsOnScreen(false);
-                            }}
-                            title="Fullscreen"
-                        >
-                            {isFullScreen ? (
-                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
-                                    <path d="M8 3v3a2 2 0 0 1-2 2H3" /><path d="M21 8h-3a2 2 0 0 1-2-2V3" /><path d="M3 16h3a2 2 0 0 1 2 2v3" /><path d="M16 21v-3a2 2 0 0 1 2-2h3" />
-                                </svg>
-                            ) : (
-                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
-                                    <path d="M8 3H5a2 2 0 0 0-2 2v3" /><path d="M21 8V5a2 2 0 0 0-2-2h-3" /><path d="M3 16v3a2 2 0 0 0 2 2h3" /><path d="M16 21h3a2 2 0 0 0 2-2v-3" />
-                                </svg>
-                            )}
-                            <span style={{ fontSize: "11px", whiteSpace: "nowrap", fontWeight: "600" }}>Fullscreen</span>
-                        </button>
+                            } else {
+                                alert("โหมดเต็มจอ (Fullscreen) กรุณากด F11 บนคีย์บอร์ดแทนเมื่อเปิดผ่านเบราว์เซอร์ครับ");
+                            }
+                        }}
+                        title="Fullscreen"
+                    >
+                        {isFullScreen ? (
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
+                                <path d="M8 3v3a2 2 0 0 1-2 2H3" /><path d="M21 8h-3a2 2 0 0 1-2-2V3" /><path d="M3 16h3a2 2 0 0 1 2 2v3" /><path d="M16 21v-3a2 2 0 0 1 2-2h3" />
+                            </svg>
+                        ) : (
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
+                                <path d="M8 3H5a2 2 0 0 0-2 2v3" /><path d="M21 8V5a2 2 0 0 0-2-2h-3" /><path d="M3 16v3a2 2 0 0 0 2 2h3" /><path d="M16 21h3a2 2 0 0 0 2-2v-3" />
+                            </svg>
+                        )}
+                        <span style={{ fontSize: "11px", whiteSpace: "nowrap", fontWeight: "600" }}>Fullscreen</span>
+                    </button>
 
-                        <div className="header-divider" />
-                    </>
-                )}
+                    <div className="header-divider" />
+                </>
 
                 {/* Screenshot */}
                 <button
@@ -291,21 +295,25 @@ function HeaderBar({
                 </button>
 
                 {/* Exit App Button */}
-                {typeof window !== "undefined" && window.electronAPI?.isElectron && (
-                    <>
-                        <div className="header-divider" />
-                        <button
-                            className="header-btn"
-                            style={{ color: "#ef4444" }}
-                            onClick={() => window.electronAPI.close()}
-                            title="ออก (Exit)"
-                        >
-                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                <path d="M18.36 6.64a9 9 0 1 1-12.73 0" /><line x1="12" y1="2" x2="12" y2="12" />
-                            </svg>
-                        </button>
-                    </>
-                )}
+                <>
+                    <div className="header-divider" />
+                    <button
+                        className="header-btn"
+                        style={{ color: "#ef4444", opacity: typeof window !== "undefined" && window.electronAPI?.isElectron ? 1 : 0.6 }}
+                        onClick={() => {
+                            if (typeof window !== "undefined" && window.electronAPI?.isElectron) {
+                                window.electronAPI.close();
+                            } else {
+                                alert("ปุ่มปิดโปรแกรมใช้งานได้เฉพาะเมื่อรันผ่าน ProEdu1.exe เท่านั้น หากใช้งานบนเบราว์เซอร์ให้กากบาทแท็บทิ้งได้เลยครับ");
+                            }
+                        }}
+                        title="ออก (Exit)"
+                    >
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <path d="M18.36 6.64a9 9 0 1 1-12.73 0" /><line x1="12" y1="2" x2="12" y2="12" />
+                        </svg>
+                    </button>
+                </>
             </div>
         </div>
     );
