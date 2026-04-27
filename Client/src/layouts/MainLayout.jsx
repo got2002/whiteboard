@@ -34,6 +34,7 @@ import PermissionButton from "../components/PermissionButton";
 import NameDialog from "../components/NameDialog";
 import VideoPlayerModal from "../components/VideoPlayerModal";
 import WebcamWidget from "../components/WebcamWidget";
+import ScreenshotOverlay from "../components/ScreenshotOverlay";
 
 // ============================================================
 // MainLayout Component
@@ -50,6 +51,7 @@ export default function MainLayout() {
   const [showToolbars, setShowToolbars] = useState(true);
   const [showWebcam, setShowWebcam] = useState(false);
   const [isOnScreen, setIsOnScreen] = useState(false);
+  const [showScreenshotOverlay, setShowScreenshotOverlay] = useState(false);
 
   // (ย้าย useEffect ลงไปด้านล่างเพื่อให้รู้จัก remoteScreen และ userRole)
 
@@ -264,6 +266,7 @@ export default function MainLayout() {
           onSavePD1={fileHook.handleSavePD1}
           onExport={fileHook.handleExport}
           onExportAll={fileHook.handleExportAll}
+          onSelectionScreenshot={() => setShowScreenshotOverlay(true)}
           autoSave={fileHook.autoSave}
           onToggleAutoSave={fileHook.handleToggleAutoSave}
           onInsertImage={fileHook.handleInsertImage}
@@ -437,6 +440,16 @@ export default function MainLayout() {
 
       {/* Webcam Widget */}
       {showWebcam && <WebcamWidget />}
+
+      {/* Screenshot Selection Overlay */}
+      {showScreenshotOverlay && (
+        <ScreenshotOverlay
+          canvasRef={canvasRef}
+          pages={pages}
+          currentPageIndex={currentPageIndex}
+          onClose={() => setShowScreenshotOverlay(false)}
+        />
+      )}
 
       {/* Toggle Toolbars Button */}
       {userRole !== "viewer" && (

@@ -17,8 +17,14 @@ app.get("/api/status", (req, res) => {
   });
 });
 
-app.get("/", (req, res) => {
-  res.send("✅ ProEdu1 Server Running");
+const path = require("path");
+
+// เสิร์ฟไฟล์ Static จากโฟลเดอร์ Client/dist (ไฟล์ที่ได้จาก npm run build)
+app.use(express.static(path.join(__dirname, '../Client/dist')));
+
+// สำหรับเส้นทางอื่นๆ ให้โยนไปหา index.html ของ React เสมอ (รองรับ React Router)
+app.get('/{*splat}', (req, res) => {
+  res.sendFile(path.join(__dirname, '../Client/dist/index.html'));
 });
 
 io.on("connection", (socket) => {
