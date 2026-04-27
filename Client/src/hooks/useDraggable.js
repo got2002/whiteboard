@@ -17,7 +17,13 @@ export function useDraggable({ storageKey, defaultPosition = null } = {}) {
         if (storageKey) {
             try {
                 const saved = localStorage.getItem(storageKey);
-                if (saved) return JSON.parse(saved);
+                if (saved) {
+                    const parsed = JSON.parse(saved);
+                    if (parsed && typeof parsed.y === 'number' && parsed.y < 55) {
+                        parsed.y = 55;
+                    }
+                    return parsed;
+                }
             } catch {}
         }
         return defaultPosition; // null means "use CSS default"
@@ -30,9 +36,10 @@ export function useDraggable({ storageKey, defaultPosition = null } = {}) {
     const clampPosition = useCallback((x, y) => {
         const maxX = window.innerWidth - 60;
         const maxY = window.innerHeight - 60;
+        const minY = 55; // Prevent dragging behind top bar (height 48px)
         return {
             x: Math.max(0, Math.min(x, maxX)),
-            y: Math.max(0, Math.min(y, maxY)),
+            y: Math.max(minY, Math.min(y, maxY)),
         };
     }, []);
 

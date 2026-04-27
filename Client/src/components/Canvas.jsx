@@ -56,6 +56,7 @@ const Canvas = forwardRef(function Canvas(
   const [inlineText, setInlineText] = useState(null); // { x, y, screenX, screenY, fontSize }
   const inlineTextRef = useRef(null);
   const [showTextColorModal, setShowTextColorModal] = useState(false);
+  const [editingStrokeId, setEditingStrokeId] = useState(null); // ID of text stroke being edited
 
   // Slot Names state
   const [slotTitles, setSlotTitles] = useState({});
@@ -340,6 +341,14 @@ const Canvas = forwardRef(function Canvas(
       const rect = canvasRef.current.getBoundingClientRect();
       const canvasX = (e.clientX - rect.left - panOffset.current.x) / zoom.current;
       const canvasY = (e.clientY - rect.top - panOffset.current.y) / zoom.current;
+
+      // Check if there's an existing text stroke here — if so, skip new text
+      // and let the double-click handler open it for editing
+      const existingText = findStrokeAt(page?.strokes, canvasX, canvasY);
+      if (existingText && existingText.type === "text") {
+        return; // Let onDoubleClick handle editing
+      }
+
       setInlineText({
         x: canvasX,
         y: canvasY,
@@ -723,8 +732,12 @@ const Canvas = forwardRef(function Canvas(
     if (!inlineText) return;
     const val = inlineTextRef.current?.value?.trim();
     if (val) {
+      // If editing an existing text stroke, delete old and create new
+      if (editingStrokeId) {
+        onStrokeDelete?.(editingStrokeId);
+      }
       const stroke = {
-        id: `text-${Date.now()}`,
+        id: editingStrokeId || `text-${Date.now()}`,
         type: "text",
         text: val,
         x: inlineText.x,
@@ -737,8 +750,12 @@ const Canvas = forwardRef(function Canvas(
         textDecoration: inlineText.textDecoration || "none",
       };
       onStrokeComplete(stroke);
+    } else if (editingStrokeId) {
+      // If text cleared, delete the stroke
+      onStrokeDelete?.(editingStrokeId);
     }
     setInlineText(null);
+    setEditingStrokeId(null);
   };
 
   const handleInlineTextKeyDown = (e) => {
@@ -749,6 +766,43 @@ const Canvas = forwardRef(function Canvas(
     }
     if (e.key === "Escape") {
       setInlineText(null);
+      setEditingStrokeId(null);
+    }
+  };
+
+  // ── Double-click to edit existing text ──
+  const handleCanvasDoubleClick = (e) => {
+    if (userRole === "viewer") return;
+    const rect = canvasRef.current.getBoundingClientRect();
+    const x = (e.clientX - rect.left - panOffset.current.x) / zoom.current;
+    const y = (e.clientY - rect.top - panOffset.current.y) / zoom.current;
+
+    // Find a text stroke at this position
+    const found = findStrokeAt(page?.strokes, x, y);
+    if (found && found.type === "text") {
+      // Open inline editor pre-filled with existing text
+      setEditingStrokeId(found.id);
+      setSelectedStrokeId(null);
+      setInlineText({
+        x: found.x,
+        y: found.y,
+        screenX: found.x * zoom.current + panOffset.current.x + rect.left,
+        screenY: found.y * zoom.current + panOffset.current.y + rect.top,
+        fontSize: found.fontSize || 20,
+        color: found.color || "#000000",
+        fontFamily: found.fontFamily || "Inter, sans-serif",
+        fontWeight: found.fontWeight || "normal",
+        fontStyle: found.fontStyle || "normal",
+        textDecoration: found.textDecoration || "none",
+      });
+      // Pre-fill text value after render
+      setTimeout(() => {
+        if (inlineTextRef.current) {
+          inlineTextRef.current.value = found.text || "";
+          inlineTextRef.current.focus();
+          inlineTextRef.current.select();
+        }
+      }, 50);
     }
   };
 
@@ -771,6 +825,7 @@ const Canvas = forwardRef(function Canvas(
         onPointerMove={handlePointerMove}
         onPointerUp={handlePointerUp}
         onPointerLeave={handlePointerUp}
+        onDoubleClick={handleCanvasDoubleClick}
         className="drawing-canvas"
         style={{ cursor: cursorStyle, touchAction: 'none', position: "absolute", top: 0, left: 0, zIndex: 2, transform: "translateZ(0)", willChange: "transform" }}
       />
