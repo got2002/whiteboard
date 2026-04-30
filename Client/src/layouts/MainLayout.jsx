@@ -348,6 +348,7 @@ export default function MainLayout() {
         myName={username}
         myColor={userColor}
         myPageIndex={currentPageIndex}
+        myRole={userRole}
         followUserId={collabHook.followUserId}
         onFollow={collabHook.handleFollow}
       />
