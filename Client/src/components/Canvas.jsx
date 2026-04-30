@@ -299,6 +299,21 @@ const Canvas = forwardRef(function Canvas(
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [tool, selectedStrokeId, onStrokeDelete]);
 
+  // Auto-select newly inserted images
+  useEffect(() => {
+    const handleImageInserted = (e) => {
+      const { strokeId } = e.detail;
+      if (strokeId) {
+        // Small delay to ensure stroke is in the page data
+        setTimeout(() => {
+          setSelectedStrokeId(strokeId);
+        }, 100);
+      }
+    };
+    window.addEventListener('image-inserted', handleImageInserted);
+    return () => window.removeEventListener('image-inserted', handleImageInserted);
+  }, []);
+
   // ============================================================
   // [H] Pointer Events
   // ============================================================
@@ -519,12 +534,27 @@ const Canvas = forwardRef(function Canvas(
       return;
     }
 
-    // Select drag
+    // Select drag (move)
     if (tool === "select" && selectDragStart.current) {
       const dx = x - selectDragStart.current.x, dy = y - selectDragStart.current.y;
       if (Math.abs(dx) > 1 || Math.abs(dy) > 1) {
         selectDragStart.current.x = x; selectDragStart.current.y = y;
-        onStrokeUpdate?.(selectDragStart.current.strokeId, dx, dy);
+        // Find the stroke and compute proper move changes
+        const moveStroke = page?.strokes?.find(s => s.id === selectDragStart.current.strokeId);
+        if (moveStroke) {
+          let changes;
+          if (moveStroke.type === "image" || moveStroke.type === "text" || moveStroke.type === "stamp") {
+            changes = { x: (moveStroke.x || 0) + dx, y: (moveStroke.y || 0) + dy };
+          } else if (moveStroke.type === "shape") {
+            changes = {
+              startX: moveStroke.startX + dx, startY: moveStroke.startY + dy,
+              endX: moveStroke.endX + dx, endY: moveStroke.endY + dy,
+            };
+          } else if (moveStroke.points) {
+            changes = { points: moveStroke.points.map(p => ({ x: p.x + dx, y: p.y + dy })) };
+          }
+          if (changes) onStrokeUpdate?.(selectDragStart.current.strokeId, changes);
+        }
       }
       return;
     }
