@@ -6,7 +6,6 @@
 // ============================================================
 
 import { useRef, useState, useCallback, useEffect } from "react";
-import { QRCodeSVG } from "qrcode.react";
 import { socket } from "../core/socket";
 
 // ── Feature Hooks (ตาม feature/ ของพี่ตุล) ──
@@ -35,6 +34,7 @@ import NameDialog from "../components/NameDialog";
 import VideoPlayerModal from "../components/VideoPlayerModal";
 import WebcamWidget from "../components/WebcamWidget";
 import ScreenshotOverlay from "../components/ScreenshotOverlay";
+import QRCodePanel from "../components/QRCodePanel";
 
 // ============================================================
 // MainLayout Component
@@ -420,14 +420,7 @@ export default function MainLayout() {
 
       {/* QR Code Panel */}
       {showQR && (
-        <div className="qr-container">
-          <div className="qr-header">
-            <span>สแกนเพื่อเข้าร่วม</span>
-            <button className="qr-close" onClick={() => setShowQR(false)}>✕</button>
-          </div>
-          <QRCodeSVG value={joinUrl} size={140} />
-          <p className="qr-url">{joinUrl}</p>
-        </div>
+        <QRCodePanel joinUrl={joinUrl} onClose={() => setShowQR(false)} />
       )}
 
       {/* Video Player Modal */}

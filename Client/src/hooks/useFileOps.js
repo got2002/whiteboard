@@ -98,38 +98,60 @@ export function useFileOps({ pages, setPages, setCurrentPageIndex, canvasRef, cu
       reader.onload = (ev) => {
         const img = new Image();
         img.onload = () => {
-          let w = img.width, h = img.height;
-          const maxSize = 800; // Increased max size for better quality
-          if (w > maxSize || h > maxSize) {
-            const scale = maxSize / Math.max(w, h);
-            w *= scale;
-            h *= scale;
+          const origW = img.width, origH = img.height;
+
+          // === 1) High-res data: keep up to 1600px for sharp image data ===
+          let dataW = origW, dataH = origH;
+          const maxDataSize = 1600;
+          if (dataW > maxDataSize || dataH > maxDataSize) {
+            const dataScale = maxDataSize / Math.max(dataW, dataH);
+            dataW = Math.round(dataW * dataScale);
+            dataH = Math.round(dataH * dataScale);
           }
           
-          // Draw to canvas to compress base64 data
+          // Draw to canvas at high resolution for sharp data
           const canvas = document.createElement("canvas");
-          canvas.width = w;
-          canvas.height = h;
+          canvas.width = dataW;
+          canvas.height = dataH;
           const ctx = canvas.getContext("2d");
-          ctx.drawImage(img, 0, 0, w, h);
+          ctx.drawImage(img, 0, 0, dataW, dataH);
           
-          // Use WebP to maintain transparency and reduce size drastically, fallback to PNG
+          // Use WebP to reduce size, fallback to PNG
           let mimeType = "image/webp";
-          let compressedDataURL = canvas.toDataURL(mimeType, 0.8);
+          let compressedDataURL = canvas.toDataURL(mimeType, 0.85);
           
           // If browser doesn't support webp, it returns image/png
           if (!compressedDataURL.startsWith("data:image/webp")) {
              compressedDataURL = canvas.toDataURL("image/png");
           }
 
+          // === 2) Display size: smaller for easy placement (max 400px or 40% viewport) ===
+          let displayW = origW, displayH = origH;
+          const viewW = window.innerWidth * 0.4;
+          const viewH = window.innerHeight * 0.4;
+          const maxDisplaySize = Math.min(400, viewW, viewH);
+          if (displayW > maxDisplaySize || displayH > maxDisplaySize) {
+            const displayScale = maxDisplaySize / Math.max(displayW, displayH);
+            displayW = Math.round(displayW * displayScale);
+            displayH = Math.round(displayH * displayScale);
+          }
+
+          // Center image on viewport
+          const centerX = (window.innerWidth / 2) - (displayW / 2);
+          const centerY = (window.innerHeight / 2) - (displayH / 2);
+
+          const strokeId = `img-${Date.now()}`;
           const stroke = {
-            id: `img-${Date.now()}`,
+            id: strokeId,
             type: "image",
             dataURL: compressedDataURL,
-            x: 100, y: 100,
-            width: w, height: h,
+            x: centerX, y: centerY,
+            width: displayW, height: displayH,
           };
           handleStrokeComplete(stroke);
+          
+          // Dispatch event so Canvas can auto-select this image
+          window.dispatchEvent(new CustomEvent('image-inserted', { detail: { strokeId } }));
         };
         img.src = ev.target.result;
       };
