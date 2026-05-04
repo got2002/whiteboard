@@ -3391,17 +3391,17 @@ html.on-screen-mode #root {
    ============================================================ */
 .webcam-widget {
   position: fixed;
-  width: 280px;
+  min-width: 160px;
   background: rgba(15, 15, 26, 0.95);
   backdrop-filter: blur(20px);
   border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 16px;
   box-shadow: 0 16px 40px rgba(0, 0, 0, 0.5);
-  overflow: hidden;
+  overflow: visible;
   z-index: 900;
   display: flex;
   flex-direction: column;
-  touch-action: none; /* ป้องกันการทัชสกรอล ทำให้ลากง่ายขึ้น */
+  touch-action: none;
 }
 
 .webcam-header {
@@ -3412,6 +3412,7 @@ html.on-screen-mode #root {
   justify-content: space-between;
   cursor: grab;
   user-select: none;
+  touch-action: none;
 }
 
 .webcam-header:active {
@@ -3431,12 +3432,12 @@ html.on-screen-mode #root {
 
 .webcam-video {
   width: 100%;
-  aspect-ratio: 16 / 9;
   object-fit: cover;
   background: #000;
   border-bottom-left-radius: 16px;
   border-bottom-right-radius: 16px;
-  pointer-events: none; /* ห้ามกดขวาคลิกบนวิดีโอ */
+  pointer-events: none;
+  display: block;
 }
 
 .webcam-error {
@@ -3448,6 +3449,46 @@ html.on-screen-mode #root {
   background: rgba(239, 68, 68, 0.1);
   border-bottom-left-radius: 16px;
   border-bottom-right-radius: 16px;
+}
+
+.webcam-loading {
+  padding: 30px 20px;
+  text-align: center;
+  color: rgba(255, 255, 255, 0.5);
+  font-size: 13px;
+  font-weight: 500;
+  background: rgba(0, 0, 0, 0.3);
+  border-bottom-left-radius: 16px;
+  border-bottom-right-radius: 16px;
+  animation: webcamPulse 1.5s ease-in-out infinite;
+}
+
+@keyframes webcamPulse {
+  0%, 100% { opacity: 0.5; }
+  50% { opacity: 1; }
+}
+
+.webcam-resize-handle {
+  position: absolute;
+  bottom: -2px;
+  right: -2px;
+  width: 22px;
+  height: 22px;
+  cursor: nwse-resize;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: rgba(255, 255, 255, 0.3);
+  background: rgba(15, 15, 26, 0.8);
+  border-radius: 0 0 14px 0;
+  touch-action: none;
+  transition: color 0.15s, background 0.15s;
+  z-index: 2;
+}
+
+.webcam-resize-handle:hover {
+  color: rgba(255, 255, 255, 0.7);
+  background: rgba(99, 102, 241, 0.3);
 }
 
 /* ============================================================

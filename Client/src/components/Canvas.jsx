@@ -29,6 +29,7 @@ const Canvas = forwardRef(function Canvas(
     onCursorMove, remoteCursors, laserPointers,
     currentPageIndex,
     onStrokeUpdate, onStrokeResize, onStrokeDelete, userRole,
+    onExitSplitMode,
   },
   ref
 ) {
@@ -176,27 +177,49 @@ const Canvas = forwardRef(function Canvas(
     let activeSplitStyle = isSplitActiveLocally ? penStyle : (isSplitActiveByHost ? hostPenStyle : null);
 
     if (activeSplitStyle) {
-      const slots = parseInt(activeSplitStyle.split("_")[1]);
+      const isHorizontal = activeSplitStyle.startsWith("split_h_");
+      const slots = parseInt(isHorizontal ? activeSplitStyle.split("_")[2] : activeSplitStyle.split("_")[1]);
       if (!isNaN(slots) && slots >= 2) {
         bgCtx.save();
         bgCtx.strokeStyle = "rgba(100, 100, 100, 0.4)";
         bgCtx.lineWidth = 2;
         bgCtx.setLineDash([15, 15]);
-        const slotWidth = window.innerWidth / slots;
         bgCtx.beginPath();
-        for (let i = 1; i < slots; i++) {
-          const lx = i * slotWidth;
-          bgCtx.moveTo(lx, 0); bgCtx.lineTo(lx, window.innerHeight);
+        if (isHorizontal) {
+          const slotHeight = window.innerHeight / slots;
+          for (let i = 1; i < slots; i++) {
+            const ly = i * slotHeight;
+            bgCtx.moveTo(0, ly); bgCtx.lineTo(window.innerWidth, ly);
+          }
+        } else {
+          const slotWidth = window.innerWidth / slots;
+          for (let i = 1; i < slots; i++) {
+            const lx = i * slotWidth;
+            bgCtx.moveTo(lx, 0); bgCtx.lineTo(lx, window.innerHeight);
+          }
         }
         bgCtx.stroke();
         bgCtx.setLineDash([]);
-        for (let i = 0; i < slots; i++) {
-          bgCtx.fillStyle = SLOT_COLORS[i % SLOT_COLORS.length];
-          bgCtx.globalAlpha = 0.5;
-          bgCtx.beginPath();
-          bgCtx.roundRect(i * slotWidth + 10, 10, 20, 20, 4);
-          bgCtx.fill();
-          bgCtx.globalAlpha = 1;
+        if (isHorizontal) {
+          const slotHeight = window.innerHeight / slots;
+          for (let i = 0; i < slots; i++) {
+            bgCtx.fillStyle = SLOT_COLORS[i % SLOT_COLORS.length];
+            bgCtx.globalAlpha = 0.5;
+            bgCtx.beginPath();
+            bgCtx.roundRect(10, i * slotHeight + 10, 20, 20, 4);
+            bgCtx.fill();
+            bgCtx.globalAlpha = 1;
+          }
+        } else {
+          const slotWidth = window.innerWidth / slots;
+          for (let i = 0; i < slots; i++) {
+            bgCtx.fillStyle = SLOT_COLORS[i % SLOT_COLORS.length];
+            bgCtx.globalAlpha = 0.5;
+            bgCtx.beginPath();
+            bgCtx.roundRect(i * slotWidth + 10, 10, 20, 20, 4);
+            bgCtx.fill();
+            bgCtx.globalAlpha = 1;
+          }
         }
         bgCtx.restore();
       }
@@ -253,11 +276,11 @@ const Canvas = forwardRef(function Canvas(
 
   useEffect(() => { redrawAll(); }, [page?.id, page?.strokes?.length, redrawAll, tool, penStyle, hostTool, hostPenStyle]);
 
-  // Reset Pan/Zoom on Split Board
+  // When entering Split Board, just redraw (keep current viewport position)
   useEffect(() => {
     const isSplit = (typeof penStyle === "string" && penStyle.startsWith("split_"))
       || (typeof hostPenStyle === "string" && hostPenStyle.startsWith("split_"));
-    if (isSplit) { panOffset.current = { x: 0, y: 0 }; zoom.current = 1; redrawAll(); }
+    if (isSplit) { redrawAll(); }
   }, [penStyle, hostPenStyle, redrawAll]);
 
   // Remote draw listener
@@ -320,6 +343,13 @@ const Canvas = forwardRef(function Canvas(
   const isSplitMode = (typeof penStyle === "string" && penStyle.startsWith("split_"))
     || (typeof hostPenStyle === "string" && hostPenStyle.startsWith("split_"));
 
+  // Exit split mode when user attempts pan (explicit pan tool or space-bar pan)
+  const exitSplitIfNeeded = useCallback(() => {
+    if (isSplitMode && onExitSplitMode) {
+      onExitSplitMode();
+    }
+  }, [isSplitMode, onExitSplitMode]);
+
   const handlePointerDown = (e) => {
     const pId = e.pointerId;
     activePointers.current.set(pId, { x: e.clientX, y: e.clientY });
@@ -327,9 +357,11 @@ const Canvas = forwardRef(function Canvas(
     const isViewer = userRole === "viewer";
     const effectiveTool = isViewer || isSpacePressed ? "pan" : tool;
     const isExplicitPan = effectiveTool === "pan";
-    const isMultiTouchPan = activePointers.current.size >= 2 && !isSplitMode;
+    const isMultiTouchPan = activePointers.current.size >= 2;
 
     if (isExplicitPan || isMultiTouchPan) {
+      // Exit split mode when pan/zoom is attempted
+      exitSplitIfNeeded();
       e.target.setPointerCapture(pId);
       activeDrawings.current.forEach((val) => {
         if (val.currentStroke && val.currentStroke.points.length > 1) onStrokeComplete(val.currentStroke);
@@ -439,10 +471,17 @@ const Canvas = forwardRef(function Canvas(
       if (effectiveToolForStroke === "pen" && effectivePenStyle.startsWith("split_")) useSplitStyle = effectivePenStyle;
       else if (effectiveToolForStroke === "pen" && hostPenStyle && hostPenStyle.startsWith("split_")) useSplitStyle = hostPenStyle;
       if (useSplitStyle) {
-        const slots = parseInt(useSplitStyle.split("_")[1]);
+        const isHSplit = useSplitStyle.startsWith("split_h_");
+        const slots = parseInt(isHSplit ? useSplitStyle.split("_")[2] : useSplitStyle.split("_")[1]);
         if (!isNaN(slots) && slots >= 2) {
-          const slotWidth = window.innerWidth / slots;
-          const slotIndex = Math.max(0, Math.min(slots - 1, Math.floor(e.clientX / slotWidth)));
+          let slotIndex;
+          if (isHSplit) {
+            const slotHeight = window.innerHeight / slots;
+            slotIndex = Math.max(0, Math.min(slots - 1, Math.floor(e.clientY / slotHeight)));
+          } else {
+            const slotWidth = window.innerWidth / slots;
+            slotIndex = Math.max(0, Math.min(slots - 1, Math.floor(e.clientX / slotWidth)));
+          }
           strokeColor = SLOT_COLORS[slotIndex % SLOT_COLORS.length];
         }
       }
@@ -461,7 +500,7 @@ const Canvas = forwardRef(function Canvas(
     const isViewer = userRole === "viewer";
     const effectiveTool = isViewer || isSpacePressed ? "pan" : tool;
     const isExplicitPan = effectiveTool === "pan";
-    const isMultiTouchPan = activePointers.current.size >= 2 && !isSplitMode;
+    const isMultiTouchPan = activePointers.current.size >= 2;
 
     // Pan & Zoom
     if (isExplicitPan || isMultiTouchPan) {
@@ -638,7 +677,11 @@ const Canvas = forwardRef(function Canvas(
     const handleWheel = (e) => {
       const isSplitActive = (typeof penStyle === "string" && penStyle.startsWith("split_"))
         || (typeof hostPenStyle === "string" && hostPenStyle.startsWith("split_"));
-      if (isSplitActive) return;
+      if (isSplitActive) {
+        // Exit split mode on wheel zoom
+        exitSplitIfNeeded();
+        return;
+      }
       const effectiveTool = userRole === "viewer" ? "pan" : tool;
       if (e.ctrlKey || e.metaKey || effectiveTool === "pan") {
         e.preventDefault();
@@ -723,8 +766,10 @@ const Canvas = forwardRef(function Canvas(
   if (tool === "pen" && typeof penStyle === "string" && penStyle.startsWith("split_")) activeSplitStyleForHeader = penStyle;
   else if (hostTool === "pen" && typeof hostPenStyle === "string" && hostPenStyle.startsWith("split_")) activeSplitStyleForHeader = hostPenStyle;
   let numSlots = 0;
+  let isHorizontalSplit = false;
   if (activeSplitStyleForHeader) {
-    numSlots = parseInt(activeSplitStyleForHeader.split("_")[1]);
+    isHorizontalSplit = activeSplitStyleForHeader.startsWith("split_h_");
+    numSlots = parseInt(isHorizontalSplit ? activeSplitStyleForHeader.split("_")[2] : activeSplitStyleForHeader.split("_")[1]);
     if (isNaN(numSlots) || numSlots < 2) numSlots = 0;
   }
 
@@ -1093,13 +1138,31 @@ const Canvas = forwardRef(function Canvas(
 
       {/* Split Slot Headers Overlay */}
       {numSlots > 0 && (
-        <div className="split-headers-overlay" style={{ position: "fixed", top: "60px", left: 0, width: "100%", zIndex: 60, pointerEvents: "none", display: "flex" }}>
+        <div className="split-headers-overlay" style={{
+          position: "fixed",
+          top: isHorizontalSplit ? 0 : "60px",
+          left: isHorizontalSplit ? "10px" : 0,
+          width: isHorizontalSplit ? "auto" : "100%",
+          height: isHorizontalSplit ? "100%" : "auto",
+          zIndex: 60,
+          pointerEvents: "none",
+          display: "flex",
+          flexDirection: isHorizontalSplit ? "column" : "row",
+        }}>
           {Array.from({ length: numSlots }).map((_, i) => (
-            <div key={i} style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: "8px", pointerEvents: "auto" }}>
+            <div key={i} style={{
+              flex: 1,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: isHorizontalSplit ? "flex-start" : "center",
+              gap: "8px",
+              pointerEvents: "auto",
+              paddingTop: isHorizontalSplit ? "10px" : 0,
+            }}>
               <div style={{ width: "18px", height: "18px", borderRadius: "50%", flexShrink: 0, backgroundColor: SLOT_COLORS[i % SLOT_COLORS.length], border: "2.5px solid rgba(255,255,255,0.9)", boxShadow: `0 2px 8px ${SLOT_COLORS[i % SLOT_COLORS.length]}66` }} title={`สีช่องที่ ${i+1}`} />
               <input type="text" placeholder={`ชื่อช่อง ${i+1}`} value={slotTitles[i] || ""}
                 onChange={(e) => setSlotTitles(prev => ({ ...prev, [i]: e.target.value }))}
-                style={{ background: "rgba(255,255,255,0.92)", border: "1px solid rgba(0,0,0,0.08)", borderRadius: "10px", padding: "6px 12px", fontSize: "13px", width: "120px", maxWidth: "50%", color: "#333", outline: "none", boxShadow: "0 2px 12px rgba(0,0,0,0.08)", fontWeight: "600", textAlign: "center", backdropFilter: "blur(12px)" }}
+                style={{ background: "rgba(255,255,255,0.92)", border: "1px solid rgba(0,0,0,0.08)", borderRadius: "10px", padding: "6px 12px", fontSize: "13px", width: "120px", maxWidth: isHorizontalSplit ? "140px" : "50%", color: "#333", outline: "none", boxShadow: "0 2px 12px rgba(0,0,0,0.08)", fontWeight: "600", textAlign: "center", backdropFilter: "blur(12px)" }}
                 onFocus={(e) => e.target.style.borderColor = SLOT_COLORS[i % SLOT_COLORS.length]}
                 onBlur={(e) => e.target.style.borderColor = "rgba(0,0,0,0.08)"}
                 onPointerDown={(e) => e.stopPropagation()} onKeyDown={(e) => e.stopPropagation()}

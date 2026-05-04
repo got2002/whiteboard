@@ -58,17 +58,25 @@ const PenSvg = ({ children }) => (
 
 export const SLOT_COLORS = ["#ef4444", "#3b82f6", "#22c55e", "#f97316", "#a855f7", "#06b6d4", "#ec4899", "#eab308", "#6b7280", "#000000"];
 
-const SplitPenIcon = ({ slots }) => {
+const SplitPenIcon = ({ slots, horizontal }) => {
     return (
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" style={{ display: 'block' }}>
             <g transform="translate(0, -2)">
                 <path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
             </g>
-            <g transform="translate(2, 21)">
-                {Array.from({ length: slots }).map((_, i) => (
-                    <rect key={i} x={(20 / slots) * i} y="0" width={Math.max(1, (20 / slots) - 1)} height="3" fill={SLOT_COLORS[i % SLOT_COLORS.length]} rx="1" />
-                ))}
-            </g>
+            {horizontal ? (
+                <g transform="translate(2, 21)">
+                    {Array.from({ length: slots }).map((_, i) => (
+                        <rect key={i} x="0" y={(3 / slots) * i} width="20" height={Math.max(0.5, (3 / slots) - 0.3)} fill={SLOT_COLORS[i % SLOT_COLORS.length]} rx="0.5" />
+                    ))}
+                </g>
+            ) : (
+                <g transform="translate(2, 21)">
+                    {Array.from({ length: slots }).map((_, i) => (
+                        <rect key={i} x={(20 / slots) * i} y="0" width={Math.max(1, (20 / slots) - 1)} height="3" fill={SLOT_COLORS[i % SLOT_COLORS.length]} rx="1" />
+                    ))}
+                </g>
+            )}
         </svg>
     );
 };
@@ -313,19 +321,39 @@ function Toolbar({
         };
     }, [showPenPopup, showShapePopup]);
 
-    // เลือก pen style
+    // เลือก pen style (ถ้าเป็น split ให้คง direction ไว้)
     const handlePenStyleSelect = (styleId) => {
+        // ถ้าเลือก split_N ให้ใช้ direction ปัจจุบัน
+        if (styleId.startsWith("split_") && !styleId.startsWith("split_h_")) {
+            const num = styleId.split("_")[1];
+            const isCurrentlyHorizontal = penStyle.startsWith("split_h_");
+            const effectiveId = isCurrentlyHorizontal ? `split_h_${num}` : styleId;
+            onPenStyleChange(effectiveId);
+            onToolChange("pen");
+            return;
+        }
         onPenStyleChange(styleId);
-        // ถ้าเลือก highlighter ให้เปลี่ยน tool เป็น highlighter
         if (styleId === "highlighter") {
             onToolChange("highlighter");
         } else {
-            // ให้ tool กลับเป็น pen (หรือค้าง pen ไว้)
             if (tool !== "pen" && tool !== "highlighter") {
-                // ไม่แก้ tool ถ้ากำลังใช้เครื่องมืออื่น
             } else {
                 onToolChange("pen");
             }
+        }
+    };
+
+    // Toggle split direction
+    const handleSplitDirectionToggle = () => {
+        if (!penStyle.startsWith("split_")) return;
+        if (penStyle.startsWith("split_h_")) {
+            // H -> V
+            const num = penStyle.split("_")[2];
+            onPenStyleChange(`split_${num}`);
+        } else {
+            // V -> H
+            const num = penStyle.split("_")[1];
+            onPenStyleChange(`split_h_${num}`);
         }
     };
 
@@ -358,9 +386,11 @@ function Toolbar({
         setShowShapePopup(false);
     };
 
-    // ปากกาปัจจุบัน
-    const currentPenIcon = PEN_STYLES.find((p) => p.id === penStyle)?.icon || PEN_STYLES[0].icon;
+    // ปากกาปัจจุบัน (match split_h_N as split_N for icon lookup)
+    const lookupPenStyle = penStyle.startsWith("split_h_") ? `split_${penStyle.split("_")[2]}` : penStyle;
+    const currentPenIcon = PEN_STYLES.find((p) => p.id === lookupPenStyle)?.icon || PEN_STYLES[0].icon;
     const isPenActive = tool === "pen" || tool === "highlighter";
+    const isSplitActive = penStyle.startsWith("split_");
 
     // Shape ปัจจุบัน
     const currentShapeObj = SHAPES.find(s => s.id === tool) || SHAPES.find(s => s.id === "rect");
@@ -479,20 +509,59 @@ function Toolbar({
                             <span className="pen-popup-title">Pen</span>
                         </div>
 
-                        {/* Grid ปากกา 8 แบบ */}
+                        {/* Grid ปากกา */}
                         <div className="pen-grid">
-                            {PEN_STYLES.map((ps) => (
-                                <button
-                                    key={ps.id}
-                                    className={`pen-option ${penStyle === ps.id ? "active" : ""}`}
-                                    onClick={() => handlePenStyleSelect(ps.id)}
-                                    title={ps.desc}
-                                >
-                                    <span className="pen-option-icon">{ps.icon}</span>
-                                    <span className="pen-option-label">{ps.label}</span>
-                                </button>
-                            ))}
+                            {PEN_STYLES.map((ps) => {
+                                // For split items, check if current penStyle matches (including h variant)
+                                const isActive = penStyle === ps.id || (ps.id.startsWith("split_") && penStyle === `split_h_${ps.id.split("_")[1]}`);
+                                return (
+                                    <button
+                                        key={ps.id}
+                                        className={`pen-option ${isActive ? "active" : ""}`}
+                                        onClick={() => handlePenStyleSelect(ps.id)}
+                                        title={ps.desc}
+                                    >
+                                        <span className="pen-option-icon">{ps.icon}</span>
+                                        <span className="pen-option-label">{ps.label}</span>
+                                    </button>
+                                );
+                            })}
                         </div>
+
+                        {/* Split Direction Toggle */}
+                        {isSplitActive && (
+                            <div style={{
+                                display: "flex", alignItems: "center", justifyContent: "center",
+                                gap: "6px", padding: "8px 12px", margin: "8px 12px 0",
+                                background: "rgba(255,255,255,0.06)", borderRadius: "8px",
+                            }}>
+                                <span style={{ fontSize: "11px", color: "rgba(255,255,255,0.5)", marginRight: "4px" }}>ทิศทาง:</span>
+                                <button
+                                    onClick={() => { if (penStyle.startsWith("split_h_")) handleSplitDirectionToggle(); }}
+                                    style={{
+                                        padding: "4px 12px", borderRadius: "6px", border: "none",
+                                        fontSize: "11px", fontWeight: 600, cursor: "pointer",
+                                        background: !penStyle.startsWith("split_h_") ? "rgba(99, 102, 241, 0.5)" : "rgba(255,255,255,0.08)",
+                                        color: !penStyle.startsWith("split_h_") ? "#fff" : "rgba(255,255,255,0.5)",
+                                    }}
+                                    title="แบ่งแนวตั้ง"
+                                >
+                                    │ แนวตั้ง
+                                </button>
+                                <button
+                                    onClick={() => { if (!penStyle.startsWith("split_h_")) handleSplitDirectionToggle(); }}
+                                    style={{
+                                        padding: "4px 12px", borderRadius: "6px", border: "none",
+                                        fontSize: "11px", fontWeight: 600, cursor: "pointer",
+                                        background: penStyle.startsWith("split_h_") ? "rgba(99, 102, 241, 0.5)" : "rgba(255,255,255,0.08)",
+                                        color: penStyle.startsWith("split_h_") ? "#fff" : "rgba(255,255,255,0.5)",
+                                    }}
+                                    title="แบ่งแนวนอน"
+                                >
+                                    ─ แนวนอน
+                                </button>
+                            </div>
+                        )}
 
                         {/* Preview */}
                         <div className="pen-preview-section">
