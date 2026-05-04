@@ -50,6 +50,8 @@ export default function MainLayout() {
   const [showPermissionPanel, setShowPermissionPanel] = useState(false);
   const [showToolbars, setShowToolbars] = useState(true);
   const [showWebcam, setShowWebcam] = useState(false);
+  const [showRemoteWebcam, setShowRemoteWebcam] = useState(false);
+  const [webcamOwnerName, setWebcamOwnerName] = useState("");
   const [isOnScreen, setIsOnScreen] = useState(false);
   const [showScreenshotOverlay, setShowScreenshotOverlay] = useState(false);
 
@@ -179,6 +181,25 @@ export default function MainLayout() {
     }
   }, [isOnScreen, userRole, remoteScreen]);
 
+  // ── Client: ฟัง webcam-toggle จาก Host ──
+  useEffect(() => {
+    if (userRole === "host") return;
+    const handleWebcamToggle = (data) => {
+      console.log("[MainLayout] webcam-toggle received:", data);
+      if (data && typeof data === "object") {
+        setShowRemoteWebcam(!!data.isOn);
+        setWebcamOwnerName(data.name || "");
+      } else {
+        // fallback: old format (boolean)
+        setShowRemoteWebcam(!!data);
+      }
+    };
+    socket.on("webcam-toggle", handleWebcamToggle);
+    return () => {
+      socket.off("webcam-toggle", handleWebcamToggle);
+    };
+  }, [userRole]);
+
   // ════════════════════════════════════════════════════════════
   // Derived: QR Code URL
   // ════════════════════════════════════════════════════════════
@@ -248,6 +269,7 @@ export default function MainLayout() {
         onStrokeResize={handleStrokeResize}
         onStrokeDelete={handleDeleteStroke}
         userRole={userRole}
+        onExitSplitMode={() => drawingHook.handlePenStyleChange("pen")}
       />
 
       {/* Header Bar — ซ่อนสำหรับ viewer */}
@@ -432,8 +454,14 @@ export default function MainLayout() {
         />
       )}
 
-      {/* Webcam Widget */}
-      {showWebcam && <WebcamWidget />}
+      {/* Webcam Widget — Host sees own cam, Client sees remote cam */}
+      {(showWebcam || showRemoteWebcam) && (
+        <WebcamWidget
+          userRole={userRole}
+          socket={socket}
+          ownerName={userRole === "host" ? username : webcamOwnerName}
+        />
+      )}
 
       {/* Screenshot Selection Overlay */}
       {showScreenshotOverlay && (

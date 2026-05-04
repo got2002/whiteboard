@@ -10,6 +10,7 @@ const collaborationHandler = require("./collaboration");
 const pageHandler = require("./page");
 const permissionHandler = require("./permission");
 const usersHandler = require("./users");
+const webcamHandler = require("./webcam");
 
 module.exports = (io, socket) => {
   drawingHandler(io, socket);
@@ -17,5 +18,6 @@ module.exports = (io, socket) => {
   pageHandler(io, socket);
   permissionHandler(io, socket);
   usersHandler(io, socket);
+  webcamHandler(io, socket);
 };
 
