@@ -4,6 +4,8 @@
 // ดึงออกมาจาก Canvas.jsx [B] drawSegment + [E] drawStroke (pen section)
 // ============================================================
 
+import { getStrokeBounds } from "./hitTestUtils";
+
 /**
  * วาดเส้นตรง 1 segment ระหว่างสองจุด
  * @param {CanvasRenderingContext2D} ctx
@@ -176,6 +178,18 @@ function applyStrokeStyle(ctx, stroke) {
 export function drawPenStroke(ctx, stroke) {
   if (!stroke.points || stroke.points.length < 2) return;
   ctx.save();
+  
+  if (stroke.rotation) {
+    const bounds = getStrokeBounds(stroke);
+    if (bounds) {
+      const cx = bounds.x + bounds.width/2;
+      const cy = bounds.y + bounds.height/2;
+      ctx.translate(cx, cy);
+      ctx.rotate(stroke.rotation * Math.PI / 180);
+      ctx.translate(-cx, -cy);
+    }
+  }
+
   const style = stroke.penStyle || "pen";
 
   // Calligraphy
@@ -261,6 +275,18 @@ export function drawPenStroke(ctx, stroke) {
  */
 export function drawTextOnCtx(ctx, textStroke) {
   ctx.save();
+  
+  if (textStroke.rotation) {
+    const bounds = getStrokeBounds(textStroke);
+    if (bounds) {
+      const cx = bounds.x + bounds.width/2;
+      const cy = bounds.y + bounds.height/2;
+      ctx.translate(cx, cy);
+      ctx.rotate(textStroke.rotation * Math.PI / 180);
+      ctx.translate(-cx, -cy);
+    }
+  }
+
   ctx.globalCompositeOperation = "source-over";
   ctx.fillStyle = textStroke.color;
   const fontSize = textStroke.fontSize || 20;
@@ -297,6 +323,18 @@ export function drawTextOnCtx(ctx, textStroke) {
  */
 export function drawStampOnCtx(ctx, stamp) {
   ctx.save();
+  
+  if (stamp.rotation) {
+    const bounds = getStrokeBounds(stamp);
+    if (bounds) {
+      const cx = bounds.x + bounds.width/2;
+      const cy = bounds.y + bounds.height/2;
+      ctx.translate(cx, cy);
+      ctx.rotate(stamp.rotation * Math.PI / 180);
+      ctx.translate(-cx, -cy);
+    }
+  }
+
   ctx.font = `${stamp.fontSize || 40}px sans-serif`;
   ctx.textBaseline = "middle";
   ctx.textAlign = "center";
@@ -316,10 +354,34 @@ export function drawImageOnCtx(ctx, imgStroke) {
     imageCache[imgStroke.id] = img;
     if (!img.complete) {
       img.onload = () => {
+        ctx.save();
+        if (imgStroke.rotation) {
+          const bounds = getStrokeBounds(imgStroke);
+          if (bounds) {
+            const cx = bounds.x + bounds.width/2;
+            const cy = bounds.y + bounds.height/2;
+            ctx.translate(cx, cy);
+            ctx.rotate(imgStroke.rotation * Math.PI / 180);
+            ctx.translate(-cx, -cy);
+          }
+        }
         ctx.drawImage(img, imgStroke.x, imgStroke.y, imgStroke.width, imgStroke.height);
+        ctx.restore();
       };
       return;
     }
   }
+  ctx.save();
+  if (imgStroke.rotation) {
+    const bounds = getStrokeBounds(imgStroke);
+    if (bounds) {
+      const cx = bounds.x + bounds.width/2;
+      const cy = bounds.y + bounds.height/2;
+      ctx.translate(cx, cy);
+      ctx.rotate(imgStroke.rotation * Math.PI / 180);
+      ctx.translate(-cx, -cy);
+    }
+  }
   ctx.drawImage(img, imgStroke.x, imgStroke.y, imgStroke.width, imgStroke.height);
+  ctx.restore();
 }

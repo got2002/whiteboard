@@ -15,7 +15,7 @@ import {
 // ── Utility imports (ย้ายออกจากไฟล์นี้แล้ว) ──
 import { drawSegment, drawPenStroke, drawTextOnCtx, drawStampOnCtx, drawImageOnCtx } from "../utils/strokeRenderer";
 import { SHAPE_TOOLS, drawShapeOnCtx } from "../utils/shapeRenderer";
-import { getStrokeBounds, hitTestHandle, findStrokeAt, HANDLE_SIZE } from "../utils/hitTestUtils";
+import { getStrokeBounds, hitTestHandle, findStrokeAt, HANDLE_SIZE, getCombinedBounds, getStrokesInLasso, isPointInPolygon } from "../utils/hitTestUtils";
 import ColorPickerModal from "./ColorPickerModal";
 
 // สีคงที่สำหรับ Split Board
@@ -23,7 +23,7 @@ const SLOT_COLORS = ["#ef4444", "#3b82f6", "#22c55e", "#f97316", "#a855f7", "#06
 
 const Canvas = forwardRef(function Canvas(
   {
-    page, tool, color, penSize, penStyle, mode,
+    page, tool, color, penSize, penStyle, mode, onToolChange,
     hostTool, hostPenStyle,
     onStrokeComplete, onDraw, onTextRequest, socket,
     onCursorMove, remoteCursors, laserPointers,
@@ -47,11 +47,13 @@ const Canvas = forwardRef(function Canvas(
   const previewCanvasRef = useRef(null);
   const streamCanvasRef = useRef(null);
 
-  // Select / Resize
-  const [selectedStrokeId, setSelectedStrokeId] = useState(null);
+  const [selectedStrokeIds, setSelectedStrokeIds] = useState([]);
   const selectDragStart = useRef(null);
   const resizeDragRef = useRef(null);
   const hoveredHandleRef = useRef(null);
+  const [activeLassoPath, setActiveLassoPath] = useState(null);
+
+
 
   // Inline Text Editing
   const [inlineText, setInlineText] = useState(null); // { x, y, screenX, screenY, fontSize }
@@ -308,19 +310,77 @@ const Canvas = forwardRef(function Canvas(
     }
   }, [redrawAll]);
 
-  // Keyboard Delete
+  // Keyboard Delete & Copy/Paste
   useEffect(() => {
     const handleKeyDown = (e) => {
-      if ((e.key === "Backspace" || e.key === "Delete") && tool === "select" && selectedStrokeId) {
-        if (e.target.tagName !== "INPUT" && e.target.tagName !== "TEXTAREA") {
-          onStrokeDelete?.(selectedStrokeId);
-          setSelectedStrokeId(null);
+      if (e.target.tagName === "INPUT" || e.target.tagName === "TEXTAREA") return;
+      if ((e.key === "Backspace" || e.key === "Delete") && (tool === "select" || tool === "lasso") && selectedStrokeIds.length > 0) {
+        selectedStrokeIds.forEach(id => onStrokeDelete?.(id));
+        setSelectedStrokeIds([]);
+        setActiveLassoPath(null);
+      }
+      if ((e.ctrlKey || e.metaKey) && (tool === "select" || tool === "lasso") && selectedStrokeIds.length > 0) {
+        if (e.key === "g" || e.key === "G") {
+          e.preventDefault();
+          if (e.shiftKey) {
+             selectedStrokeIds.forEach(id => onStrokeUpdate?.(id, { groupId: null }));
+          } else {
+             const newGroupId = "group-" + Date.now();
+             selectedStrokeIds.forEach(id => onStrokeUpdate?.(id, { groupId: newGroupId }));
+          }
+        } else if (e.key === "c") {
+          const selStrokes = page?.strokes?.filter(s => selectedStrokeIds.includes(s.id)) || [];
+          localStorage.setItem("whiteboard-clipboard", JSON.stringify(selStrokes));
+        } else if (e.key === "v") {
+          try {
+            const clip = JSON.parse(localStorage.getItem("whiteboard-clipboard"));
+            if (clip && clip.length > 0) {
+              const newIds = [];
+              clip.forEach(s => {
+                const newId = Date.now().toString(36) + Math.random().toString(36).substr(2);
+                newIds.push(newId);
+                const offset = 20;
+                let newS = { ...s, id: newId };
+                if (newS.type === "image" || newS.type === "text" || newS.type === "stamp") {
+                  newS.x += offset; newS.y += offset;
+                } else if (newS.type === "shape") {
+                  newS.startX += offset; newS.startY += offset;
+                  newS.endX += offset; newS.endY += offset;
+                } else if (newS.points) {
+                  newS.points = newS.points.map(p => ({ x: p.x + offset, y: p.y + offset }));
+                }
+                onStrokeComplete?.(newS);
+              });
+              setTimeout(() => setSelectedStrokeIds(newIds), 100);
+            }
+          } catch(err){}
         }
       }
     };
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [tool, selectedStrokeId, onStrokeDelete]);
+  }, [tool, selectedStrokeIds, page?.strokes, onStrokeDelete, onStrokeComplete]);
+
+  useEffect(() => {
+    if (tool !== "select" && tool !== "lasso") {
+      setSelectedStrokeIds([]);
+      setActiveLassoPath(null);
+    }
+  }, [tool]);
+
+  // Sync selection with page strokes (clear if strokes were deleted externally, e.g. via Clear button)
+  useEffect(() => {
+    if (selectedStrokeIds.length > 0 && page?.strokes) {
+      const allExist = selectedStrokeIds.every(id => page.strokes.some(s => s.id === id));
+      if (!allExist) {
+        const validIds = selectedStrokeIds.filter(id => page.strokes.some(s => s.id === id));
+        setSelectedStrokeIds(validIds);
+        if (validIds.length === 0) {
+          setActiveLassoPath(null);
+        }
+      }
+    }
+  }, [page?.strokes, selectedStrokeIds, tool]);
 
   // Auto-select newly inserted images
   useEffect(() => {
@@ -329,7 +389,7 @@ const Canvas = forwardRef(function Canvas(
       if (strokeId) {
         // Small delay to ensure stroke is in the page data
         setTimeout(() => {
-          setSelectedStrokeId(strokeId);
+          setSelectedStrokeIds([strokeId]);
         }, 100);
       }
     };
@@ -414,31 +474,66 @@ const Canvas = forwardRef(function Canvas(
 
     if (tool === "stamp" || tool === "laser") return;
 
-    if (tool === "select") {
+    if (tool === "select" || tool === "lasso") {
       const rect = canvasRef.current.getBoundingClientRect();
       const x = (e.clientX - rect.left - panOffset.current.x) / zoom.current;
       const y = (e.clientY - rect.top - panOffset.current.y) / zoom.current;
 
-      if (selectedStrokeId) {
-        const selStroke = page?.strokes?.find(s => s.id === selectedStrokeId);
-        const bounds = getStrokeBounds(selStroke);
+      if (selectedStrokeIds.length > 0) {
+        // In Lasso tool, if there is an active lasso and we click inside it, allow dragging immediately
+        if (tool === "lasso" && activeLassoPath && activeLassoPath.length >= 3) {
+          if (isPointInPolygon({x, y}, activeLassoPath)) {
+            selectDragStart.current = { x, y, strokeIds: selectedStrokeIds };
+            e.target.setPointerCapture(pId);
+            activeDrawings.current.set(pId, { isDrawing: true });
+            return;
+          }
+        }
+        const selStrokes = page?.strokes?.filter(s => selectedStrokeIds.includes(s.id));
+        const bounds = getCombinedBounds(selStrokes);
         const handle = hitTestHandle(bounds, x, y);
         if (handle) {
-          resizeDragRef.current = { strokeId: selectedStrokeId, handle, startX: x, startY: y, origBounds: { ...bounds } };
+          resizeDragRef.current = { strokeIds: selectedStrokeIds, handle, startX: x, startY: y, origBounds: { ...bounds }, origStrokes: selStrokes.map(s => JSON.parse(JSON.stringify(s))) };
           e.target.setPointerCapture(pId);
           activeDrawings.current.set(pId, { isDrawing: true });
           return;
         }
+
+        // Allow dragging the entire selection by clicking anywhere inside the combined bounding box
+        if (bounds && x >= bounds.x && x <= bounds.x + bounds.width && y >= bounds.y && y <= bounds.y + bounds.height) {
+            selectDragStart.current = { x, y, strokeIds: selectedStrokeIds };
+            e.target.setPointerCapture(pId);
+            activeDrawings.current.set(pId, { isDrawing: true });
+            return;
+        }
+      }
+
+      if (tool === "lasso") {
+          e.target.setPointerCapture(pId);
+          activeDrawings.current.set(pId, { isDrawing: true, lassoPoints: [{x,y}] });
+          setSelectedStrokeIds([]);
+          setActiveLassoPath(null);
+          return;
       }
 
       const found = findStrokeAt(page?.strokes, x, y);
       if (found) {
-        setSelectedStrokeId(found.id);
-        selectDragStart.current = { x, y, strokeId: found.id };
+        let newSelection = selectedStrokeIds;
+        let idsToSelect = [found.id];
+        if (found.groupId) {
+            idsToSelect = page.strokes.filter(s => s.groupId === found.groupId).map(s => s.id);
+        }
+
+        if (!selectedStrokeIds.includes(found.id)) {
+            newSelection = idsToSelect;
+            setSelectedStrokeIds(newSelection);
+        }
+        selectDragStart.current = { x, y, strokeIds: newSelection };
         e.target.setPointerCapture(pId);
         activeDrawings.current.set(pId, { isDrawing: true });
+        setActiveLassoPath(null);
       } else {
-        setSelectedStrokeId(null); selectDragStart.current = null; resizeDragRef.current = null;
+        setSelectedStrokeIds([]); selectDragStart.current = null; resizeDragRef.current = null; setActiveLassoPath(null);
       }
       return;
     }
@@ -538,9 +633,9 @@ const Canvas = forwardRef(function Canvas(
     onCursorMove?.({ x, y });
 
     // Hover detection for select tool
-    if (tool === "select" && selectedStrokeId && !resizeDragRef.current && !selectDragStart.current) {
-      const selStroke = page?.strokes?.find(s => s.id === selectedStrokeId);
-      const bounds = getStrokeBounds(selStroke);
+    if ((tool === "select" || tool === "lasso") && selectedStrokeIds.length > 0 && !resizeDragRef.current && !selectDragStart.current) {
+      const selStrokes = page?.strokes?.filter(s => selectedStrokeIds.includes(s.id));
+      const bounds = getCombinedBounds(selStrokes);
       const handle = hitTestHandle(bounds, x, y);
       if (handle !== hoveredHandleRef.current) {
         hoveredHandleRef.current = handle;
@@ -549,6 +644,7 @@ const Canvas = forwardRef(function Canvas(
           else if (handle === "ne" || handle === "sw") canvasRef.current.style.cursor = "nesw-resize";
           else if (handle === "n" || handle === "s") canvasRef.current.style.cursor = "ns-resize";
           else if (handle === "e" || handle === "w") canvasRef.current.style.cursor = "ew-resize";
+          else if (handle === "rot") canvasRef.current.style.cursor = "crosshair";
           else canvasRef.current.style.cursor = "move";
         }
       }
@@ -557,9 +653,47 @@ const Canvas = forwardRef(function Canvas(
     const drawState = activeDrawings.current.get(e.pointerId);
     if (!drawState || !drawState.isDrawing) return;
 
+    if (tool === "lasso" && drawState.lassoPoints) {
+      drawState.lassoPoints.push({x, y});
+      redrawAll();
+      const ctx = ctxRef.current;
+      const dpr = window.devicePixelRatio || 1;
+      ctx.save();
+      ctx.setTransform(1, 0, 0, 1, 0, 0);
+      ctx.scale(dpr, dpr);
+      ctx.translate(panOffset.current.x, panOffset.current.y);
+      ctx.scale(zoom.current, zoom.current);
+      ctx.beginPath();
+      ctx.strokeStyle = "#3b82f6";
+      ctx.lineWidth = 1.5;
+      ctx.setLineDash([5, 5]);
+      ctx.moveTo(drawState.lassoPoints[0].x, drawState.lassoPoints[0].y);
+      for(let i=1; i<drawState.lassoPoints.length; i++) {
+         ctx.lineTo(drawState.lassoPoints[i].x, drawState.lassoPoints[i].y);
+      }
+      ctx.stroke();
+      ctx.restore();
+      return;
+    }
+
     // Resize drag
-    if (tool === "select" && resizeDragRef.current) {
+    if ((tool === "select" || tool === "lasso") && resizeDragRef.current) {
       const rd = resizeDragRef.current;
+      if (rd.handle === "rot") {
+          const ob = rd.origBounds;
+          const cx = ob.x + ob.width / 2;
+          const cy = ob.y + ob.height / 2;
+          const angle = Math.atan2(y - cy, x - cx) * 180 / Math.PI + 90;
+          
+          rd.strokeIds.forEach(id => {
+              const s = rd.origStrokes.find(st => st.id === id);
+              if (s) {
+                  onStrokeUpdate?.(id, { rotation: (s.rotation || 0) + angle });
+              }
+          });
+          return;
+      }
+
       const dx = x - rd.startX, dy = y - rd.startY;
       const ob = rd.origBounds;
       let nx = ob.x, ny = ob.y, nw = ob.width, nh = ob.height;
@@ -569,31 +703,71 @@ const Canvas = forwardRef(function Canvas(
       if (rd.handle.includes("s")) { nh = ob.height + dy; }
       if (nw < 20) { if (rd.handle.includes("w")) nx = ob.x + ob.width - 20; nw = 20; }
       if (nh < 20) { if (rd.handle.includes("n")) ny = ob.y + ob.height - 20; nh = 20; }
-      onStrokeResize?.(rd.strokeId, { x: nx, y: ny, width: nw, height: nh });
+      
+      const scaleX = nw / ob.width;
+      const scaleY = nh / ob.height;
+
+      rd.strokeIds.forEach(id => {
+          const s = rd.origStrokes.find(st => st.id === id);
+          if (!s) return;
+          if (rd.strokeIds.length === 1) {
+              onStrokeResize?.(id, { x: nx, y: ny, width: nw, height: nh });
+          } else {
+              const sBounds = getStrokeBounds(s);
+              if (!sBounds) return;
+              const relX = (sBounds.x - ob.x) * scaleX;
+              const relY = (sBounds.y - ob.y) * scaleY;
+              const newSX = nx + relX;
+              const newSY = ny + relY;
+              const newSW = sBounds.width * scaleX;
+              const newSH = sBounds.height * scaleY;
+
+              if (s.type === "image" || s.type === "stamp") {
+                 onStrokeUpdate?.(id, { x: newSX, y: newSY, width: newSW, height: newSH });
+              } else if (s.type === "shape") {
+                 onStrokeUpdate?.(id, { 
+                    startX: newSX, startY: newSY, 
+                    endX: newSX + newSW, endY: newSY + newSH 
+                 });
+              } else if (s.points) {
+                 const newPoints = s.points.map(p => ({
+                     x: newSX + (p.x - sBounds.x) * scaleX,
+                     y: newSY + (p.y - sBounds.y) * scaleY
+                 }));
+                 onStrokeUpdate?.(id, { points: newPoints, size: s.size * Math.max(scaleX, scaleY) });
+              } else if (s.type === "text") {
+                 onStrokeUpdate?.(id, { x: newSX, y: newSY, fontSize: s.fontSize * scaleY });
+              }
+          }
+      });
       return;
     }
 
     // Select drag (move)
-    if (tool === "select" && selectDragStart.current) {
+    if ((tool === "select" || tool === "lasso") && selectDragStart.current) {
       const dx = x - selectDragStart.current.x, dy = y - selectDragStart.current.y;
       if (Math.abs(dx) > 1 || Math.abs(dy) > 1) {
         selectDragStart.current.x = x; selectDragStart.current.y = y;
-        // Find the stroke and compute proper move changes
-        const moveStroke = page?.strokes?.find(s => s.id === selectDragStart.current.strokeId);
-        if (moveStroke) {
-          let changes;
-          if (moveStroke.type === "image" || moveStroke.type === "text" || moveStroke.type === "stamp") {
-            changes = { x: (moveStroke.x || 0) + dx, y: (moveStroke.y || 0) + dy };
-          } else if (moveStroke.type === "shape") {
-            changes = {
-              startX: moveStroke.startX + dx, startY: moveStroke.startY + dy,
-              endX: moveStroke.endX + dx, endY: moveStroke.endY + dy,
-            };
-          } else if (moveStroke.points) {
-            changes = { points: moveStroke.points.map(p => ({ x: p.x + dx, y: p.y + dy })) };
-          }
-          if (changes) onStrokeUpdate?.(selectDragStart.current.strokeId, changes);
+        if (tool === "lasso" && activeLassoPath) {
+          setActiveLassoPath(prev => prev ? prev.map(p => ({ x: p.x + dx, y: p.y + dy })) : null);
         }
+        selectDragStart.current.strokeIds.forEach(id => {
+            const moveStroke = page?.strokes?.find(s => s.id === id);
+            if (moveStroke) {
+              let changes;
+              if (moveStroke.type === "image" || moveStroke.type === "text" || moveStroke.type === "stamp") {
+                changes = { x: (moveStroke.x || 0) + dx, y: (moveStroke.y || 0) + dy };
+              } else if (moveStroke.type === "shape") {
+                changes = {
+                  startX: moveStroke.startX + dx, startY: moveStroke.startY + dy,
+                  endX: moveStroke.endX + dx, endY: moveStroke.endY + dy,
+                };
+              } else if (moveStroke.points) {
+                changes = { points: moveStroke.points.map(p => ({ x: p.x + dx, y: p.y + dy })) };
+              }
+              if (changes) onStrokeUpdate?.(id, changes);
+            }
+        });
       }
       return;
     }
@@ -644,7 +818,22 @@ const Canvas = forwardRef(function Canvas(
     e.target.releasePointerCapture(pId);
     drawState.isDrawing = false;
 
-    if (tool === "select") { selectDragStart.current = null; resizeDragRef.current = null; return; }
+    if (tool === "lasso" && drawState.lassoPoints) {
+      const selected = getStrokesInLasso(page?.strokes, drawState.lassoPoints);
+      if (selected && selected.length > 0) {
+          setSelectedStrokeIds(selected.map(s => s.id));
+          // Use the path the user drew as the boundary!
+          setActiveLassoPath(drawState.lassoPoints);
+      } else {
+          setSelectedStrokeIds([]);
+          setActiveLassoPath(null);
+      }
+      drawState.lassoPoints = null;
+      redrawAll();
+      return;
+    }
+
+    if (tool === "select" || tool === "lasso") { selectDragStart.current = null; resizeDragRef.current = null; return; }
 
     const isShapeTool = SHAPE_TOOLS.includes(tool);
     if (isShapeTool && drawState.shapeStart) {
@@ -750,7 +939,8 @@ const Canvas = forwardRef(function Canvas(
       else if (hc === "ne" || hc === "sw") cursorStyle = "nesw-resize";
       else if (hc === "n" || hc === "s") cursorStyle = "ns-resize";
       else if (hc === "e" || hc === "w") cursorStyle = "ew-resize";
-    } else { cursorStyle = selectedStrokeId ? "move" : "pointer"; }
+      else if (hc === "rot") cursorStyle = "crosshair";
+    } else { cursorStyle = selectedStrokeIds.length > 0 ? "move" : "pointer"; }
   }
   else if (effectiveToolForCursor === "pan") cursorStyle = activePointers.current.size > 0 ? "grabbing" : "grab";
   else if (SHAPE_TOOLS.includes(effectiveToolForCursor)) cursorStyle = "crosshair";
@@ -857,7 +1047,7 @@ const Canvas = forwardRef(function Canvas(
     if (found && found.type === "text") {
       // Open inline editor pre-filled with existing text
       setEditingStrokeId(found.id);
-      setSelectedStrokeId(null);
+      setSelectedStrokeIds([]);
       setInlineText({
         x: found.x,
         y: found.y,
@@ -1112,28 +1302,62 @@ const Canvas = forwardRef(function Canvas(
       )}
 
       {/* Selection + Resize Handles Overlay */}
-      {tool === "select" && selectedStrokeId && (() => {
-        const selStroke = page?.strokes?.find(s => s.id === selectedStrokeId);
-        const bounds = getStrokeBounds(selStroke);
-        if (!bounds) return null;
-        const z = zoom.current, ox = panOffset.current.x, oy = panOffset.current.y;
-        const screenX = bounds.x * z + ox, screenY = bounds.y * z + oy;
-        const screenW = bounds.width * z, screenH = bounds.height * z;
-        const hs = HANDLE_SIZE;
-        const handles = [
-          { id: "nw", left: -hs/2, top: -hs/2 }, { id: "n", left: screenW/2 - hs/2, top: -hs/2 },
-          { id: "ne", left: screenW - hs/2, top: -hs/2 }, { id: "e", left: screenW - hs/2, top: screenH/2 - hs/2 },
-          { id: "se", left: screenW - hs/2, top: screenH - hs/2 }, { id: "s", left: screenW/2 - hs/2, top: screenH - hs/2 },
-          { id: "sw", left: -hs/2, top: screenH - hs/2 }, { id: "w", left: -hs/2, top: screenH/2 - hs/2 },
-        ];
-        return (
-          <div style={{ position: "fixed", left: screenX + "px", top: screenY + "px", width: screenW + "px", height: screenH + "px", pointerEvents: "none", zIndex: 50 }}>
-            <div style={{ position: "absolute", inset: 0, border: "2px dashed #3b82f6", borderRadius: "2px" }} />
-            {handles.map(h => (
-              <div key={h.id} style={{ position: "absolute", left: h.left + "px", top: h.top + "px", width: hs + "px", height: hs + "px", background: "#fff", border: "2px solid #3b82f6", borderRadius: "2px", pointerEvents: "none" }} />
-            ))}
-          </div>
-        );
+      {selectedStrokeIds.length > 0 && (() => {
+        if (tool === "lasso") {
+          const selStrokes = page?.strokes?.filter(s => selectedStrokeIds.includes(s.id)) || [];
+          if (selStrokes.length === 0 || !activeLassoPath) return null;
+          
+          const z = zoom.current, ox = panOffset.current.x, oy = panOffset.current.y;
+          
+          // Generate a smooth path from the points the user drew
+          const pts = activeLassoPath;
+          let d = "";
+          if (pts.length > 0) {
+            d = `M ${pts[0].x * z + ox} ${pts[0].y * z + oy}`;
+            for (let i = 1; i < pts.length; i++) {
+              const xc = (pts[i].x + pts[i-1].x) / 2;
+              const yc = (pts[i].y + pts[i-1].y) / 2;
+              d += ` Q ${pts[i-1].x * z + ox} ${pts[i-1].y * z + oy}, ${xc * z + ox} ${yc * z + oy}`;
+            }
+            d += ` L ${pts[pts.length-1].x * z + ox} ${pts[pts.length-1].y * z + oy} Z`;
+          }
+
+          return (
+            <svg style={{ position: "fixed", inset: 0, width: "100%", height: "100%", pointerEvents: "none", zIndex: 50 }}>
+              <style>{`@keyframes marching-ants { to { stroke-dashoffset: -12; } }`}</style>
+              <path d={d} fill="rgba(59, 130, 246, 0.05)" stroke="#3b82f6" strokeWidth="2.5" strokeDasharray="6,6" strokeLinecap="round" strokeLinejoin="round" style={{ animation: "marching-ants 0.5s linear infinite" }} />
+            </svg>
+          );
+        } else if (tool === "select" || tool === "lasso") {
+          // Fallback to bounding box if lasso path is missing but tool is lasso, or if tool is select
+          if (tool === "lasso") return null; // In lasso mode, only show the path, no handles
+
+          const selStrokes = page?.strokes?.filter(s => selectedStrokeIds.includes(s.id));
+          const bounds = getCombinedBounds(selStrokes);
+          if (!bounds) return null;
+          const z = zoom.current, ox = panOffset.current.x, oy = panOffset.current.y;
+          const screenX = bounds.x * z + ox, screenY = bounds.y * z + oy;
+          const screenW = bounds.width * z, screenH = bounds.height * z;
+          const hs = HANDLE_SIZE;
+          const handles = [
+            { id: "nw", left: -hs/2, top: -hs/2 }, { id: "n", left: screenW/2 - hs/2, top: -hs/2 },
+            { id: "ne", left: screenW - hs/2, top: -hs/2 }, { id: "e", left: screenW - hs/2, top: screenH/2 - hs/2 },
+            { id: "se", left: screenW - hs/2, top: screenH - hs/2 }, { id: "s", left: screenW/2 - hs/2, top: screenH - hs/2 },
+            { id: "sw", left: -hs/2, top: screenH - hs/2 }, { id: "w", left: -hs/2, top: screenH/2 - hs/2 },
+            { id: "rot", left: screenW/2 - hs/2, top: -hs/2 - 25 } // Rotation handle
+          ];
+          return (
+            <div style={{ position: "fixed", left: screenX + "px", top: screenY + "px", width: screenW + "px", height: screenH + "px", pointerEvents: "none", zIndex: 50 }}>
+              <div style={{ position: "absolute", inset: 0, border: "2px dashed #3b82f6", borderRadius: "2px" }} />
+              {/* Rotation Handle Line */}
+              <div style={{ position: "absolute", left: screenW/2 + "px", top: -25 + "px", width: "2px", height: "25px", background: "#3b82f6" }} />
+              {handles.map(h => (
+                <div key={h.id} style={{ position: "absolute", left: h.left + "px", top: h.top + "px", width: hs + "px", height: hs + "px", background: h.id === "rot" ? "#10b981" : "#fff", border: "2px solid #3b82f6", borderRadius: h.id === "rot" ? "50%" : "2px", pointerEvents: "none" }} />
+              ))}
+            </div>
+          );
+        }
+        return null;
       })()}
 
       {/* Split Slot Headers Overlay */}

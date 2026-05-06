@@ -238,7 +238,6 @@ function ToolPalette({
         if (isPenActive) setShowPenPopup(v => !v);
         else {
             onToolChange(penStyle === "highlighter" ? "highlighter" : "pen");
-            setShowPenPopup(true);
         }
         setShowShapePopup(false);
         setShowEraserPopup(false);
@@ -248,7 +247,6 @@ function ToolPalette({
         if (isShapeActive) setShowShapePopup(v => !v);
         else {
             onToolChange(SHAPES.some(s => s.id === tool) ? tool : "rect");
-            setShowShapePopup(true);
         }
         setShowPenPopup(false);
         setShowEraserPopup(false);
@@ -355,7 +353,6 @@ function ToolPalette({
                             setShowEraserPopup(v => !v);
                         } else {
                             onToolChange("eraser");
-                            setShowEraserPopup(true);
                         }
                         setShowPenPopup(false);
                         setShowShapePopup(false);
@@ -435,6 +432,13 @@ function ToolPalette({
                 <button className={`tp-btn ${tool === "select" ? "active" : ""}`} onClick={() => onToolChange("select")} title="เลือก/ย้าย (V)">
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                         <path d="M3 3l7.07 16.97 2.51-7.39 7.39-2.51L3 3z" />
+                    </svg>
+                </button>
+                <button className={`tp-btn ${tool === "lasso" ? "active" : ""}`} onClick={() => onToolChange("lasso")} title="บ่วงเชือก (Lasso)">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M7 22a5 5 0 0 1-2-4" />
+                        <path d="M3.3 14A6.8 6.8 0 0 1 2 10c0-4.4 4.5-8 10-8s10 3.6 10 8-4.5 8-10 8a12 12 0 0 1-5-1" />
+                        <path d="M5 18a2 2 0 1 0 0-4 2 2 0 0 0 0 4z" />
                     </svg>
                 </button>
                 <button className={`tp-btn ${tool === "pan" ? "active" : ""}`} onClick={() => onToolChange("pan")} title="เลื่อนกระดาน">
