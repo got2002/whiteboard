@@ -55,6 +55,12 @@ export function drawShapeOnCtx(ctx, shape) {
   const cx = left + width / 2;
   const cy = top + height / 2;
 
+  if (shape.rotation) {
+    ctx.translate(cx, cy);
+    ctx.rotate(shape.rotation * Math.PI / 180);
+    ctx.translate(-cx, -cy);
+  }
+
   ctx.beginPath();
 
   switch (shapeType) {

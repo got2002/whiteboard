@@ -251,6 +251,7 @@ export default function MainLayout() {
         ref={canvasRef}
         page={currentPage}
         tool={drawingHook.tool}
+        onToolChange={drawingHook.handleToolChange}
         color={drawingHook.color}
         penSize={drawingHook.penSize}
         penStyle={drawingHook.penStyle}
