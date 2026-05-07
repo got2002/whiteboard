@@ -79,9 +79,8 @@ function ColorSidebar({
                 onDoubleClick={resetPosition}
                 title="ลากเพื่อย้ายตำแหน่ง (ดับเบิลคลิกเพื่อรีเซ็ต)"
             >
-                <svg width="16" height="8" viewBox="0 0 16 8" fill="currentColor">
-                    <circle cx="2" cy="2" r="1.2" /><circle cx="6" cy="2" r="1.2" /><circle cx="10" cy="2" r="1.2" /><circle cx="14" cy="2" r="1.2" />
-                    <circle cx="2" cy="6" r="1.2" /><circle cx="6" cy="6" r="1.2" /><circle cx="10" cy="6" r="1.2" /><circle cx="14" cy="6" r="1.2" />
+                <svg width="18" height="6" viewBox="0 0 18 6" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" opacity="0.7">
+                    <path d="M3 1h12M3 5h12" />
                 </svg>
             </div>
 
