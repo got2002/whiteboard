@@ -9,6 +9,7 @@
 // ============================================================
 
 import { useState, useRef, useEffect } from "react";
+import ToolBoxButton from "./ToolBoxButton";
 
 const MODES = [
     { id: "standard", label: "🎨", title: "Standard" },
@@ -60,6 +61,9 @@ function HeaderBar({
     onTogglePermissionPanel,
     // On-Screen mode callback
     onToggleOnScreen,
+    // ToolBox
+    showCalculator,
+    onToolBoxSelect,
 }) {
     const isHost = userRole === "host";
     const [showMainMenu, setShowMainMenu] = useState(false);
@@ -164,6 +168,13 @@ function HeaderBar({
                         </button>
                     )}
                 </div>
+
+                {/* ToolBox — ทุก Role ใช้ได้ */}
+                <div className="header-divider" />
+                <ToolBoxButton
+                    onToolSelect={onToolBoxSelect}
+                    activeTools={{ calculator: showCalculator }}
+                />
             </div>
 
             {/* ── Right Section ── */}

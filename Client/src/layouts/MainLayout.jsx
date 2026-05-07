@@ -35,6 +35,8 @@ import VideoPlayerModal from "../components/VideoPlayerModal";
 import WebcamWidget from "../components/WebcamWidget";
 import ScreenshotOverlay from "../components/ScreenshotOverlay";
 import QRCodePanel from "../components/QRCodePanel";
+import ToolBoxButton from "../components/ToolBoxButton";
+import CalculatorWidget from "../components/CalculatorWidget";
 
 // ============================================================
 // MainLayout Component
@@ -54,6 +56,7 @@ export default function MainLayout() {
   const [webcamOwnerName, setWebcamOwnerName] = useState("");
   const [isOnScreen, setIsOnScreen] = useState(false);
   const [showScreenshotOverlay, setShowScreenshotOverlay] = useState(false);
+  const [showCalculator, setShowCalculator] = useState(false);
 
   // (ย้าย useEffect ลงไปด้านล่างเพื่อให้รู้จัก remoteScreen และ userRole)
 
@@ -308,6 +311,10 @@ export default function MainLayout() {
           pendingRequests={permHook.pendingRequests.length}
           onTogglePermissionPanel={() => setShowPermissionPanel(v => !v)}
           onToggleOnScreen={(val) => setIsOnScreen(val)}
+          showCalculator={showCalculator}
+          onToolBoxSelect={(toolId) => {
+            if (toolId === 'calculator') setShowCalculator(v => !v);
+          }}
         />
       )}
 
@@ -465,6 +472,13 @@ export default function MainLayout() {
       )}
 
       {/* Screenshot Selection Overlay */}
+      {/* Calculator Widget — ทุก Role ใช้ได้ */}
+      {showCalculator && (
+        <CalculatorWidget
+          onClose={() => setShowCalculator(false)}
+        />
+      )}
+
       {showScreenshotOverlay && (
         <ScreenshotOverlay
           canvasRef={canvasRef}
