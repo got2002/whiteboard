@@ -59,7 +59,13 @@ function drawStrokeOnThumb(ctx, stroke) {
 function getBgColor(bg) {
   if (bg === "black") return "#1a1a2e";
   if (bg === "lined") return "#fefcf3";
-  if (bg === "grid") return "#ffffff";
+  if (bg === "labnotebook") return "#fefcf3";
+  if (bg === "calligraphy") return "#fefdf8";
+  if (bg === "music") return "#fffdf7";
+  if (bg === "blueprint") return "#1e3a5f";
+  if (bg === "basketball") return "#d4894e";
+  if (bg === "polar") return "#fafbfe";
+  if (bg === "hexagonal") return "#fafcfe";
   if (bg?.startsWith("color-")) return bg.replace("color-", "");
   return "#ffffff";
 }

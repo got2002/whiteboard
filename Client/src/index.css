@@ -171,6 +171,195 @@ html.on-screen-mode #root {
   background-position: 0 0, 0 0, 20px 35px, 20px 35px, 0 0, 20px 35px;
 }
 
+/* ── คณิตศาสตร์: แกนพิกัด XY ── */
+.canvas-bg.bg-coordinate {
+  background-color: #fefefe;
+  background-image:
+    linear-gradient(rgba(0, 0, 0, 0.04) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0, 0, 0, 0.04) 1px, transparent 1px);
+  background-size: 30px 30px;
+}
+.canvas-bg.bg-coordinate::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 50%;
+  width: 2px; height: 100%;
+  background: rgba(59, 130, 246, 0.35);
+  pointer-events: none; z-index: 1;
+}
+.canvas-bg.bg-coordinate::after {
+  content: '';
+  position: absolute;
+  top: 50%; left: 0;
+  width: 100%; height: 2px;
+  background: rgba(59, 130, 246, 0.35);
+  pointer-events: none; z-index: 1;
+}
+
+/* ── คณิตศาสตร์: กริดโพลาร์ ── */
+.canvas-bg.bg-polar {
+  background-color: #fafbfe;
+  background-image:
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100%25' height='100%25'%3E%3Cdefs%3E%3Cpattern id='p' width='300' height='300' patternUnits='userSpaceOnUse'%3E%3Ccircle cx='150' cy='150' r='30' fill='none' stroke='rgba(99,102,241,0.12)' stroke-width='1'/%3E%3Ccircle cx='150' cy='150' r='60' fill='none' stroke='rgba(99,102,241,0.12)' stroke-width='1'/%3E%3Ccircle cx='150' cy='150' r='90' fill='none' stroke='rgba(99,102,241,0.12)' stroke-width='1'/%3E%3Ccircle cx='150' cy='150' r='120' fill='none' stroke='rgba(99,102,241,0.10)' stroke-width='1'/%3E%3Ccircle cx='150' cy='150' r='150' fill='none' stroke='rgba(99,102,241,0.08)' stroke-width='1'/%3E%3Cline x1='150' y1='0' x2='150' y2='300' stroke='rgba(99,102,241,0.08)' stroke-width='0.5'/%3E%3Cline x1='0' y1='150' x2='300' y2='150' stroke='rgba(99,102,241,0.08)' stroke-width='0.5'/%3E%3Cline x1='0' y1='0' x2='300' y2='300' stroke='rgba(99,102,241,0.06)' stroke-width='0.5'/%3E%3Cline x1='300' y1='0' x2='0' y2='300' stroke='rgba(99,102,241,0.06)' stroke-width='0.5'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width='100%25' height='100%25' fill='url(%23p)'/%3E%3C/svg%3E");
+  background-size: 300px 300px;
+}
+
+/* ── คณิตศาสตร์: ตารางสามเหลี่ยม ── */
+.canvas-bg.bg-trigrid {
+  background-color: #fefefe;
+  background-image:
+    linear-gradient(60deg, rgba(99, 102, 241, 0.07) 1px, transparent 1px),
+    linear-gradient(120deg, rgba(99, 102, 241, 0.07) 1px, transparent 1px),
+    linear-gradient(rgba(99, 102, 241, 0.04) 1px, transparent 1px);
+  background-size: 28px 48px;
+}
+
+/* ── คณิตศาสตร์: ตารางหมากรุก ── */
+.canvas-bg.bg-checkerboard {
+  background-color: #ffffff;
+  background-image:
+    linear-gradient(45deg, rgba(0, 0, 0, 0.06) 25%, transparent 25%, transparent 75%, rgba(0, 0, 0, 0.06) 75%),
+    linear-gradient(45deg, rgba(0, 0, 0, 0.06) 25%, transparent 25%, transparent 75%, rgba(0, 0, 0, 0.06) 75%);
+  background-size: 40px 40px;
+  background-position: 0 0, 20px 20px;
+}
+
+/* ── วิทยาศาสตร์: โมเลกุล / รังผึ้ง ── */
+.canvas-bg.bg-hexagonal {
+  background-color: #fafcfe;
+  background-image:
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='56' height='100'%3E%3Cpath d='M28 66L0 50L0 16L28 0L56 16L56 50L28 66L28 100' fill='none' stroke='rgba(16,185,129,0.12)' stroke-width='1'/%3E%3Cpath d='M28 0L28 34L0 50L0 84L28 100L56 84L56 50L28 34' fill='none' stroke='rgba(16,185,129,0.12)' stroke-width='1'/%3E%3C/svg%3E");
+  background-size: 56px 100px;
+}
+
+/* ── วิทยาศาสตร์: สมุดแล็บ ── */
+.canvas-bg.bg-labnotebook {
+  background-color: #fefcf3;
+  background-image:
+    linear-gradient(rgba(16, 185, 129, 0.1) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(16, 185, 129, 0.06) 1px, transparent 1px);
+  background-size: 100% 28px, 28px 28px;
+}
+.canvas-bg.bg-labnotebook::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 60px;
+  width: 2px; height: 100%;
+  background: rgba(239, 68, 68, 0.15);
+  pointer-events: none; z-index: 1;
+}
+.canvas-bg.bg-labnotebook::after {
+  content: '';
+  position: absolute;
+  top: 0; left: 64px;
+  width: 2px; height: 100%;
+  background: rgba(239, 68, 68, 0.15);
+  pointer-events: none; z-index: 1;
+}
+
+/* ── วิทยาศาสตร์: กริดกากบาท ── */
+.canvas-bg.bg-cross {
+  background-color: #ffffff;
+  background-image:
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='40' height='40'%3E%3Cline x1='20' y1='16' x2='20' y2='24' stroke='rgba(0,0,0,0.1)' stroke-width='1'/%3E%3Cline x1='16' y1='20' x2='24' y2='20' stroke='rgba(0,0,0,0.1)' stroke-width='1'/%3E%3C/svg%3E");
+  background-size: 40px 40px;
+}
+
+/* ── ดนตรี: บรรทัด 5 เส้น ── */
+.canvas-bg.bg-music {
+  background-color: #fffdf7;
+  background-image:
+    linear-gradient(transparent 9px, rgba(0, 0, 0, 0.12) 9px, rgba(0, 0, 0, 0.12) 10px, transparent 10px),
+    linear-gradient(transparent 19px, rgba(0, 0, 0, 0.12) 19px, rgba(0, 0, 0, 0.12) 20px, transparent 20px),
+    linear-gradient(transparent 29px, rgba(0, 0, 0, 0.12) 29px, rgba(0, 0, 0, 0.12) 30px, transparent 30px),
+    linear-gradient(transparent 39px, rgba(0, 0, 0, 0.12) 39px, rgba(0, 0, 0, 0.12) 40px, transparent 40px),
+    linear-gradient(transparent 49px, rgba(0, 0, 0, 0.12) 49px, rgba(0, 0, 0, 0.12) 50px, transparent 50px);
+  background-size: 100% 80px;
+  background-position: 0 15px;
+}
+
+/* ── เขียน: Cornell Notes ── */
+.canvas-bg.bg-cornell {
+  background-color: #fefefe;
+  background-image:
+    linear-gradient(rgba(0, 0, 0, 0.04) 1px, transparent 1px);
+  background-size: 100% 28px;
+}
+.canvas-bg.bg-cornell::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 30%;
+  width: 2px; height: 100%;
+  background: rgba(239, 68, 68, 0.2);
+  pointer-events: none; z-index: 1;
+}
+.canvas-bg.bg-cornell::after {
+  content: '';
+  position: absolute;
+  bottom: 0; left: 0;
+  width: 100%; height: 25%;
+  border-top: 2px solid rgba(239, 68, 68, 0.2);
+  pointer-events: none; z-index: 1;
+}
+
+/* ── เขียน: คัดลายมือ ── */
+.canvas-bg.bg-calligraphy {
+  background-color: #fefdf8;
+  background-image:
+    linear-gradient(transparent 19px, rgba(59, 130, 246, 0.15) 19px, rgba(59, 130, 246, 0.15) 20px, transparent 20px),
+    linear-gradient(transparent 39px, rgba(59, 130, 246, 0.25) 39px, rgba(59, 130, 246, 0.25) 40px, transparent 40px),
+    linear-gradient(transparent 59px, rgba(59, 130, 246, 0.15) 59px, rgba(59, 130, 246, 0.15) 60px, transparent 60px),
+    linear-gradient(transparent 79px, rgba(239, 68, 68, 0.2) 79px, rgba(239, 68, 68, 0.2) 80px, transparent 80px);
+  background-size: 100% 80px;
+}
+
+/* ── พิเศษ: Blueprint ── */
+.canvas-bg.bg-blueprint {
+  background-color: #1e3a5f;
+  background-image:
+    linear-gradient(rgba(255, 255, 255, 0.06) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.06) 1px, transparent 1px),
+    linear-gradient(rgba(255, 255, 255, 0.12) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.12) 1px, transparent 1px);
+  background-size: 10px 10px, 10px 10px, 50px 50px, 50px 50px;
+}
+
+/* ── พิเศษ: ข้าวหลามตัด (Diamond) ── */
+.canvas-bg.bg-diamond {
+  background-color: #fefefe;
+  background-image:
+    linear-gradient(45deg, rgba(0, 0, 0, 0.04) 1px, transparent 1px),
+    linear-gradient(-45deg, rgba(0, 0, 0, 0.04) 1px, transparent 1px);
+  background-size: 30px 30px;
+}
+
+/* ── พิเศษ: สนามบาส ── */
+.canvas-bg.bg-basketball {
+  background-color: #d4894e;
+  background-image:
+    linear-gradient(rgba(0, 0, 0, 0.08) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0, 0, 0, 0.08) 1px, transparent 1px);
+  background-size: 40px 40px;
+}
+.canvas-bg.bg-basketball::before {
+  content: '';
+  position: absolute;
+  top: 50%; left: 50%;
+  transform: translate(-50%, -50%);
+  width: 200px; height: 200px;
+  border-radius: 50%;
+  border: 3px solid rgba(0, 0, 0, 0.15);
+  pointer-events: none; z-index: 1;
+}
+.canvas-bg.bg-basketball::after {
+  content: '';
+  position: absolute;
+  top: 0; left: 50%;
+  width: 3px; height: 100%;
+  background: rgba(0, 0, 0, 0.15);
+  pointer-events: none; z-index: 1;
+}
+
 /* ============================================================
    Header Bar — Fixed top bar (glassmorphism)
    ============================================================ */
@@ -913,11 +1102,57 @@ html.on-screen-mode #root {
   z-index: 110;
 }
 
+/* ── Grouped popup (larger) ── */
+.cs-bg-popup.cs-bg-popup-grouped {
+  width: 220px;
+  padding: 10px;
+  gap: 4px;
+}
+
+.cs-bg-popup-scroll {
+  max-height: 60vh;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.1) transparent;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding-right: 2px;
+}
+
+.cs-bg-popup-scroll::-webkit-scrollbar {
+  width: 4px;
+}
+
+.cs-bg-popup-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.cs-bg-popup-scroll::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.12);
+  border-radius: 2px;
+}
+
+.cs-bg-group {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.cs-bg-group-label {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  color: rgba(255, 255, 255, 0.35);
+  padding: 2px 4px 0;
+}
+
 .cs-bg-popup-group {
   display: flex;
   flex-wrap: wrap;
-  gap: 6px;
-  justify-content: center;
+  gap: 5px;
+  justify-content: flex-start;
 }
 
 .cs-bg-divider-horizontal {
@@ -4695,4 +4930,392 @@ html.on-screen-mode #root {
   font-weight: 600;
   color: rgba(255, 255, 255, 0.6);
   white-space: nowrap;
+}
+
+/* ============================================================
+   Spotlight Overlay
+   ============================================================ */
+
+.spotlight-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  cursor: none;
+  animation: spotlightFadeIn 0.35s ease;
+}
+
+@keyframes spotlightFadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.spotlight-svg {
+  display: block;
+}
+
+.spotlight-cursor {
+  filter: drop-shadow(0 0 6px rgba(255, 255, 255, 0.4));
+  animation: spotlightCursorPulse 2s ease-in-out infinite;
+}
+
+@keyframes spotlightCursorPulse {
+  0%, 100% { opacity: 0.7; transform: translate(-50%, -50%) scale(1); }
+  50% { opacity: 1; transform: translate(-50%, -50%) scale(1.15); }
+}
+
+/* ── Spotlight Controls ── */
+.spotlight-controls {
+  position: fixed;
+  bottom: 24px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  background: linear-gradient(
+    180deg,
+    rgba(22, 24, 40, 0.94) 0%,
+    rgba(12, 13, 24, 0.96) 100%
+  );
+  backdrop-filter: blur(28px) saturate(1.8);
+  -webkit-backdrop-filter: blur(28px) saturate(1.8);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 14px;
+  box-shadow:
+    0 8px 32px rgba(0, 0, 0, 0.5),
+    0 0 0 1px rgba(255, 255, 255, 0.04) inset,
+    inset 0 1px 0 rgba(255, 255, 255, 0.06);
+  animation: spotlightControlsIn 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  pointer-events: auto;
+}
+
+@keyframes spotlightControlsIn {
+  from { opacity: 0; transform: translateX(-50%) translateY(12px) scale(0.95); }
+  to { opacity: 1; transform: translateX(-50%) translateY(0) scale(1); }
+}
+
+.spotlight-ctrl-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.06);
+  color: rgba(255, 255, 255, 0.6);
+  cursor: pointer;
+  transition: all 0.15s ease;
+  flex-shrink: 0;
+  font-family: inherit;
+}
+
+.spotlight-ctrl-btn:hover {
+  background: rgba(255, 255, 255, 0.12);
+  color: #fff;
+  transform: translateY(-1px);
+}
+
+.spotlight-ctrl-btn.active {
+  background: rgba(250, 204, 21, 0.2);
+  border-color: rgba(250, 204, 21, 0.3);
+  color: #facc15;
+  box-shadow: 0 0 8px rgba(250, 204, 21, 0.15);
+}
+
+.spotlight-ctrl-close {
+  background: rgba(239, 68, 68, 0.1) !important;
+  color: rgba(252, 165, 165, 0.8) !important;
+}
+
+.spotlight-ctrl-close:hover {
+  background: rgba(239, 68, 68, 0.25) !important;
+  color: #fca5a5 !important;
+}
+
+.spotlight-ctrl-divider {
+  width: 1px;
+  height: 22px;
+  background: rgba(255, 255, 255, 0.1);
+  margin: 0 2px;
+  flex-shrink: 0;
+}
+
+.spotlight-ctrl-label {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: rgba(255, 255, 255, 0.4);
+  flex-shrink: 0;
+}
+
+.spotlight-slider {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 80px;
+  height: 4px;
+  border-radius: 2px;
+  background: rgba(255, 255, 255, 0.12);
+  outline: none;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.spotlight-slider:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+.spotlight-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #facc15, #fbbf24);
+  cursor: pointer;
+  border: 2px solid rgba(0, 0, 0, 0.3);
+  box-shadow: 0 2px 6px rgba(250, 204, 21, 0.4);
+  transition: transform 0.15s ease;
+}
+
+.spotlight-slider::-webkit-slider-thumb:hover {
+  transform: scale(1.2);
+}
+
+.spotlight-slider::-moz-range-thumb {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #facc15, #fbbf24);
+  cursor: pointer;
+  border: 2px solid rgba(0, 0, 0, 0.3);
+  box-shadow: 0 2px 6px rgba(250, 204, 21, 0.4);
+}
+
+/* ── Responsive ── */
+@media (max-width: 768px) {
+  .spotlight-controls {
+    bottom: 12px;
+    padding: 6px 10px;
+    gap: 4px;
+    border-radius: 10px;
+  }
+
+  .spotlight-slider {
+    width: 60px;
+  }
+
+  .spotlight-ctrl-btn {
+    width: 28px;
+    height: 28px;
+  }
+}
+
+/* ============================================================
+   On-Canvas Table
+   ============================================================ */
+
+/* ── Size Picker Modal ── */
+.table-picker-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 600;
+  background: rgba(0, 0, 0, 0.4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: tpFadeIn 0.2s ease;
+}
+
+@keyframes tpFadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.table-picker-modal {
+  background: linear-gradient(145deg, rgba(15, 20, 35, 0.98), rgba(25, 30, 55, 0.98));
+  backdrop-filter: blur(28px) saturate(1.6);
+  -webkit-backdrop-filter: blur(28px) saturate(1.6);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 18px;
+  padding: 20px 24px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  box-shadow:
+    0 20px 60px rgba(0, 0, 0, 0.6),
+    0 0 0 1px rgba(255, 255, 255, 0.04) inset;
+  animation: tpScaleIn 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes tpScaleIn {
+  from { opacity: 0; transform: scale(0.9); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+.table-picker-title {
+  font-size: 15px;
+  font-weight: 700;
+  color: rgba(255, 255, 255, 0.8);
+  font-family: 'Inter', sans-serif;
+}
+
+.table-picker-grid {
+  display: grid;
+  grid-template-columns: repeat(8, 1fr);
+  gap: 3px;
+}
+
+.table-picker-cell {
+  width: 26px;
+  height: 26px;
+  border-radius: 5px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  cursor: pointer;
+  transition: all 0.08s ease;
+}
+
+.table-picker-cell:hover {
+  background: rgba(99, 102, 241, 0.2);
+  border-color: rgba(99, 102, 241, 0.35);
+}
+
+.table-picker-cell.active {
+  background: rgba(99, 102, 241, 0.35);
+  border-color: rgba(99, 102, 241, 0.6);
+  box-shadow: 0 0 6px rgba(99, 102, 241, 0.25);
+}
+
+.table-picker-label {
+  font-size: 14px;
+  font-weight: 800;
+  color: #a5b4fc;
+  letter-spacing: 2px;
+  font-family: 'Inter', sans-serif;
+}
+
+/* ── Canvas Table ── */
+.ct {
+  border-radius: 8px;
+  background: rgba(255,255,255,0.97);
+  border: 2px solid rgba(0,0,0,0.06);
+  box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+  cursor: grab;
+  user-select: none;
+  -webkit-user-select: none;
+  transition: box-shadow 0.2s, border-color 0.2s;
+  font-family: 'Inter', sans-serif;
+}
+.ct:hover, .ct.ct-focus { border-color: rgba(99,102,241,0.35); box-shadow: 0 4px 20px rgba(99,102,241,0.1), 0 2px 8px rgba(0,0,0,0.08); }
+.ct.ct-drag { cursor: grabbing; opacity: 0.9; box-shadow: 0 8px 30px rgba(0,0,0,0.18); }
+
+/* 8-dir resize handles */
+.ct-rz { position: absolute; z-index: 10; opacity: 0; transition: opacity 0.15s; }
+.ct:hover .ct-rz, .ct.ct-focus .ct-rz { opacity: 1; }
+.ct-rz-tl { top: -4px; left: -4px; width: 10px; height: 10px; cursor: nwse-resize; }
+.ct-rz-t { top: -4px; left: 10px; right: 10px; height: 6px; cursor: ns-resize; }
+.ct-rz-tr { top: -4px; right: -4px; width: 10px; height: 10px; cursor: nesw-resize; }
+.ct-rz-r { top: 10px; right: -4px; width: 6px; bottom: 10px; cursor: ew-resize; }
+.ct-rz-br { bottom: -4px; right: -4px; width: 10px; height: 10px; cursor: nwse-resize; }
+.ct-rz-b { bottom: -4px; left: 10px; right: 10px; height: 6px; cursor: ns-resize; }
+.ct-rz-bl { bottom: -4px; left: -4px; width: 10px; height: 10px; cursor: nesw-resize; }
+.ct-rz-l { top: 10px; left: -4px; width: 6px; bottom: 10px; cursor: ew-resize; }
+
+.ct-rz-col { position: absolute; top: 0; right: -2px; width: 5px; height: 100%; cursor: col-resize; z-index: 10; }
+.ct-rz-col:hover { background: rgba(99,102,241,0.3); }
+.ct-rz-row { position: absolute; bottom: -2px; left: 0; width: 100%; height: 5px; cursor: row-resize; z-index: 10; }
+.ct-rz-row:hover { background: rgba(99,102,241,0.3); }
+
+/* Toolbar */
+.ct-tb {
+  position: absolute; top: -40px; left: 0;
+  display: flex; align-items: center; gap: 1px;
+  padding: 4px 6px;
+  background: rgba(15,20,35,0.96);
+  backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
+  border-radius: 8px;
+  border: 1px solid rgba(255,255,255,0.1);
+  box-shadow: 0 4px 16px rgba(0,0,0,0.3);
+  z-index: 55; white-space: nowrap;
+  animation: ctIn 0.12s ease;
+}
+@keyframes ctIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: translateY(0); } }
+
+.ct-btn {
+  display: flex; align-items: center; justify-content: center;
+  min-width: 24px; height: 24px; padding: 0 3px;
+  border: none; border-radius: 4px;
+  background: transparent; color: rgba(255,255,255,0.55);
+  font-size: 11px; font-weight: 700; cursor: pointer;
+  transition: all 0.1s; font-family: 'Inter', sans-serif;
+}
+.ct-btn:hover:not(:disabled) { background: rgba(255,255,255,0.1); color: #fff; }
+.ct-btn:disabled { opacity: 0.2; cursor: default; }
+.ct-btn-on { background: rgba(99,102,241,0.25) !important; color: #c7d2fe !important; }
+.ct-btn-del:hover { background: rgba(239,68,68,0.3) !important; color: #fca5a5 !important; }
+.ct-div { width: 1px; height: 16px; background: rgba(255,255,255,0.08); margin: 0 2px; }
+
+/* Dropdown */
+.ct-dropdown {
+  position: absolute; top: 30px; left: 50%; transform: translateX(-50%);
+  padding: 6px; background: rgba(15,20,35,0.97);
+  backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255,255,255,0.12); border-radius: 8px;
+  box-shadow: 0 6px 20px rgba(0,0,0,0.4); z-index: 60;
+  animation: ctIn 0.1s ease;
+}
+.ct-dd-item {
+  display: block; width: 100%; padding: 4px 10px;
+  border: none; border-radius: 4px; background: transparent;
+  color: rgba(255,255,255,0.6); font-size: 12px; text-align: left;
+  cursor: pointer; font-family: 'Inter', sans-serif;
+}
+.ct-dd-item:hover { background: rgba(255,255,255,0.1); color: #fff; }
+.ct-dd-on { background: rgba(99,102,241,0.2); color: #c7d2fe; }
+
+/* Color picker */
+.ct-colors { display: flex; flex-wrap: wrap; gap: 4px; width: 130px; }
+.ct-color {
+  width: 22px; height: 22px; border-radius: 5px;
+  border: 2px solid rgba(255,255,255,0.08); cursor: pointer;
+  transition: all 0.1s; font-size: 10px; color: rgba(0,0,0,0.3);
+  display: flex; align-items: center; justify-content: center;
+}
+.ct-color:hover { transform: scale(1.15); border-color: rgba(255,255,255,0.3); }
+.ct-color-on { border-color: #818cf8; box-shadow: 0 0 0 2px rgba(129,140,248,0.4); }
+.ct-row-btn {
+  width: 100%; padding: 4px 0; margin-top: 2px;
+  border: none; border-radius: 5px; background: rgba(255,255,255,0.08);
+  color: rgba(255,255,255,0.5); font-size: 10px; font-weight: 600;
+  cursor: pointer; font-family: 'Inter', sans-serif;
+}
+.ct-row-btn:hover { background: rgba(99,102,241,0.25); color: #c7d2fe; }
+
+/* Grid */
+.ct-grid { border-collapse: collapse; cursor: default; }
+.ct-cell {
+  border: 1px solid rgba(0,0,0,0.08); padding: 0;
+  min-width: 40px; height: 28px; cursor: text;
+  transition: background 0.08s; position: relative;
+}
+.ct-cell:hover { background: rgba(99,102,241,0.04); }
+.ct-cell-sel { outline: 2px solid #6366f1; outline-offset: -1px; }
+.ct-cell-edit { outline: 2px solid #818cf8; outline-offset: -1px; background: rgba(99,102,241,0.04); }
+
+.ct-text {
+  display: block; padding: 3px 6px; font-size: 13px; color: #1e293b;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-height: 18px;
+}
+.ct-input {
+  width: 100%; padding: 3px 6px; border: none; background: transparent;
+  color: #1e293b; font-size: 13px; font-family: 'Inter', sans-serif;
+  outline: none; box-sizing: border-box;
+}
+.ct-badge {
+  position: absolute; bottom: -18px; right: 4px;
+  font-size: 10px; font-weight: 600; color: rgba(0,0,0,0.25);
+  font-family: 'Inter', sans-serif; pointer-events: none;
 }

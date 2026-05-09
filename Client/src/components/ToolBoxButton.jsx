@@ -29,6 +29,38 @@ const TOOLBOX_ITEMS = [
         ),
         category: "gadgets",
     },
+    {
+        id: "spotlight",
+        label: "Spotlight",
+        icon: (
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="12" cy="12" r="4" fill="rgba(250, 204, 21, 0.25)" stroke="currentColor" />
+                <path d="M12 2v2" />
+                <path d="M12 20v2" />
+                <path d="M4.93 4.93l1.41 1.41" />
+                <path d="M17.66 17.66l1.41 1.41" />
+                <path d="M2 12h2" />
+                <path d="M20 12h2" />
+                <path d="M4.93 19.07l1.41-1.41" />
+                <path d="M17.66 6.34l1.41-1.41" />
+            </svg>
+        ),
+        category: "gadgets",
+    },
+    {
+        id: "table",
+        label: "Table",
+        icon: (
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                <rect x="3" y="3" width="18" height="18" rx="2" />
+                <path d="M3 9h18" />
+                <path d="M3 15h18" />
+                <path d="M9 3v18" />
+                <path d="M15 3v18" />
+            </svg>
+        ),
+        category: "gadgets",
+    },
     // ── Future tools will be added here ──
     // { id: "timer", label: "Timer", icon: ..., category: "gadgets" },
     // { id: "stopwatch", label: "Stopwatch", icon: ..., category: "gadgets" },
