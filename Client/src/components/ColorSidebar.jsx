@@ -15,13 +15,32 @@ const DEFAULT_PRIMARY_COLORS = [
 ];
 
 const BACKGROUNDS = [
-    { id: "white", label: "⬜", title: "พื้นขาว" },
-    { id: "black", label: "⬛", title: "พื้นดำ" },
-    { id: "grid", label: "📐", title: "ตาราง" },
-    { id: "lined", label: "📝", title: "เส้นบรรทัด" },
-    { id: "dotted", label: "⁙", title: "จุด" },
-    { id: "graph", label: "📊", title: "กราฟ" },
-    { id: "isometric", label: "◇", title: "ไอโซเมตริก" },
+    // ── พื้นฐาน ──
+    { id: "white", label: "⬜", title: "พื้นขาว", group: "basic" },
+    { id: "black", label: "⬛", title: "พื้นดำ", group: "basic" },
+    { id: "grid", label: "📐", title: "ตาราง", group: "basic" },
+    { id: "lined", label: "📝", title: "เส้นบรรทัด", group: "basic" },
+    { id: "dotted", label: "⁙", title: "จุด", group: "basic" },
+    { id: "graph", label: "📊", title: "กราฟ", group: "basic" },
+    { id: "isometric", label: "◇", title: "ไอโซเมตริก", group: "basic" },
+    // ── คณิตศาสตร์ ──
+    { id: "coordinate", label: "✛", title: "แกนพิกัด XY", group: "math" },
+    { id: "polar", label: "◎", title: "กริดโพลาร์", group: "math" },
+    { id: "trigrid", label: "△", title: "ตารางสามเหลี่ยม", group: "math" },
+    { id: "checkerboard", label: "♟", title: "ตารางหมากรุก", group: "math" },
+    // ── วิทยาศาสตร์ ──
+    { id: "hexagonal", label: "⬡", title: "โมเลกุล / รังผึ้ง", group: "science" },
+    { id: "labnotebook", label: "🔬", title: "สมุดแล็บ", group: "science" },
+    { id: "cross", label: "✚", title: "กริดกากบาท", group: "science" },
+    // ── ดนตรี ──
+    { id: "music", label: "🎵", title: "บรรทัด 5 เส้น", group: "music" },
+    // ── เขียน / สอน ──
+    { id: "cornell", label: "📋", title: "Cornell Notes", group: "writing" },
+    { id: "calligraphy", label: "✒️", title: "คัดลายมือ", group: "writing" },
+    // ── พิเศษ ──
+    { id: "blueprint", label: "📘", title: "Blueprint", group: "special" },
+    { id: "diamond", label: "♦", title: "ข้าวหลามตัด", group: "special" },
+    { id: "basketball", label: "🏀", title: "สนามบาส", group: "special" },
 ];
 
 const BG_COLORS = [
@@ -160,37 +179,62 @@ function ColorSidebar({
                     </button>
 
                     {showBgPopup && (
-                        <div className="cs-bg-popup">
-                            <div className="cs-bg-popup-group">
-                                {BACKGROUNDS.map((bg) => (
-                                    <button
-                                        key={bg.id}
-                                        className={`cs-bg-btn ${background === bg.id ? "active" : ""}`}
-                                        onClick={() => { onBackgroundChange(bg.id); setShowBgPopup(false); }}
-                                        title={bg.title}
-                                    >
-                                        {bg.label}
-                                    </button>
-                                ))}
-                            </div>
-                            <div className="cs-bg-divider-horizontal" />
-                            <div className="cs-bg-popup-group">
-                                {BG_COLORS.map((c) => (
-                                    <button
-                                        key={c}
-                                        className={`cs-bg-btn cs-bgcolor-btn ${background === `color-${c}` ? "active" : ""}`}
-                                        style={{ backgroundColor: c }}
-                                        onClick={() => { onBackgroundChange(`color-${c}`); setShowBgPopup(false); }}
-                                        title={`พื้นสี ${c}`}
-                                    />
-                                ))}
-                                <button
-                                    className="cs-bg-btn cs-bgcolor-custom"
-                                    title="เลือกสีพื้นหลังเอง"
-                                    onClick={() => { setColorModalTarget("background"); setShowBgPopup(false); setShowSizeSlider(false); }}
-                                >
-                                    🎨
-                                </button>
+                        <div className="cs-bg-popup cs-bg-popup-grouped">
+                            <div className="cs-bg-popup-scroll">
+                                {/* ── Pattern Groups ── */}
+                                {[
+                                    { key: "basic", label: "พื้นฐาน" },
+                                    { key: "math", label: "🧮 คณิตศาสตร์" },
+                                    { key: "science", label: "🔬 วิทยาศาสตร์" },
+                                    { key: "music", label: "🎵 ดนตรี" },
+                                    { key: "writing", label: "✏️ เขียน / สอน" },
+                                    { key: "special", label: "✨ พิเศษ" },
+                                ].map(group => {
+                                    const items = BACKGROUNDS.filter(bg => bg.group === group.key);
+                                    if (items.length === 0) return null;
+                                    return (
+                                        <div key={group.key} className="cs-bg-group">
+                                            <div className="cs-bg-group-label">{group.label}</div>
+                                            <div className="cs-bg-popup-group">
+                                                {items.map((bg) => (
+                                                    <button
+                                                        key={bg.id}
+                                                        className={`cs-bg-btn ${background === bg.id ? "active" : ""}`}
+                                                        onClick={() => { onBackgroundChange(bg.id); setShowBgPopup(false); }}
+                                                        title={bg.title}
+                                                    >
+                                                        {bg.label}
+                                                    </button>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    );
+                                })}
+
+                                <div className="cs-bg-divider-horizontal" />
+
+                                {/* ── Solid Colors ── */}
+                                <div className="cs-bg-group">
+                                    <div className="cs-bg-group-label">🎨 พื้นสี</div>
+                                    <div className="cs-bg-popup-group">
+                                        {BG_COLORS.map((c) => (
+                                            <button
+                                                key={c}
+                                                className={`cs-bg-btn cs-bgcolor-btn ${background === `color-${c}` ? "active" : ""}`}
+                                                style={{ backgroundColor: c }}
+                                                onClick={() => { onBackgroundChange(`color-${c}`); setShowBgPopup(false); }}
+                                                title={`พื้นสี ${c}`}
+                                            />
+                                        ))}
+                                        <button
+                                            className="cs-bg-btn cs-bgcolor-custom"
+                                            title="เลือกสีพื้นหลังเอง"
+                                            onClick={() => { setColorModalTarget("background"); setShowBgPopup(false); setShowSizeSlider(false); }}
+                                        >
+                                            🎨
+                                        </button>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     )}

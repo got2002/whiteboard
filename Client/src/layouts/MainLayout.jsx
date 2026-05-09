@@ -37,6 +37,8 @@ import ScreenshotOverlay from "../components/ScreenshotOverlay";
 import QRCodePanel from "../components/QRCodePanel";
 import ToolBoxButton from "../components/ToolBoxButton";
 import CalculatorWidget from "../components/CalculatorWidget";
+import SpotlightOverlay from "../components/SpotlightOverlay";
+import TableManager from "../components/TableWidget";
 
 // ============================================================
 // MainLayout Component
@@ -57,6 +59,9 @@ export default function MainLayout() {
   const [isOnScreen, setIsOnScreen] = useState(false);
   const [showScreenshotOverlay, setShowScreenshotOverlay] = useState(false);
   const [showCalculator, setShowCalculator] = useState(false);
+  const [showSpotlight, setShowSpotlight] = useState(false);
+  const [showTablePicker, setShowTablePicker] = useState(false);
+  const [canvasTables, setCanvasTables] = useState([]);
 
   // (ย้าย useEffect ลงไปด้านล่างเพื่อให้รู้จัก remoteScreen และ userRole)
 
@@ -276,6 +281,14 @@ export default function MainLayout() {
         onExitSplitMode={() => drawingHook.handlePenStyleChange("pen")}
       />
 
+      {/* Tables on Canvas */}
+      <TableManager
+        tables={canvasTables}
+        onTablesChange={setCanvasTables}
+        showPicker={showTablePicker}
+        onClosePicker={() => setShowTablePicker(false)}
+      />
+
       {/* Header Bar — ซ่อนสำหรับ viewer */}
       {userRole !== "viewer" && (
         <HeaderBar
@@ -312,8 +325,11 @@ export default function MainLayout() {
           onTogglePermissionPanel={() => setShowPermissionPanel(v => !v)}
           onToggleOnScreen={(val) => setIsOnScreen(val)}
           showCalculator={showCalculator}
+          activeTools={{ calculator: showCalculator, spotlight: showSpotlight, table: canvasTables.length > 0 }}
           onToolBoxSelect={(toolId) => {
             if (toolId === 'calculator') setShowCalculator(v => !v);
+            if (toolId === 'spotlight') setShowSpotlight(v => !v);
+            if (toolId === 'table') setShowTablePicker(true);
           }}
         />
       )}
@@ -478,6 +494,16 @@ export default function MainLayout() {
           onClose={() => setShowCalculator(false)}
         />
       )}
+
+      {/* (Tables are now rendered on-canvas after <Canvas />) */}
+
+      {/* Spotlight Overlay */}
+      <SpotlightOverlay
+        isActive={showSpotlight}
+        onClose={() => setShowSpotlight(false)}
+        socket={socket}
+        isHost={userRole === "host"}
+      />
 
       {showScreenshotOverlay && (
         <ScreenshotOverlay

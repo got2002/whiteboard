@@ -12,6 +12,10 @@ module.exports = (io, socket) => {
     });
   });
 
+  socket.on("spotlight", (data) => {
+    socket.broadcast.emit("spotlight", data);
+  });
+
   socket.on("laser", (data) => {
     const user = store.users[socket.id];
     socket.broadcast.emit("laser", {
