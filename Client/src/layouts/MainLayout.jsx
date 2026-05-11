@@ -39,6 +39,7 @@ import ToolBoxButton from "../components/ToolBoxButton";
 import CalculatorWidget from "../components/CalculatorWidget";
 import SpotlightOverlay from "../components/SpotlightOverlay";
 import TableManager from "../components/TableWidget";
+import ConfirmDialog from "../components/ConfirmDialog";
 
 // ============================================================
 // MainLayout Component
@@ -546,6 +547,15 @@ export default function MainLayout() {
           )}
         </button>
       )}
+
+      {/* Custom Confirm Dialog */}
+      <ConfirmDialog
+        open={fileHook.showNewBoardConfirm}
+        title="สร้างกระดานใหม่"
+        message="กระดานปัจจุบันจะถูกลบทั้งหมด คุณต้องการดำเนินการต่อหรือไม่?"
+        onConfirm={fileHook.confirmNewBoard}
+        onCancel={fileHook.cancelNewBoard}
+      />
     </div>
 
   );
