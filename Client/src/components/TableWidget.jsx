@@ -3,12 +3,31 @@
 // ============================================================
 import { useState, useRef, useCallback, useEffect } from "react";
 
-const MIN_CW = 40, MAX_CW = 400, MIN_RH = 24, MAX_RH = 150, MAX_SZ = 15, MIN_SZ = 1;
+const MIN_CW = 40, MAX_CW = 500, MIN_RH = 24, MAX_RH = 400, MAX_SZ = 15, MIN_SZ = 1;
 const COLORS = ["", "#e0e7ff", "#dbeafe", "#dcfce7", "#fef9c3", "#fee2e2", "#fce7f3", "#ede9fe", "#f1f5f9", "#fef3c7", "#1e293b", "#0f172a"];
 const FONT_SIZES = [10, 12, 14, 16, 18, 20, 24];
 
+// ── Table decoration themes ──
+const TABLE_THEMES = [
+  { id: "none", name: "ไม่มี", headerBg: "", headerColor: "", stripeBg: "", borderColor: "" },
+  { id: "blue", name: "ฟ้าคลาสสิก", headerBg: "#3b82f6", headerColor: "#fff", stripeBg: "#eff6ff", borderColor: "#bfdbfe" },
+  { id: "dark", name: "มืดโปร", headerBg: "#1e293b", headerColor: "#f1f5f9", stripeBg: "#f8fafc", borderColor: "#cbd5e1" },
+  { id: "green", name: "เขียวมรกต", headerBg: "#059669", headerColor: "#fff", stripeBg: "#ecfdf5", borderColor: "#a7f3d0" },
+  { id: "warm", name: "ส้มอุ่น", headerBg: "#ea580c", headerColor: "#fff", stripeBg: "#fff7ed", borderColor: "#fed7aa" },
+  { id: "purple", name: "ม่วงสง่า", headerBg: "#7c3aed", headerColor: "#fff", stripeBg: "#f5f3ff", borderColor: "#c4b5fd" },
+  { id: "minimal", name: "มินิมอล", headerBg: "#f1f5f9", headerColor: "#1e293b", stripeBg: "", borderColor: "#e2e8f0" },
+];
+
 function TableSizePicker({ onSelect, onClose }) {
   const [hr, setHr] = useState(3), [hc, setHc] = useState(3);
+  const [customRows, setCustomRows] = useState(""), [customCols, setCustomCols] = useState("");
+  const clamp = (v) => Math.max(MIN_SZ, Math.min(MAX_SZ, parseInt(v) || MIN_SZ));
+
+  const handleCustomSubmit = (e) => {
+    e.preventDefault();
+    if (customRows && customCols) onSelect(clamp(customRows), clamp(customCols));
+  };
+
   return (
     <div className="table-picker-backdrop" onClick={onClose}>
       <div className="table-picker-modal" onClick={e => e.stopPropagation()}>
@@ -21,6 +40,31 @@ function TableSizePicker({ onSelect, onClose }) {
           )))}
         </div>
         <div className="table-picker-label">{hr} × {hc}</div>
+
+        <div className="table-picker-divider" />
+
+        <form className="table-picker-custom" onSubmit={handleCustomSubmit}>
+          <div className="table-picker-custom-label">กำหนดเอง</div>
+          <div className="table-picker-custom-inputs">
+            <input
+              type="number" min={MIN_SZ} max={MAX_SZ} placeholder="แถว"
+              className="table-picker-input"
+              value={customRows}
+              onChange={e => setCustomRows(e.target.value)}
+            />
+            <span className="table-picker-x">×</span>
+            <input
+              type="number" min={MIN_SZ} max={MAX_SZ} placeholder="คอลัมน์"
+              className="table-picker-input"
+              value={customCols}
+              onChange={e => setCustomCols(e.target.value)}
+            />
+          </div>
+          <button type="submit" className="table-picker-submit"
+            disabled={!customRows || !customCols}>
+            สร้าง
+          </button>
+        </form>
       </div>
     </div>
   );
@@ -33,7 +77,9 @@ function CanvasTable({ table, onUpdate, onRemove }) {
   const [toolbar, setToolbar] = useState(false);
   const [colorMenu, setColorMenu] = useState(null); // 'bg'|'text'|null
   const [fontMenu, setFontMenu] = useState(false);
+  const [styleMenu, setStyleMenu] = useState(false);
   const inputRef = useRef(null);
+  const fileInputRef = useRef(null);
 
   const rows = table.data.length, cols = table.data[0]?.length || 0;
   useEffect(() => { if (editCell && inputRef.current) { inputRef.current.focus(); inputRef.current.select(); } }, [editCell]);
@@ -99,6 +145,27 @@ function CanvasTable({ table, onUpdate, onRemove }) {
   const setRowProp = (prop, val) => { if (!sel) return; const d = cloneD(); d[sel.r].forEach(c => { c[prop] = val; }); up({ data: d }); };
   const toggleProp = (prop) => { if (!sel) return; const d = cloneD(); d[sel.r][sel.c][prop] = !d[sel.r][sel.c][prop]; up({ data: d }); };
 
+  // ── Image ops ──
+  const insertImage = () => { if (!sel) return; fileInputRef.current?.click(); };
+  const handleImageFile = (e) => {
+    const file = e.target.files?.[0];
+    if (!file || !sel) return;
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      const d = cloneD();
+      d[sel.r][sel.c].image = ev.target.result;
+      // Auto-expand cell to fit image
+      const rh = [...table.rowHeights];
+      const cw = [...table.colWidths];
+      if (rh[sel.r] < 150) rh[sel.r] = 150;
+      if (cw[sel.c] < 160) cw[sel.c] = 160;
+      up({ data: d, rowHeights: rh, colWidths: cw });
+    };
+    reader.readAsDataURL(file);
+    e.target.value = "";
+  };
+  const removeImage = () => { if (!sel) return; const d = cloneD(); d[sel.r][sel.c].image = ""; up({ data: d }); };
+
   // ── Add/Remove ──
   const addRow = (pos) => { if (rows >= MAX_SZ) return; const d = cloneD(); d.splice(pos, 0, Array(cols).fill(null).map(() => ({ text: "", bg: "" }))); const rh = [...table.rowHeights]; rh.splice(pos, 0, 32); up({ data: d, rowHeights: rh }); };
   const delRow = (pos) => { if (rows <= MIN_SZ) return; const d = cloneD(); d.splice(pos, 1); const rh = [...table.rowHeights]; rh.splice(pos, 1); up({ data: d, rowHeights: rh }); setSel(null); setEditCell(null); };
@@ -111,6 +178,39 @@ function CanvasTable({ table, onUpdate, onRemove }) {
     else if (e.key === "Escape") setEditCell(null);
   };
 
+  // ── Theme / Decoration ──
+  const applyTheme = (theme) => {
+    const d = cloneD();
+    d.forEach((row, r) => row.forEach(cell => {
+      if (r === 0 && theme.headerBg) { cell.bg = theme.headerBg; cell.color = theme.headerColor; cell.bold = true; }
+      else if (r === 0 && !theme.headerBg) { cell.bg = ""; cell.color = ""; cell.bold = false; }
+      else { cell.bg = (theme.stripeBg && r % 2 === 0) ? theme.stripeBg : ""; cell.color = ""; }
+    }));
+    up({ data: d, themeId: theme.id, borderColor: theme.borderColor || "" });
+    setStyleMenu(false);
+  };
+
+  const toggleHeader = () => {
+    const d = cloneD();
+    const hasHeader = d[0]?.[0]?.bold;
+    d[0]?.forEach(cell => {
+      if (hasHeader) { cell.bg = ""; cell.color = ""; cell.bold = false; }
+      else { cell.bg = "#3b82f6"; cell.color = "#fff"; cell.bold = true; }
+    });
+    up({ data: d });
+  };
+
+  const toggleStripes = () => {
+    const d = cloneD();
+    const hasStripes = table.striped;
+    if (!hasStripes) {
+      d.forEach((row, r) => { if (r > 0 && r % 2 === 0) row.forEach(cell => { if (!cell.bg) cell.bg = "#f1f5f9"; }); });
+    } else {
+      d.forEach((row, r) => { if (r > 0) row.forEach(cell => { if (cell.bg === "#f1f5f9") cell.bg = ""; }); });
+    }
+    up({ data: d, striped: !hasStripes });
+  };
+
   const sr = sel?.r ?? rows - 1, sc = sel?.c ?? cols - 1;
 
   return (
@@ -118,7 +218,7 @@ function CanvasTable({ table, onUpdate, onRemove }) {
       style={{ position: "absolute", left: table.x, top: table.y, zIndex: isDragging ? 52 : 50 }}
       onPointerDown={handleMove}
       onMouseEnter={() => setToolbar(true)}
-      onMouseLeave={() => { if (!editCell && !colorMenu && !fontMenu) setToolbar(false); }}
+      onMouseLeave={() => { if (!editCell && !colorMenu && !fontMenu && !styleMenu) setToolbar(false); }}
       onClick={e => e.stopPropagation()}>
 
       {/* 8 resize handles */}
@@ -197,6 +297,46 @@ function CanvasTable({ table, onUpdate, onRemove }) {
           </div>
           <div className="ct-div" />
 
+          {/* Image */}
+          <button className="ct-btn" onClick={insertImage} title="แทรกรูปในเซล" disabled={!sel}>
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>
+          </button>
+          {selCell?.image && (
+            <button className="ct-btn ct-btn-del" onClick={removeImage} title="ลบรูปจากเซล">
+              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><path d="M18 6L6 18M6 6l12 12"/></svg>
+            </button>
+          )}
+          <div className="ct-div" />
+
+          {/* Decoration */}
+          <button className={`ct-btn ${table.data[0]?.[0]?.bold ? "ct-btn-on" : ""}`} onClick={toggleHeader} title="หัวตาราง">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M3 3h18v6H3z"/><path d="M3 9h18v12H3z" opacity=".3"/></svg>
+          </button>
+          <button className={`ct-btn ${table.striped ? "ct-btn-on" : ""}`} onClick={toggleStripes} title="แถวสลับสี">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M3 6h18M3 10h18M3 14h18M3 18h18" strokeDasharray="2 2"/></svg>
+          </button>
+          <div style={{ position: "relative" }}>
+            <button className="ct-btn" onClick={() => { setStyleMenu(v => !v); setColorMenu(null); setFontMenu(false); }} title="ธีมตาราง">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" stroke="none"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 17.93c-3.94-.49-7-3.85-7-7.93 0-.62.08-1.22.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39z"/></svg>
+            </button>
+            {styleMenu && (
+              <div className="ct-dropdown ct-theme-dropdown">
+                {TABLE_THEMES.map(t => (
+                  <button key={t.id} className={`ct-theme-item ${table.themeId === t.id ? "ct-theme-on" : ""}`}
+                    onClick={() => applyTheme(t)}>
+                    <span className="ct-theme-preview">
+                      <span style={{ background: t.headerBg || "#e2e8f0", flex: 1 }} />
+                      <span style={{ background: t.stripeBg || "#fff", flex: 1 }} />
+                      <span style={{ background: t.borderColor || "#ddd", flex: "0 0 2px" }} />
+                    </span>
+                    <span className="ct-theme-name">{t.name}</span>
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+          <div className="ct-div" />
+
           {/* Row/Col ops */}
           <button className="ct-btn" onClick={() => addRow(sr)} title="เพิ่มแถวบน">↑+</button>
           <button className="ct-btn" onClick={() => addRow(sr + 1)} title="เพิ่มแถวล่าง">↓+</button>
@@ -212,7 +352,7 @@ function CanvasTable({ table, onUpdate, onRemove }) {
       )}
 
       {/* Table */}
-      <table className="ct-grid" style={{ tableLayout: "fixed" }}>
+      <table className="ct-grid" style={{ tableLayout: "fixed", ...(table.borderColor ? { "--ct-border": table.borderColor } : {}) }}>
         <colgroup>{table.colWidths.map((w, i) => <col key={i} style={{ width: w }} />)}</colgroup>
         <tbody>
           {table.data.map((row, r) => (
@@ -231,11 +371,15 @@ function CanvasTable({ table, onUpdate, onRemove }) {
                     onPointerDown={e => e.stopPropagation()}
                     onClick={e => { e.stopPropagation(); setSel({ r, c }); setToolbar(true); }}
                     onDoubleClick={e => { e.stopPropagation(); setEditCell({ r, c }); setSel({ r, c }); }}>
+                    {cell.image && (
+                      <img src={cell.image} alt="" className="ct-cell-img"
+                        style={{ maxHeight: table.rowHeights[r] - 8 }} />
+                    )}
                     {isEdit ? (
                       <input ref={inputRef} className="ct-input" value={cell.text}
                         style={{ fontWeight: cell.bold ? 700 : 400, fontStyle: cell.italic ? "italic" : "normal",
                           textDecoration: cell.underline ? "underline" : "none", fontSize: (cell.fontSize || 13) + "px",
-                          textAlign: cell.align || "left", color: cell.color || "#1e293b", height: table.rowHeights[r] }}
+                          textAlign: cell.align || "left", color: cell.color || "#1e293b", height: cell.image ? "auto" : table.rowHeights[r] }}
                         onChange={e => updateCell(r, c, e.target.value)}
                         onKeyDown={e => handleKey(e, r, c)}
                         onBlur={() => setEditCell(null)}
@@ -244,10 +388,10 @@ function CanvasTable({ table, onUpdate, onRemove }) {
                       <span className="ct-text" style={{
                         fontWeight: cell.bold ? 700 : 400, fontStyle: cell.italic ? "italic" : "normal",
                         textDecoration: cell.underline ? "underline" : "none", fontSize: (cell.fontSize || 13) + "px",
-                      }}>{cell.text || "\u00A0"}</span>
+                      }}>{cell.text || (cell.image ? "" : "\u00A0")}</span>
                     )}
-                    {r === 0 && <div className="ct-rz ct-rz-col" onPointerDown={e => resizeCol(e, c)} />}
-                    {c === 0 && <div className="ct-rz ct-rz-row" onPointerDown={e => resizeRow(e, r)} />}
+                    <div className="ct-rz ct-rz-col" onPointerDown={e => resizeCol(e, c)} />
+                    <div className="ct-rz ct-rz-row" onPointerDown={e => resizeRow(e, r)} />
                   </td>
                 );
               })}
@@ -256,6 +400,7 @@ function CanvasTable({ table, onUpdate, onRemove }) {
         </tbody>
       </table>
       <div className="ct-badge">{rows}×{cols}</div>
+      <input ref={fileInputRef} type="file" accept="image/*" style={{ display: "none" }} onChange={handleImageFile} />
     </div>
   );
 }
@@ -265,6 +410,7 @@ export default function TableManager({ tables, onTablesChange, showPicker, onClo
     const t = {
       id: "tbl_" + Date.now(), x: window.innerWidth / 2 - cols * 45, y: window.innerHeight / 2 - rows * 18,
       colWidths: Array(cols).fill(90), rowHeights: Array(rows).fill(32),
+      borderColor: "#cbd5e1", themeId: "", striped: false,
       data: Array.from({ length: rows }, () => Array.from({ length: cols }, () => ({ text: "", bg: "" }))),
     };
     onTablesChange([...tables, t]); onClosePicker();
