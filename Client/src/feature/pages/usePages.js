@@ -6,7 +6,7 @@ import { pageService } from "./pageService";
 
 export function usePages({ isActive, userRole }) {
   const [pages, setPages] = useState([
-    { id: "page-1", background: "white", strokes: [] },
+    { id: "page-1", background: "white", strokes: [], transition: "fade" },
   ]);
   const [currentPageIndex, setCurrentPageIndex] = useState(0);
   const currentPage = pages[currentPageIndex] || pages[0];
@@ -54,7 +54,7 @@ export function usePages({ isActive, userRole }) {
 
   // ── Handlers ──
   const handleAddPage = () => {
-    const newPage = { id: `page-${Date.now()}`, background: "white", strokes: [] };
+    const newPage = { id: `page-${Date.now()}`, background: "white", strokes: [], transition: "fade" };
     setPages(prev => [...prev, newPage]);
     setCurrentPageIndex(pages.length);
     pageService.emitAddPage(newPage);
@@ -99,10 +99,16 @@ export function usePages({ isActive, userRole }) {
     pageService.emitChangeBackground(pageId, bg);
   };
 
+  const handleTransitionChange = (pageId, transition) => {
+    setPages(prev => prev.map(p =>
+      p.id === pageId ? { ...p, transition } : p
+    ));
+  };
+
   return {
     pages, setPages, currentPageIndex, setCurrentPageIndex, currentPage,
     handleAddPage, handleDeletePage, handleSelectPage,
     handlePrevPage, handleNextPage,
-    handleReorderPages, handleBackgroundChange,
+    handleReorderPages, handleBackgroundChange, handleTransitionChange,
   };
 }

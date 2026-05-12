@@ -64,6 +64,8 @@ function HeaderBar({
     // ToolBox
     showCalculator,
     onToolBoxSelect,
+    // Presentation
+    onPresent,
 }) {
     const isHost = userRole === "host";
     const [showMainMenu, setShowMainMenu] = useState(false);
@@ -175,6 +177,26 @@ function HeaderBar({
                     onToolSelect={onToolBoxSelect}
                     activeTools={{ calculator: showCalculator }}
                 />
+
+                {/* Present Button — host only */}
+                {isHost && (
+                    <>
+                        <div className="header-divider" />
+                        <button
+                            className="header-btn header-present-btn"
+                            onClick={onPresent}
+                            title="โหมดพรีเซ้น (Presentation)"
+                            style={{ width: 'auto', padding: '0 10px', gap: '6px' }}
+                        >
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                <rect x="2" y="3" width="20" height="14" rx="2" />
+                                <polygon points="10,7 16,10 10,13" fill="currentColor" stroke="none" />
+                                <path d="M8 21h8M12 17v4" />
+                            </svg>
+                            <span style={{ fontSize: '11px', whiteSpace: 'nowrap', fontWeight: '600' }}>Present</span>
+                        </button>
+                    </>
+                )}
             </div>
 
             {/* ── Right Section ── */}

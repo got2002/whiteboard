@@ -40,6 +40,8 @@ import CalculatorWidget from "../components/CalculatorWidget";
 import SpotlightOverlay from "../components/SpotlightOverlay";
 import TableManager from "../components/TableWidget";
 import ConfirmDialog from "../components/ConfirmDialog";
+import PresentationMode from "../components/PresentationMode";
+import GraphWidget from "../components/GraphWidget";
 
 // ============================================================
 // MainLayout Component
@@ -63,6 +65,8 @@ export default function MainLayout() {
   const [showSpotlight, setShowSpotlight] = useState(false);
   const [showTablePicker, setShowTablePicker] = useState(false);
   const [canvasTables, setCanvasTables] = useState([]);
+  const [showPresentation, setShowPresentation] = useState(false);
+  const [showGraph, setShowGraph] = useState(false);
 
   // (ย้าย useEffect ลงไปด้านล่างเพื่อให้รู้จัก remoteScreen และ userRole)
 
@@ -326,12 +330,14 @@ export default function MainLayout() {
           onTogglePermissionPanel={() => setShowPermissionPanel(v => !v)}
           onToggleOnScreen={(val) => setIsOnScreen(val)}
           showCalculator={showCalculator}
-          activeTools={{ calculator: showCalculator, spotlight: showSpotlight, table: canvasTables.length > 0 }}
+          activeTools={{ calculator: showCalculator, spotlight: showSpotlight, table: canvasTables.length > 0, graph: showGraph }}
           onToolBoxSelect={(toolId) => {
             if (toolId === 'calculator') setShowCalculator(v => !v);
             if (toolId === 'spotlight') setShowSpotlight(v => !v);
             if (toolId === 'table') setShowTablePicker(true);
+            if (toolId === 'graph') setShowGraph(v => !v);
           }}
+          onPresent={() => setShowPresentation(true)}
         />
       )}
 
@@ -385,6 +391,8 @@ export default function MainLayout() {
         onAddPage={pageHook.handleAddPage}
         onDeletePage={pageHook.handleDeletePage}
         onReorderPages={pageHook.handleReorderPages}
+        onTransitionChange={pageHook.handleTransitionChange}
+        onPresent={() => setShowPresentation(true)}
       />
 
       {/* User Panel */}
@@ -496,6 +504,15 @@ export default function MainLayout() {
         />
       )}
 
+      {/* Graph Widget — ทุก Role ใช้ได้ */}
+      {showGraph && (
+        <GraphWidget
+          onClose={() => setShowGraph(false)}
+          onInsertToBoard={handleStrokeComplete}
+          onToolChange={drawingHook.handleToolChange}
+        />
+      )}
+
       {/* (Tables are now rendered on-canvas after <Canvas />) */}
 
       {/* Spotlight Overlay */}
@@ -556,6 +573,16 @@ export default function MainLayout() {
         onConfirm={fileHook.confirmNewBoard}
         onCancel={fileHook.cancelNewBoard}
       />
+
+      {/* Presentation Mode */}
+      {showPresentation && (
+        <PresentationMode
+          pages={pages}
+          currentPageIndex={currentPageIndex}
+          onSelectPage={pageHook.handleSelectPage}
+          onClose={() => setShowPresentation(false)}
+        />
+      )}
     </div>
 
   );
