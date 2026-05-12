@@ -1508,10 +1508,10 @@ html.on-screen-mode #root {
 .page-list {
   flex: 1;
   overflow-y: auto;
-  padding: 12px;
+  padding: 8px;
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 0;
   scrollbar-width: thin;
   scrollbar-color: rgba(255, 255, 255, 0.1) transparent;
 }
@@ -5596,4 +5596,1118 @@ html.on-screen-mode #root {
 
 .confirm-btn-ok:active {
   transform: translateY(0);
+}
+
+/* ============================================================
+   Presentation Mode — Fullscreen Slideshow
+   ============================================================ */
+
+.pres-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  background: #000;
+  overflow: hidden;
+  cursor: none;
+}
+
+.pres-overlay:hover {
+  cursor: default;
+}
+
+.pres-bg {
+  position: absolute;
+  inset: 0;
+  transition: background-color 0.5s ease;
+}
+
+/* ── Slide containers ── */
+.pres-slide {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.pres-slide canvas {
+  display: block;
+}
+
+/* ── Click zones for navigation ── */
+.pres-click-zone {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  z-index: 10;
+  cursor: pointer;
+}
+
+.pres-click-left {
+  left: 0;
+  width: 15%;
+  cursor: w-resize;
+}
+
+.pres-click-right {
+  right: 0;
+  width: 15%;
+  cursor: e-resize;
+}
+
+/* ── Controls overlay ── */
+.pres-controls {
+  position: absolute;
+  inset: 0;
+  z-index: 20;
+  pointer-events: none;
+  transition: opacity 0.4s ease;
+}
+
+.pres-controls.visible {
+  opacity: 1;
+}
+
+.pres-controls.hidden {
+  opacity: 0;
+}
+
+/* ── Top bar ── */
+.pres-top-bar {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 20px;
+  background: linear-gradient(180deg, rgba(0, 0, 0, 0.6) 0%, transparent 100%);
+  pointer-events: auto;
+}
+
+.pres-top-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.pres-title {
+  color: rgba(255, 255, 255, 0.9);
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: 0.3px;
+  font-family: 'Inter', sans-serif;
+}
+
+.pres-top-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* ── Presentation buttons ── */
+.pres-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.08);
+  color: rgba(255, 255, 255, 0.85);
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-family: 'Inter', sans-serif;
+  backdrop-filter: blur(12px);
+}
+
+.pres-btn:hover {
+  background: rgba(255, 255, 255, 0.15);
+  border-color: rgba(255, 255, 255, 0.25);
+  color: #fff;
+}
+
+.pres-btn-active {
+  background: rgba(99, 102, 241, 0.3) !important;
+  border-color: rgba(129, 140, 248, 0.5) !important;
+  color: #c7d2fe !important;
+  box-shadow: 0 0 12px rgba(99, 102, 241, 0.2);
+}
+
+.pres-btn-close {
+  background: rgba(239, 68, 68, 0.15);
+  border-color: rgba(239, 68, 68, 0.3);
+  color: #fca5a5;
+  padding: 6px 8px;
+}
+
+.pres-btn-close:hover {
+  background: rgba(239, 68, 68, 0.3);
+  border-color: rgba(239, 68, 68, 0.5);
+  color: #fecaca;
+}
+
+.pres-select {
+  padding: 4px 8px;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.08);
+  color: rgba(255, 255, 255, 0.85);
+  font-size: 11px;
+  font-family: 'Inter', sans-serif;
+  cursor: pointer;
+  outline: none;
+  backdrop-filter: blur(12px);
+}
+
+.pres-select option {
+  background: #1e293b;
+  color: #e2e8f0;
+}
+
+/* ── Bottom bar ── */
+.pres-bottom-bar {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  padding: 16px 20px;
+  background: linear-gradient(0deg, rgba(0, 0, 0, 0.6) 0%, transparent 100%);
+  pointer-events: auto;
+}
+
+/* ── Navigation buttons ── */
+.pres-nav-btn {
+  width: 44px;
+  height: 44px;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.08);
+  color: rgba(255, 255, 255, 0.9);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  backdrop-filter: blur(12px);
+}
+
+.pres-nav-btn:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.2);
+  border-color: rgba(255, 255, 255, 0.3);
+  transform: scale(1.08);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
+}
+
+.pres-nav-btn:disabled {
+  opacity: 0.25;
+  cursor: default;
+}
+
+/* ── Page indicator ── */
+.pres-page-indicator {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.pres-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  border: none;
+  background: rgba(255, 255, 255, 0.25);
+  cursor: pointer;
+  transition: all 0.25s ease;
+  padding: 0;
+}
+
+.pres-dot:hover {
+  background: rgba(255, 255, 255, 0.5);
+  transform: scale(1.3);
+}
+
+.pres-dot.active {
+  background: #818cf8;
+  width: 24px;
+  border-radius: 4px;
+  box-shadow: 0 0 10px rgba(129, 140, 248, 0.5);
+}
+
+.pres-page-text {
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 14px;
+  font-weight: 600;
+  font-family: 'Inter', sans-serif;
+  letter-spacing: 1px;
+}
+
+/* ── Transition label (bottom-right) ── */
+.pres-transition-label {
+  position: absolute;
+  bottom: 16px;
+  right: 20px;
+  color: rgba(255, 255, 255, 0.3);
+  font-size: 11px;
+  font-weight: 500;
+  font-family: 'Inter', sans-serif;
+  pointer-events: none;
+}
+
+/* ============================================================
+   Transition Animations
+   ============================================================ */
+
+/* ── FADE ── */
+.pres-slide-current.pres-transition-fade {
+  animation: presFadeIn 0.6s ease forwards;
+}
+.pres-slide-prev.pres-transition-fade {
+  animation: presFadeOut 0.6s ease forwards;
+}
+
+@keyframes presFadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+@keyframes presFadeOut {
+  from { opacity: 1; }
+  to { opacity: 0; }
+}
+
+/* ── SLIDE LEFT (forward: current comes from right) ── */
+.pres-slide-current.pres-transition-slide-left-forward {
+  animation: presSlideInFromRight 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+.pres-slide-prev.pres-transition-slide-left-forward {
+  animation: presSlideOutToLeft 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+/* ── SLIDE LEFT (backward: current comes from left) ── */
+.pres-slide-current.pres-transition-slide-left-backward {
+  animation: presSlideInFromLeft 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+.pres-slide-prev.pres-transition-slide-left-backward {
+  animation: presSlideOutToRight 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+/* ── SLIDE RIGHT (forward: current comes from left) ── */
+.pres-slide-current.pres-transition-slide-right-forward {
+  animation: presSlideInFromLeft 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+.pres-slide-prev.pres-transition-slide-right-forward {
+  animation: presSlideOutToRight 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.pres-slide-current.pres-transition-slide-right-backward {
+  animation: presSlideInFromRight 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+.pres-slide-prev.pres-transition-slide-right-backward {
+  animation: presSlideOutToLeft 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes presSlideInFromRight {
+  from { transform: translateX(100%); opacity: 0; }
+  to { transform: translateX(0); opacity: 1; }
+}
+@keyframes presSlideOutToLeft {
+  from { transform: translateX(0); opacity: 1; }
+  to { transform: translateX(-100%); opacity: 0; }
+}
+@keyframes presSlideInFromLeft {
+  from { transform: translateX(-100%); opacity: 0; }
+  to { transform: translateX(0); opacity: 1; }
+}
+@keyframes presSlideOutToRight {
+  from { transform: translateX(0); opacity: 1; }
+  to { transform: translateX(100%); opacity: 0; }
+}
+
+/* ── ZOOM ── */
+.pres-slide-current.pres-transition-zoom {
+  animation: presZoomIn 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+.pres-slide-prev.pres-transition-zoom {
+  animation: presZoomOut 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes presZoomIn {
+  from { transform: scale(0.3); opacity: 0; }
+  to { transform: scale(1); opacity: 1; }
+}
+@keyframes presZoomOut {
+  from { transform: scale(1); opacity: 1; }
+  to { transform: scale(1.5); opacity: 0; }
+}
+
+/* ── FLIP ── */
+.pres-slide-current.pres-transition-flip {
+  animation: presFlipIn 0.6s ease forwards;
+  backface-visibility: hidden;
+}
+.pres-slide-prev.pres-transition-flip {
+  animation: presFlipOut 0.6s ease forwards;
+  backface-visibility: hidden;
+}
+
+@keyframes presFlipIn {
+  from { transform: perspective(1200px) rotateY(-90deg); opacity: 0; }
+  to { transform: perspective(1200px) rotateY(0deg); opacity: 1; }
+}
+@keyframes presFlipOut {
+  from { transform: perspective(1200px) rotateY(0deg); opacity: 1; }
+  to { transform: perspective(1200px) rotateY(90deg); opacity: 0; }
+}
+
+/* ── PUSH (forward: pushed from right) ── */
+.pres-slide-current.pres-transition-push-forward {
+  animation: presPushInFromRight 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+.pres-slide-prev.pres-transition-push-forward {
+  animation: presPushOutToLeft 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.pres-slide-current.pres-transition-push-backward {
+  animation: presPushInFromLeft 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+.pres-slide-prev.pres-transition-push-backward {
+  animation: presPushOutToRight 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes presPushInFromRight {
+  from { transform: translateX(30%) scale(0.85); opacity: 0; }
+  to { transform: translateX(0) scale(1); opacity: 1; }
+}
+@keyframes presPushOutToLeft {
+  from { transform: translateX(0) scale(1); opacity: 1; }
+  to { transform: translateX(-30%) scale(0.85); opacity: 0; }
+}
+@keyframes presPushInFromLeft {
+  from { transform: translateX(-30%) scale(0.85); opacity: 0; }
+  to { transform: translateX(0) scale(1); opacity: 1; }
+}
+@keyframes presPushOutToRight {
+  from { transform: translateX(0) scale(1); opacity: 1; }
+  to { transform: translateX(30%) scale(0.85); opacity: 0; }
+}
+
+/* ── NONE ── */
+.pres-slide-current.pres-transition-none {
+  /* no animation */
+}
+.pres-slide-prev.pres-transition-none {
+  opacity: 0;
+}
+
+/* ============================================================
+   PagePanel — Transition Zone (Video Editor Style)
+   ============================================================ */
+
+.trans-zone-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  margin: 0;
+}
+
+.trans-zone-line {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 50%;
+  height: 1px;
+  width: 100%;
+  background: linear-gradient(90deg,
+    transparent,
+    rgba(99, 102, 241, 0.25),
+    transparent
+  );
+  z-index: 0;
+  pointer-events: none;
+}
+
+.trans-zone-btn {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  width: 100%;
+  padding: 4px 10px;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 0;
+  background: rgba(30, 30, 50, 0.7);
+  color: rgba(255, 255, 255, 0.4);
+  font-size: 10px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  font-family: 'Inter', sans-serif;
+  border-left: none;
+  border-right: none;
+}
+
+.trans-zone-btn:hover {
+  border-color: rgba(129, 140, 248, 0.25);
+  background: rgba(99, 102, 241, 0.12);
+  color: rgba(255, 255, 255, 0.8);
+  box-shadow: inset 0 0 12px rgba(99, 102, 241, 0.08);
+}
+
+.trans-zone-btn.active {
+  border-color: rgba(129, 140, 248, 0.5);
+  background: rgba(99, 102, 241, 0.2);
+  color: #c7d2fe;
+  box-shadow: 0 0 16px rgba(99, 102, 241, 0.2);
+}
+
+.trans-zone-icon {
+  font-size: 12px;
+  line-height: 1;
+}
+
+.trans-zone-label {
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.2px;
+}
+
+.trans-zone-chevron {
+  opacity: 0.4;
+  transition: transform 0.2s ease;
+}
+
+.trans-zone-btn.active .trans-zone-chevron {
+  transform: rotate(180deg);
+  opacity: 0.8;
+}
+
+/* ── Transition Picker Popup ── */
+
+.trans-picker-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 300;
+}
+
+.trans-picker-popup {
+  position: absolute;
+  left: 50%;
+  top: calc(100% + 4px);
+  transform: translateX(-50%);
+  width: 230px;
+  background: linear-gradient(135deg, rgba(15, 23, 42, 0.97), rgba(30, 41, 59, 0.97));
+  backdrop-filter: blur(24px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 14px;
+  padding: 8px;
+  box-shadow:
+    0 12px 40px rgba(0, 0, 0, 0.5),
+    0 0 0 1px rgba(255, 255, 255, 0.05) inset;
+  z-index: 301;
+  animation: transPickerIn 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes transPickerIn {
+  from {
+    opacity: 0;
+    transform: translateX(-50%) translateY(-4px) scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0) scale(1);
+  }
+}
+
+.trans-picker-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 4px 6px 8px;
+  font-size: 11px;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.5);
+  font-family: 'Inter', sans-serif;
+  letter-spacing: 0.3px;
+}
+
+.trans-picker-close {
+  width: 20px;
+  height: 20px;
+  border: none;
+  border-radius: 5px;
+  background: rgba(255, 255, 255, 0.06);
+  color: rgba(255, 255, 255, 0.4);
+  font-size: 10px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s ease;
+}
+
+.trans-picker-close:hover {
+  background: rgba(255, 255, 255, 0.12);
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.trans-picker-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 4px;
+}
+
+.trans-picker-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  padding: 8px 4px;
+  border: 1.5px solid transparent;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.04);
+  color: rgba(255, 255, 255, 0.65);
+  cursor: pointer;
+  transition: all 0.15s ease;
+  font-family: 'Inter', sans-serif;
+}
+
+.trans-picker-item:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: #fff;
+  border-color: rgba(255, 255, 255, 0.12);
+  transform: translateY(-1px);
+}
+
+.trans-picker-item.active {
+  border-color: #818cf8;
+  background: rgba(99, 102, 241, 0.2);
+  color: #c7d2fe;
+  box-shadow: 0 0 12px rgba(99, 102, 241, 0.2);
+}
+
+.trans-picker-item-icon {
+  font-size: 18px;
+  line-height: 1;
+}
+
+.trans-picker-item-label {
+  font-size: 8px;
+  font-weight: 600;
+  letter-spacing: 0.2px;
+  white-space: nowrap;
+  text-align: center;
+}
+
+/* ============================================================
+   PagePanel — Present Button
+   ============================================================ */
+
+.pres-start-btn {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 12px;
+  border: none;
+  border-radius: 7px;
+  background: linear-gradient(135deg, #6366f1, #818cf8);
+  color: #fff;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-family: 'Inter', sans-serif;
+  box-shadow: 0 2px 10px rgba(99, 102, 241, 0.3);
+}
+
+.pres-start-btn:hover {
+  background: linear-gradient(135deg, #818cf8, #a5b4fc);
+  box-shadow: 0 4px 16px rgba(99, 102, 241, 0.4);
+  transform: translateY(-1px);
+}
+
+.pres-start-btn:active {
+  transform: translateY(0);
+}
+
+/* ============================================================
+   HeaderBar — Present Button
+   ============================================================ */
+
+.header-present-btn {
+  background: linear-gradient(135deg, rgba(99, 102, 241, 0.15), rgba(129, 140, 248, 0.1)) !important;
+  border-color: rgba(129, 140, 248, 0.25) !important;
+  color: #c7d2fe !important;
+  transition: all 0.2s ease !important;
+}
+
+.header-present-btn:hover {
+  background: linear-gradient(135deg, rgba(99, 102, 241, 0.3), rgba(129, 140, 248, 0.2)) !important;
+  border-color: rgba(129, 140, 248, 0.5) !important;
+  color: #e0e7ff !important;
+  box-shadow: 0 0 12px rgba(99, 102, 241, 0.2) !important;
+}
+
+/* ============================================================
+   Graph Widget — Floating Function Plotter
+   ============================================================ */
+
+.graph-widget {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 460px;
+  background: linear-gradient(135deg, rgba(15, 23, 42, 0.96), rgba(30, 41, 59, 0.96));
+  backdrop-filter: blur(24px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 16px;
+  box-shadow:
+    0 20px 60px rgba(0, 0, 0, 0.5),
+    0 0 0 1px rgba(255, 255, 255, 0.05) inset;
+  z-index: 800;
+  overflow: hidden;
+  font-family: 'Inter', sans-serif;
+  user-select: none;
+}
+
+.graph-widget.is-dragging {
+  box-shadow:
+    0 30px 80px rgba(0, 0, 0, 0.6),
+    0 0 0 1px rgba(255, 255, 255, 0.08) inset,
+    0 0 20px rgba(99, 102, 241, 0.15);
+}
+
+/* ── Title Bar ── */
+.graph-titlebar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 14px;
+  background: rgba(255, 255, 255, 0.03);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  cursor: grab;
+}
+
+.graph-titlebar:active {
+  cursor: grabbing;
+}
+
+.graph-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: rgba(255, 255, 255, 0.85);
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.3px;
+}
+
+.graph-titlebar-actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.graph-ctrl-btn {
+  width: 26px;
+  height: 26px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.04);
+  color: rgba(255, 255, 255, 0.4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.graph-ctrl-btn:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.graph-ctrl-btn.active {
+  background: rgba(99, 102, 241, 0.2);
+  border-color: rgba(129, 140, 248, 0.4);
+  color: #a5b4fc;
+}
+
+.graph-insert-btn {
+  height: 26px;
+  padding: 0 10px;
+  border: 1px solid rgba(99, 102, 241, 0.4);
+  border-radius: 6px;
+  background: rgba(99, 102, 241, 0.15);
+  color: #c7d2fe;
+  font-size: 11px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  margin-right: 6px;
+}
+
+.graph-insert-btn:hover {
+  background: rgba(99, 102, 241, 0.25);
+  border-color: rgba(129, 140, 248, 0.5);
+  color: #e0e7ff;
+}
+
+.graph-close-btn {
+  width: 26px;
+  height: 26px;
+  border: 1px solid rgba(239, 68, 68, 0.15);
+  border-radius: 6px;
+  background: rgba(239, 68, 68, 0.08);
+  color: rgba(239, 68, 68, 0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.graph-close-btn:hover {
+  background: rgba(239, 68, 68, 0.2);
+  border-color: rgba(239, 68, 68, 0.3);
+  color: #fca5a5;
+}
+
+/* ── Canvas Container ── */
+.graph-canvas-container {
+  position: relative;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  background: #f8fafc;
+  border-radius: 6px;
+  margin: 0 2px;
+}
+
+.graph-canvas {
+  display: block;
+  width: 100%;
+  cursor: crosshair;
+}
+
+/* ── Zoom Controls (overlay) ── */
+.graph-zoom-controls {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.graph-zoom-controls button {
+  width: 28px;
+  height: 28px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 6px;
+  background: rgba(15, 23, 42, 0.85);
+  backdrop-filter: blur(8px);
+  color: rgba(255, 255, 255, 0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.graph-zoom-controls button:hover {
+  background: rgba(99, 102, 241, 0.2);
+  border-color: rgba(129, 140, 248, 0.4);
+  color: #c7d2fe;
+}
+
+/* ── Coords display ── */
+.graph-coords {
+  position: absolute;
+  bottom: 6px;
+  left: 8px;
+  font-size: 9px;
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.2);
+  font-family: 'JetBrains Mono', 'Fira Code', monospace;
+  letter-spacing: 0.3px;
+  pointer-events: none;
+}
+
+/* ── Chart Type Tabs ── */
+.chart-type-tabs {
+  display: flex;
+  gap: 2px;
+  padding: 6px 10px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.chart-type-tab {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  padding: 5px 6px;
+  border: 1px solid transparent;
+  border-radius: 7px;
+  background: rgba(255, 255, 255, 0.03);
+  color: rgba(255, 255, 255, 0.45);
+  font-size: 10px;
+  font-weight: 600;
+  font-family: 'Inter', sans-serif;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.chart-type-tab span:first-child {
+  font-size: 13px;
+}
+
+.chart-type-tab:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.chart-type-tab.active {
+  background: rgba(99, 102, 241, 0.18);
+  border-color: rgba(129, 140, 248, 0.35);
+  color: #c7d2fe;
+  box-shadow: 0 0 10px rgba(99, 102, 241, 0.1);
+}
+
+/* ── Chart Title Row ── */
+.chart-title-row {
+  padding: 6px 10px 2px;
+}
+
+.chart-title-input {
+  width: 100%;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 6px;
+  padding: 5px 10px;
+  background: rgba(255, 255, 255, 0.03);
+  color: rgba(255, 255, 255, 0.75);
+  font-size: 13px;
+  font-weight: 600;
+  font-family: 'Inter', sans-serif;
+  outline: none;
+  transition: all 0.15s ease;
+  text-align: center;
+}
+
+.chart-title-input::placeholder {
+  color: rgba(255, 255, 255, 0.2);
+}
+
+.chart-title-input:focus {
+  border-color: rgba(129, 140, 248, 0.4);
+  background: rgba(255, 255, 255, 0.06);
+}
+
+/* ── Data List ── */
+.chart-data-list {
+  padding: 6px 10px;
+  max-height: 160px;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.08) transparent;
+}
+
+.chart-data-header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 2px 0 4px;
+  font-size: 9px;
+  font-weight: 700;
+  color: rgba(255, 255, 255, 0.25);
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+}
+
+.chart-data-color-col { width: 12px; flex-shrink: 0; }
+.chart-data-label-col { flex: 1; }
+.chart-data-value-col { width: 70px; flex-shrink: 0; text-align: right; }
+.chart-data-del-col { width: 20px; flex-shrink: 0; }
+
+.chart-data-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 0;
+  transition: background 0.1s ease;
+  border-radius: 4px;
+}
+
+.chart-data-row:hover {
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.chart-data-color {
+  width: 10px;
+  height: 10px;
+  border-radius: 3px;
+  flex-shrink: 0;
+}
+
+.chart-data-label {
+  flex: 1;
+  border: none;
+  background: transparent;
+  color: rgba(255, 255, 255, 0.75);
+  font-size: 12px;
+  font-family: 'Inter', sans-serif;
+  outline: none;
+  padding: 3px 4px;
+  border-radius: 4px;
+  transition: background 0.1s ease;
+  min-width: 0;
+}
+
+.chart-data-label:focus {
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.chart-data-value {
+  width: 70px;
+  border: none;
+  background: transparent;
+  color: rgba(255, 255, 255, 0.85);
+  font-size: 12px;
+  font-weight: 600;
+  font-family: 'JetBrains Mono', 'Fira Code', monospace;
+  text-align: right;
+  outline: none;
+  padding: 3px 4px;
+  border-radius: 4px;
+  transition: background 0.1s ease;
+  flex-shrink: 0;
+  -moz-appearance: textfield;
+}
+
+.chart-data-value::-webkit-inner-spin-button,
+.chart-data-value::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+.chart-data-value:focus {
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.chart-data-del {
+  width: 20px;
+  height: 20px;
+  border: none;
+  border-radius: 4px;
+  background: none;
+  color: rgba(255, 255, 255, 0.12);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.12s ease;
+  flex-shrink: 0;
+}
+
+.chart-data-del:hover {
+  background: rgba(239, 68, 68, 0.15);
+  color: #fca5a5;
+}
+
+/* ── Add Data Row ── */
+.chart-add-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 10px;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.chart-add-label {
+  flex: 1;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 6px;
+  padding: 5px 8px;
+  background: rgba(255, 255, 255, 0.04);
+  color: rgba(255, 255, 255, 0.8);
+  font-size: 12px;
+  font-family: 'Inter', sans-serif;
+  outline: none;
+  transition: all 0.15s ease;
+  min-width: 0;
+}
+
+.chart-add-label::placeholder,
+.chart-add-value::placeholder {
+  color: rgba(255, 255, 255, 0.2);
+}
+
+.chart-add-label:focus,
+.chart-add-value:focus {
+  border-color: rgba(129, 140, 248, 0.4);
+  background: rgba(255, 255, 255, 0.07);
+}
+
+.chart-add-value {
+  width: 80px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 6px;
+  padding: 5px 8px;
+  background: rgba(255, 255, 255, 0.04);
+  color: rgba(255, 255, 255, 0.8);
+  font-size: 12px;
+  font-family: 'JetBrains Mono', 'Fira Code', monospace;
+  text-align: right;
+  outline: none;
+  transition: all 0.15s ease;
+  flex-shrink: 0;
+  -moz-appearance: textfield;
+}
+
+.chart-add-value::-webkit-inner-spin-button,
+.chart-add-value::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+.chart-add-btn {
+  width: 32px;
+  height: 32px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  background: rgba(99, 102, 241, 0.12);
+  color: rgba(129, 140, 248, 0.7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  flex-shrink: 0;
+}
+
+.chart-add-btn:hover:not(:disabled) {
+  background: rgba(99, 102, 241, 0.25);
+  border-color: rgba(129, 140, 248, 0.5);
+  color: #c7d2fe;
+}
+
+.chart-add-btn:disabled {
+  opacity: 0.3;
+  cursor: default;
 }

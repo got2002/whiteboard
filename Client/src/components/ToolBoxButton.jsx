@@ -61,6 +61,18 @@ const TOOLBOX_ITEMS = [
         ),
         category: "gadgets",
     },
+    {
+        id: "graph",
+        label: "Chart",
+        icon: (
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                <rect x="3" y="12" width="4" height="9" rx="1" />
+                <rect x="10" y="5" width="4" height="16" rx="1" />
+                <rect x="17" y="8" width="4" height="13" rx="1" />
+            </svg>
+        ),
+        category: "gadgets",
+    },
     // ── Future tools will be added here ──
     // { id: "timer", label: "Timer", icon: ..., category: "gadgets" },
     // { id: "stopwatch", label: "Stopwatch", icon: ..., category: "gadgets" },

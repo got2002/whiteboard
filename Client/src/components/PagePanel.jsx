@@ -14,6 +14,7 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { drawPenStroke, drawTextOnCtx, drawStampOnCtx, drawImageOnCtx } from "../utils/strokeRenderer";
 import { drawShapeOnCtx } from "../utils/shapeRenderer";
+import { TRANSITIONS } from "./PresentationMode";
 
 // ── Thumbnail dimensions ──
 const THUMB_W = 192;
@@ -240,10 +241,14 @@ function PagePanel({
     onAddPage,
     onDeletePage,
     onReorderPages,
+    onTransitionChange,
+    onPresent,
 }) {
     // State ควบคุม Drag and Drop
     const [draggedIndex, setDraggedIndex] = useState(null);
     const [dragOverIndex, setDragOverIndex] = useState(null);
+    // State สำหรับ Transition Picker Popup
+    const [transPickerIndex, setTransPickerIndex] = useState(null);
 
     const handleDragStart = (e, index) => {
         setDraggedIndex(index);
@@ -287,49 +292,116 @@ function PagePanel({
                 {/* ─── Header: ชื่อ + ปุ่มปิด ─── */}
                 <div className="page-panel-header">
                     <h3>📄 หน้ากระดาน</h3>
-                    <button className="tool-btn panel-close" onClick={onToggle}>✕</button>
+                    <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
+                        <button
+                            className="pres-start-btn"
+                            onClick={() => { onToggle(); onPresent(); }}
+                            title="Start Presentation"
+                        >
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><polygon points="5,3 19,12 5,21" /></svg>
+                            Present
+                        </button>
+                        <button className="tool-btn panel-close" onClick={onToggle}>✕</button>
+                    </div>
                 </div>
 
-                {/* ─── รายการหน้า (thumbnail) ─── */}
+                {/* ─── รายการหน้า (thumbnail) + transition zones ─── */}
                 <div className="page-list">
                     {pages.map((page, index) => {
                         let dropClass = "";
                         if (dragOverIndex === index) {
                             dropClass = draggedIndex < index ? "drag-over-bottom" : "drag-over-top";
                         }
+
+                        // Transition data สำหรับ zone ระหว่างหน้านี้กับหน้าถัดไป
+                        const nextPage = pages[index + 1];
+                        const transitionId = nextPage?.transition || "fade";
+                        const transObj = TRANSITIONS.find(t => t.id === transitionId) || TRANSITIONS[1];
+
                         return (
-                            <div
-                                key={page.id}
-                                className={`page-item ${index === currentPageIndex ? "active" : ""} ${dropClass} ${draggedIndex === index ? "dragging" : ""}`}
-                                draggable
-                                onDragStart={(e) => handleDragStart(e, index)}
-                                onDragOver={(e) => handleDragOver(e, index)}
-                                onDragEnd={handleDragEnd}
-                                onDrop={(e) => handleDrop(e, index)}
-                                onClick={() => onSelectPage(index)}
-                                title="ลากเพื่อสลับตำแหน่ง หรือคลิกเพื่อเปิดหน้า"
-                            >
-                                {/* Thumbnail: แสดง preview ของหน้า */}
-                                <div className="page-thumb-wrapper">
-                                    <PageThumbnail
-                                        page={page}
-                                        isActive={index === currentPageIndex}
-                                        width={THUMB_W}
-                                        height={THUMB_H}
-                                    />
-                                    <span className="page-number-badge">{index + 1}</span>
+                            <div key={page.id}>
+                                {/* Page Item */}
+                                <div
+                                    className={`page-item ${index === currentPageIndex ? "active" : ""} ${dropClass} ${draggedIndex === index ? "dragging" : ""}`}
+                                    draggable
+                                    onDragStart={(e) => handleDragStart(e, index)}
+                                    onDragOver={(e) => handleDragOver(e, index)}
+                                    onDragEnd={handleDragEnd}
+                                    onDrop={(e) => handleDrop(e, index)}
+                                    onClick={() => onSelectPage(index)}
+                                    title="ลากเพื่อสลับตำแหน่ง หรือคลิกเพื่อเปิดหน้า"
+                                >
+                                    {/* Thumbnail: แสดง preview ของหน้า */}
+                                    <div className="page-thumb-wrapper">
+                                        <PageThumbnail
+                                            page={page}
+                                            isActive={index === currentPageIndex}
+                                            width={THUMB_W}
+                                            height={THUMB_H}
+                                        />
+                                        <span className="page-number-badge">{index + 1}</span>
+                                    </div>
+
+                                    {/* ปุ่มลบหน้า (แสดงเมื่อ hover, ซ่อนเมื่อเหลือหน้าเดียว) */}
+                                    {pages.length > 1 && (
+                                        <button
+                                            className="page-delete"
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                onDeletePage(page.id);
+                                            }}
+                                            title="ลบหน้านี้"
+                                        >×</button>
+                                    )}
                                 </div>
 
-                                {/* ปุ่มลบหน้า (แสดงเมื่อ hover, ซ่อนเมื่อเหลือหน้าเดียว) */}
-                                {pages.length > 1 && (
-                                    <button
-                                        className="page-delete"
-                                        onClick={(e) => {
-                                            e.stopPropagation(); // ไม่ให้ event ไปเลือกหน้า
-                                            onDeletePage(page.id);
-                                        }}
-                                        title="ลบหน้านี้"
-                                    >×</button>
+                                {/* ─── Transition Zone (ระหว่างหน้า) ─── */}
+                                {index < pages.length - 1 && (
+                                    <div className="trans-zone-wrapper">
+                                        <button
+                                            className={`trans-zone-btn ${transPickerIndex === index ? "active" : ""}`}
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                setTransPickerIndex(transPickerIndex === index ? null : index);
+                                            }}
+                                            title={`Transition: ${transObj.label} — Click to change`}
+                                        >
+                                            <span className="trans-zone-icon">{transObj.icon}</span>
+                                            <span className="trans-zone-label">{transObj.label}</span>
+                                            <svg className="trans-zone-chevron" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                                                <path d="M6 9l6 6 6-6" />
+                                            </svg>
+                                        </button>
+                                        <div className="trans-zone-line" />
+
+                                        {/* ── Transition Picker Popup ── */}
+                                        {transPickerIndex === index && (
+                                            <>
+                                                <div className="trans-picker-backdrop" onClick={() => setTransPickerIndex(null)} />
+                                                <div className="trans-picker-popup">
+                                                    <div className="trans-picker-header">
+                                                        <span>Transition: Page {index + 1} → {index + 2}</span>
+                                                        <button className="trans-picker-close" onClick={() => setTransPickerIndex(null)}>✕</button>
+                                                    </div>
+                                                    <div className="trans-picker-grid">
+                                                        {TRANSITIONS.map(t => (
+                                                            <button
+                                                                key={t.id}
+                                                                className={`trans-picker-item ${transitionId === t.id ? "active" : ""}`}
+                                                                onClick={() => {
+                                                                    onTransitionChange(nextPage.id, t.id);
+                                                                    setTransPickerIndex(null);
+                                                                }}
+                                                            >
+                                                                <span className="trans-picker-item-icon">{t.icon}</span>
+                                                                <span className="trans-picker-item-label">{t.label}</span>
+                                                            </button>
+                                                        ))}
+                                                    </div>
+                                                </div>
+                                            </>
+                                        )}
+                                    </div>
                                 )}
                             </div>
                         );
