@@ -73,6 +73,42 @@ const TOOLBOX_ITEMS = [
         ),
         category: "gadgets",
     },
+    {
+        id: "periodic",
+        label: "Periodic Table",
+        icon: (
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="0.8">
+                {/* Mini periodic table grid */}
+                <rect x="2" y="3" width="5" height="5" rx="0.8" fill="rgba(79,195,247,0.25)" stroke="rgba(79,195,247,0.7)" />
+                <text x="4.5" y="7" textAnchor="middle" fill="currentColor" fontSize="4" fontWeight="bold" stroke="none">H</text>
+                <rect x="17" y="3" width="5" height="5" rx="0.8" stroke="currentColor" opacity="0.4" />
+                <rect x="2" y="9.5" width="5" height="5" rx="0.8" stroke="currentColor" opacity="0.4" />
+                <rect x="7.5" y="9.5" width="5" height="5" rx="0.8" stroke="currentColor" opacity="0.4" />
+                <rect x="17" y="9.5" width="5" height="5" rx="0.8" stroke="currentColor" opacity="0.4" />
+                <rect x="2" y="16" width="5" height="5" rx="0.8" stroke="currentColor" opacity="0.3" />
+                <rect x="7.5" y="16" width="5" height="5" rx="0.8" stroke="currentColor" opacity="0.3" />
+                <rect x="12.5" y="16" width="4" height="5" rx="0.8" stroke="currentColor" opacity="0.3" />
+                <rect x="17" y="16" width="5" height="5" rx="0.8" stroke="currentColor" opacity="0.3" />
+            </svg>
+        ),
+        category: "gadgets",
+    },
+    {
+        id: "curtain",
+        label: "Curtain",
+        icon: (
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                <rect x="3" y="2" width="18" height="4" rx="1" fill="rgba(168,85,247,0.2)" />
+                <path d="M3 6h18" />
+                <path d="M3 10h18" strokeDasharray="2 2" opacity="0.5" />
+                <path d="M3 14h18" strokeDasharray="2 2" opacity="0.3" />
+                <rect x="9" y="6" width="6" height="2" rx="1" fill="currentColor" opacity="0.3" />
+                <path d="M12 8v4" opacity="0.4" />
+                <path d="M10 12l2 2 2-2" opacity="0.4" />
+            </svg>
+        ),
+        category: "gadgets",
+    },
     // ── Future tools will be added here ──
     // { id: "timer", label: "Timer", icon: ..., category: "gadgets" },
     // { id: "stopwatch", label: "Stopwatch", icon: ..., category: "gadgets" },
