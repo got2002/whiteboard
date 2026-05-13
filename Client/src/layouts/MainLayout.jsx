@@ -42,6 +42,8 @@ import TableManager from "../components/TableWidget";
 import ConfirmDialog from "../components/ConfirmDialog";
 import PresentationMode from "../components/PresentationMode";
 import GraphWidget from "../components/GraphWidget";
+import PeriodicTableWidget from "../components/PeriodicTableWidget";
+import CurtainOverlay from "../components/CurtainOverlay";
 
 // ============================================================
 // MainLayout Component
@@ -67,6 +69,8 @@ export default function MainLayout() {
   const [canvasTables, setCanvasTables] = useState([]);
   const [showPresentation, setShowPresentation] = useState(false);
   const [showGraph, setShowGraph] = useState(false);
+  const [showPeriodic, setShowPeriodic] = useState(false);
+  const [showCurtain, setShowCurtain] = useState(false);
 
   // (ย้าย useEffect ลงไปด้านล่างเพื่อให้รู้จัก remoteScreen และ userRole)
 
@@ -330,12 +334,14 @@ export default function MainLayout() {
           onTogglePermissionPanel={() => setShowPermissionPanel(v => !v)}
           onToggleOnScreen={(val) => setIsOnScreen(val)}
           showCalculator={showCalculator}
-          activeTools={{ calculator: showCalculator, spotlight: showSpotlight, table: canvasTables.length > 0, graph: showGraph }}
+          activeTools={{ calculator: showCalculator, spotlight: showSpotlight, table: canvasTables.length > 0, graph: showGraph, periodic: showPeriodic, curtain: showCurtain }}
           onToolBoxSelect={(toolId) => {
             if (toolId === 'calculator') setShowCalculator(v => !v);
             if (toolId === 'spotlight') setShowSpotlight(v => !v);
             if (toolId === 'table') setShowTablePicker(true);
             if (toolId === 'graph') setShowGraph(v => !v);
+            if (toolId === 'periodic') setShowPeriodic(v => !v);
+            if (toolId === 'curtain') setShowCurtain(v => !v);
           }}
           onPresent={() => setShowPresentation(true)}
         />
@@ -515,12 +521,23 @@ export default function MainLayout() {
 
       {/* (Tables are now rendered on-canvas after <Canvas />) */}
 
+      {/* Periodic Table Widget — ทุก Role ใช้ได้ */}
+      {showPeriodic && (
+        <PeriodicTableWidget onClose={() => setShowPeriodic(false)} />
+      )}
+
       {/* Spotlight Overlay */}
       <SpotlightOverlay
         isActive={showSpotlight}
         onClose={() => setShowSpotlight(false)}
         socket={socket}
         isHost={userRole === "host"}
+      />
+
+      {/* Curtain Overlay */}
+      <CurtainOverlay
+        isActive={showCurtain}
+        onClose={() => setShowCurtain(false)}
       />
 
       {showScreenshotOverlay && (

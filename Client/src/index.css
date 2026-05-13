@@ -4489,8 +4489,9 @@ html.on-screen-mode #root {
   display: flex;
   flex-direction: column;
   align-items: center;
+  justify-content: flex-start;
   gap: 6px;
-  padding: 14px 8px;
+  padding: 14px 6px;
   border: 1px solid rgba(255, 255, 255, 0.06);
   border-radius: 14px;
   background: rgba(255, 255, 255, 0.03);
@@ -4498,6 +4499,8 @@ html.on-screen-mode #root {
   cursor: pointer;
   transition: all 0.18s ease;
   font-family: 'Inter', sans-serif;
+  height: 100%;
+  box-sizing: border-box;
 }
 
 .toolbox-item:hover:not(.toolbox-placeholder) {
@@ -4527,13 +4530,19 @@ html.on-screen-mode #root {
   justify-content: center;
   width: 40px;
   height: 40px;
+  flex-shrink: 0;
 }
 
 .toolbox-item-label {
   font-size: 11px;
   font-weight: 500;
-  white-space: nowrap;
   text-align: center;
+  line-height: 1.25;
+  white-space: normal;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: 1;
 }
 
 /* ============================================================
@@ -6711,3 +6720,291 @@ html.on-screen-mode #root {
   opacity: 0.3;
   cursor: default;
 }
+
+/* ============================================================
+   Periodic Table Widget
+   ============================================================ */
+.periodic-widget {
+  position: fixed;
+  z-index: 9999;
+  background: rgba(15, 18, 25, 0.94);
+  backdrop-filter: blur(18px);
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 14px;
+  box-shadow: 0 12px 48px rgba(0,0,0,0.55);
+  min-width: 810px;
+  max-width: 95vw;
+  cursor: grab;
+  user-select: none;
+  font-family: "Inter", sans-serif;
+}
+.periodic-widget:active { cursor: grabbing; }
+
+.periodic-titlebar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 14px;
+  border-bottom: 1px solid rgba(255,255,255,0.06);
+}
+.periodic-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: rgba(255,255,255,0.85);
+}
+.periodic-legend-btn {
+  background: rgba(255,255,255,0.06);
+  border: 1px solid rgba(255,255,255,0.1);
+  color: rgba(255,255,255,0.6);
+  border-radius: 6px;
+  padding: 3px 10px;
+  font-size: 11px;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.periodic-legend-btn:hover { background: rgba(255,255,255,0.12); color: #fff; }
+.periodic-close {
+  background: none; border: none; color: rgba(255,255,255,0.4);
+  font-size: 16px; cursor: pointer; padding: 2px 6px; border-radius: 4px;
+}
+.periodic-close:hover { background: rgba(255,80,80,0.3); color: #ff6b6b; }
+
+/* Legend */
+.periodic-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 12px;
+  padding: 8px 14px;
+  border-bottom: 1px solid rgba(255,255,255,0.04);
+}
+.periodic-legend-item {
+  display: flex; align-items: center; gap: 4px;
+  font-size: 10px; color: rgba(255,255,255,0.55);
+}
+.periodic-legend-dot {
+  width: 8px; height: 8px; border-radius: 2px; flex-shrink: 0;
+}
+
+/* Grid — CSS Grid 18 cols x 7 rows */
+.periodic-grid {
+  display: grid;
+  grid-template-columns: repeat(18, 42px);
+  grid-template-rows: repeat(7, 42px);
+  gap: 2px;
+  padding: 8px 10px 4px;
+}
+.periodic-extra-grid {
+  display: grid;
+  grid-template-columns: repeat(15, 42px);
+  gap: 2px;
+}
+
+/* Cell */
+.periodic-cell {
+  width: 42px; height: 42px; min-width: 42px;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  border-radius: 4px;
+  border: 1px solid transparent;
+  background: rgba(255,255,255,0.03);
+  cursor: pointer;
+  padding: 1px;
+  transition: all 0.12s;
+  position: relative;
+  overflow: hidden;
+}
+.periodic-cell::before {
+  content: "";
+  position: absolute; top: 0; left: 0; right: 0; height: 2px;
+  background: var(--cat-color);
+  opacity: 0.7;
+  border-radius: 4px 4px 0 0;
+}
+.periodic-cell:hover {
+  background: var(--cat-color);
+  border-color: var(--cat-color);
+  transform: scale(1.18);
+  z-index: 2;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.4);
+}
+.periodic-cell:hover .periodic-num,
+.periodic-cell:hover .periodic-sym,
+.periodic-cell:hover .periodic-name,
+.periodic-cell:hover .periodic-mass { color: #fff !important; }
+.periodic-selected {
+  background: var(--cat-color) !important;
+  border-color: #fff !important;
+  transform: scale(1.15);
+  z-index: 2;
+  box-shadow: 0 0 12px var(--cat-color);
+}
+.periodic-empty { visibility: hidden; }
+.periodic-marker {
+  background: rgba(255,255,255,0.02);
+  cursor: default;
+  border: 1px dashed rgba(255,255,255,0.08);
+}
+.periodic-marker::before { display: none; }
+
+.periodic-num { font-size: 6px; color: rgba(255,255,255,0.35); line-height: 1; }
+.periodic-sym { font-size: 13px; font-weight: 700; color: rgba(255,255,255,0.9); line-height: 1.1; }
+.periodic-name { font-size: 5px; color: rgba(255,255,255,0.35); line-height: 1; max-width: 40px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.periodic-mass { font-size: 5px; color: rgba(255,255,255,0.25); line-height: 1; }
+
+/* Extra rows */
+.periodic-extra {
+  padding: 4px 10px 10px;
+  border-top: 1px solid rgba(255,255,255,0.04);
+  margin-top: 4px;
+}
+.periodic-extra-label {
+  font-size: 9px; font-weight: 600; margin-bottom: 2px;
+  padding-left: 4px; opacity: 0.7;
+}
+.periodic-extra .periodic-row { justify-content: flex-start; }
+
+/* Detail Popup */
+.periodic-detail {
+  position: fixed; inset: 0;
+  background: rgba(0,0,0,0.45);
+  display: flex; align-items: center; justify-content: center;
+  z-index: 10001;
+  cursor: pointer;
+}
+.periodic-detail-card {
+  background: rgba(20,24,35,0.97);
+  backdrop-filter: blur(20px);
+  border: 2px solid rgba(255,255,255,0.1);
+  border-radius: 14px;
+  min-width: 280px; max-width: 340px;
+  box-shadow: 0 16px 48px rgba(0,0,0,0.6);
+  cursor: default;
+  overflow: hidden;
+}
+.periodic-detail-header {
+  display: flex; flex-direction: column; align-items: center;
+  padding: 18px 20px 14px; gap: 2px;
+}
+.periodic-detail-num { font-size: 12px; color: rgba(255,255,255,0.4); }
+.periodic-detail-symbol { font-size: 42px; font-weight: 800; color: #fff; line-height: 1; }
+.periodic-detail-name { font-size: 16px; font-weight: 600; color: rgba(255,255,255,0.85); }
+.periodic-detail-mass { font-size: 13px; color: rgba(255,255,255,0.4); }
+
+.periodic-detail-body { padding: 12px 20px; }
+.periodic-detail-row {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 6px 0;
+  border-bottom: 1px solid rgba(255,255,255,0.04);
+  font-size: 12px;
+}
+.periodic-detail-row span:first-child { color: rgba(255,255,255,0.45); }
+.periodic-detail-row span:last-child { color: rgba(255,255,255,0.85); font-weight: 500; }
+
+.periodic-detail-close {
+  display: block; width: 100%;
+  padding: 10px;
+  background: rgba(255,255,255,0.04);
+  border: none; border-top: 1px solid rgba(255,255,255,0.06);
+  color: rgba(255,255,255,0.5);
+  font-size: 12px; cursor: pointer;
+  transition: all 0.15s;
+}
+.periodic-detail-close:hover { background: rgba(255,255,255,0.08); color: #fff; }
+
+/* ============================================================
+   Curtain Overlay (ม่านบังจอ)
+   ============================================================ */
+.curtain-root { position: fixed; inset: 0; z-index: 9998; pointer-events: none; }
+.curtain-surface {
+  position: absolute;
+  background: rgba(10, 12, 18, 0.96);
+  pointer-events: all;
+  transition: none;
+  overflow: visible;
+}
+
+/* Drag handles */
+.curtain-handle {
+  position: absolute;
+  display: flex; align-items: center; justify-content: center;
+  z-index: 2;
+}
+.curtain-handle-h { cursor: ns-resize; }
+.curtain-handle-v { cursor: ew-resize; }
+.curtain-handle-grip {
+  background: rgba(255,255,255,0.15);
+  border-radius: 4px;
+}
+.curtain-handle-h .curtain-handle-grip { width: 60px; height: 5px; }
+.curtain-handle-v .curtain-handle-grip { width: 5px; height: 60px; }
+.curtain-handle:hover .curtain-handle-grip { background: rgba(168,85,247,0.6); }
+
+/* Control panel */
+.curtain-controls {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  display: flex; align-items: center; gap: 10px;
+  background: #1e293b; /* Solid dark slate to prevent blending */
+  box-shadow: 0 8px 32px rgba(0,0,0,0.6);
+  border: 1px solid rgba(255,255,255,0.15);
+  border-radius: 10px;
+  padding: 8px 14px;
+  z-index: 3;
+  transition: all 0.2s ease-out;
+  pointer-events: all;
+}
+.curtain-controls.vertical {
+  flex-direction: column;
+  padding: 14px 8px;
+  gap: 12px;
+  border-radius: 14px;
+}
+
+.curtain-controls-title {
+  font-size: 13px; font-weight: 600;
+  color: rgba(255,255,255,0.9);
+  font-family: "Inter", sans-serif;
+  white-space: nowrap;
+}
+
+.curtain-dir-btns { display: flex; gap: 4px; }
+.curtain-controls.vertical .curtain-dir-btns {
+  flex-direction: column;
+}
+
+.curtain-dir-btn {
+  width: 28px; height: 28px;
+  background: rgba(255,255,255,0.05);
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 6px;
+  color: rgba(255,255,255,0.7);
+  font-size: 13px; cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  transition: all 0.15s;
+}
+.curtain-dir-btn:hover { background: rgba(255,255,255,0.15); color: #fff; }
+.curtain-dir-btn.active {
+  background: rgba(168,85,247,0.4);
+  border-color: rgba(168,85,247,0.8);
+  color: #fff;
+}
+
+.curtain-reset-btn {
+  background: rgba(255,255,255,0.08);
+  border: 1px solid rgba(255,255,255,0.15);
+  color: rgba(255,255,255,0.7);
+  border-radius: 6px;
+  padding: 4px 12px;
+  font-size: 11px; cursor: pointer;
+  transition: all 0.15s;
+  font-family: "Inter", sans-serif;
+}
+.curtain-reset-btn:hover { background: rgba(255,255,255,0.2); color: #fff; }
+.curtain-controls.vertical .curtain-reset-btn { width: 100%; padding: 6px 0; }
+
+.curtain-close-btn {
+  background: none; border: none;
+  color: rgba(255,255,255,0.5);
+  font-size: 16px; cursor: pointer;
+  padding: 2px 6px; border-radius: 4px;
+}
+.curtain-close-btn:hover { background: rgba(255,80,80,0.4); color: #fff; }
