@@ -67,6 +67,7 @@ export default function MainLayout() {
   const [showSpotlight, setShowSpotlight] = useState(false);
   const [showTablePicker, setShowTablePicker] = useState(false);
   const [canvasTables, setCanvasTables] = useState([]);
+  const [canvasVideos, setCanvasVideos] = useState([]);
   const [showPresentation, setShowPresentation] = useState(false);
   const [showGraph, setShowGraph] = useState(false);
   const [showPeriodic, setShowPeriodic] = useState(false);
@@ -318,6 +319,7 @@ export default function MainLayout() {
           autoSave={fileHook.autoSave}
           onToggleAutoSave={fileHook.handleToggleAutoSave}
           onInsertImage={fileHook.handleInsertImage}
+          onInsertVideo={fileHook.handleInsertVideo}
           mode={drawingHook.mode}
           onModeChange={drawingHook.handleModeChange}
           userCount={userCount}

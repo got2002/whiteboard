@@ -237,6 +237,41 @@ export function useFileOps({ pages, setPages, setCurrentPageIndex, canvasRef, cu
     input.click();
   }, [handleStrokeComplete]);
 
+  const handleInsertVideo = useCallback(() => {
+    const input = document.createElement("input");
+    input.type = "file";
+    input.accept = "video/mp4";
+    input.onchange = (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+
+      const reader = new FileReader();
+      reader.onload = (ev) => {
+        const dataURL = ev.target.result;
+        const displayW = 640;
+        const displayH = 360;
+        const centerX = (window.innerWidth / 2) - (displayW / 2);
+        const centerY = (window.innerHeight / 2) - (displayH / 2);
+        const strokeId = `video-${Date.now()}`;
+        const stroke = {
+          id: strokeId, 
+          type: "video", 
+          url: dataURL,
+          x: centerX, 
+          y: centerY, 
+          width: displayW, 
+          height: displayH,
+          isPlaying: false,
+          currentTime: 0,
+        };
+        handleStrokeComplete(stroke);
+        window.dispatchEvent(new CustomEvent('video-inserted', { detail: { strokeId } }));
+      };
+      reader.readAsDataURL(file);
+    };
+    input.click();
+  }, [handleStrokeComplete]);
+
   const handleToggleAutoSave = () => setAutoSave(prev => !prev);
 
   const handleSaveIWB = () => {
@@ -275,7 +310,7 @@ export function useFileOps({ pages, setPages, setCurrentPageIndex, canvasRef, cu
   return {
     autoSave, handleToggleAutoSave,
     handleNewBoard, handleSaveProject, handleLoadProject,
-    handleExport, handleExportAll, handleInsertImage,
+    handleExport, handleExportAll, handleInsertImage, handleInsertVideo,
     handleSaveIWB, handleSavePD1,
     handleLoadIWB, handleLoadPD1,
     showNewBoardConfirm, confirmNewBoard, cancelNewBoard,

@@ -38,6 +38,7 @@ function HeaderBar({
     autoSave,
     onToggleAutoSave,
     onInsertImage,
+    onInsertVideo,
     // Mode
     mode,
     onModeChange,
@@ -121,6 +122,9 @@ function HeaderBar({
                                     </button>
                                     <button className="header-dropdown-item" onClick={() => { onInsertImage(); setShowMainMenu(false); }}>
                                         <span className="hdi-icon">🖼️</span><span>Insert Image</span>
+                                    </button>
+                                    <button className="header-dropdown-item" onClick={() => { onInsertVideo(); setShowMainMenu(false); }}>
+                                        <span className="hdi-icon">🎬</span><span>Insert Video</span>
                                     </button>
                                     <div className="header-dropdown-divider" />
                                     <div className="header-dropdown-label">Mode</div>
