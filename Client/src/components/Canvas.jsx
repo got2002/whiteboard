@@ -17,6 +17,7 @@ import { drawSegment, drawPenStroke, drawTextOnCtx, drawStampOnCtx, drawImageOnC
 import { SHAPE_TOOLS, drawShapeOnCtx } from "../utils/shapeRenderer";
 import { getStrokeBounds, hitTestHandle, findStrokeAt, HANDLE_SIZE, getCombinedBounds, getStrokesInLasso, isPointInPolygon } from "../utils/hitTestUtils";
 import ColorPickerModal from "./ColorPickerModal";
+import VideoWidget from "./VideoWidget";
 
 // สีคงที่สำหรับ Split Board
 const SLOT_COLORS = ["#ef4444", "#3b82f6", "#22c55e", "#f97316", "#a855f7", "#06b6d4", "#ec4899", "#eab308", "#6b7280", "#000000"];
@@ -1411,6 +1412,18 @@ const Canvas = forwardRef(function Canvas(
       {visibleLasers.map((lp, i) => (
         <div key={`laser-${lp.id}-${i}`} className="laser-pointer"
           style={{ left: (lp.x * zoom.current + panOffset.current.x) + "px", top: (lp.y * zoom.current + panOffset.current.y) + "px", "--laser-color": lp.color, transform: `translate(-50%, -50%) scale(${zoom.current})` }}
+        />
+      ))}
+
+      {/* Video Widgets */}
+      {page?.strokes?.filter(s => s.type === "video").map(video => (
+        <VideoWidget
+          key={video.id}
+          video={video}
+          zoom={zoom.current}
+          panOffset={panOffset.current}
+          userRole={userRole}
+          onUpdate={(id, changes) => onStrokeUpdate(id, changes)}
         />
       ))}
 

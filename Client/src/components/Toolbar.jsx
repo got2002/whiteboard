@@ -278,6 +278,7 @@ function Toolbar({
     // ── ใหม่: EClass features ──
     onNewBoard,         // สร้างกระดานใหม่
     onInsertImage,      // แทรกรูปภาพ
+    onInsertVideo,      // แทรกวิดีโอ
     autoSave,           // สถานะ Auto Save
     onToggleAutoSave,   // เปิด/ปิด Auto Save
     // ── Screen Recording ──
@@ -481,10 +482,11 @@ function Toolbar({
 
             <div className="toolbar-divider" />
 
-            {/* ─── [2.5] แทรกรูปภาพ — Host only ─── */}
+            {/* ─── [2.5] แทรกรูปภาพ / วิดีโอ — Host only ─── */}
             {isHost && (
                 <div className="toolbar-group">
                     <button className="tool-btn" onClick={onInsertImage} title="แทรกรูปภาพ...">🖼️</button>
+                    <button className="tool-btn" onClick={onInsertVideo} title="แทรกวิดีโอ (.mp4)...">🎬</button>
                 </div>
             )}
 

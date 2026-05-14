@@ -11,7 +11,7 @@ const HANDLE_SIZE = 10;
  */
 export function getStrokeBounds(stroke) {
   if (!stroke) return null;
-  if (stroke.type === "image") {
+  if (stroke.type === "image" || stroke.type === "video") {
     return { x: stroke.x, y: stroke.y, width: stroke.width, height: stroke.height };
   }
   if (stroke.type === "shape") {
