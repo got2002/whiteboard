@@ -13,6 +13,7 @@ export default function VideoWidget({
   // Use local state to prevent jumping while another user hasn't synced
   const [isPlaying, setIsPlaying] = useState(video.isPlaying || false);
   const [currentTime, setCurrentTime] = useState(video.currentTime || 0);
+  const [isHovered, setIsHovered] = useState(false);
 
   // Sync from props
   useEffect(() => {
@@ -39,17 +40,25 @@ export default function VideoWidget({
 
   // If host interacts
   const handlePlayPause = (e) => {
+    // Prevent the canvas from selecting the video when clicking play
+    e.stopPropagation();
+    
     // Only host can control sync
     if (!isHost) return;
     const newIsPlaying = !isPlaying;
     setIsPlaying(newIsPlaying);
+    
+    // Trigger immediately to avoid browser blocking
+    if (videoRef.current) {
+        if (newIsPlaying) videoRef.current.play().catch(console.error);
+        else videoRef.current.pause();
+    }
+    
     onUpdate(video.id, { isPlaying: newIsPlaying, currentTime: videoRef.current?.currentTime || 0 });
   };
 
   const handleTimeUpdate = () => {
     if (!isHost || !videoRef.current) return;
-    // Debounce or sync occasionally, or let Play/Pause handle the major syncs
-    // To keep it simple, we sync exact time when paused, and let it play naturally when playing
   };
 
   const handleSeeked = () => {
@@ -80,10 +89,9 @@ export default function VideoWidget({
         boxShadow: "0 8px 24px rgba(0,0,0,0.15)",
         border: "1px solid rgba(255,255,255,0.2)"
       }}
-      onPointerDown={(e) => {
-        // Stop propagation so Canvas doesn't draw behind it
-        e.stopPropagation();
-      }}
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}
+      // Removed e.stopPropagation() here so Canvas can select and resize the video
     >
       <video
         ref={videoRef}
@@ -103,15 +111,15 @@ export default function VideoWidget({
           display: "flex",
           justifyContent: "center",
           alignItems: "center",
-          opacity: 0,
+          opacity: isHovered ? 1 : 0,
           transition: "opacity 0.2s",
+          pointerEvents: isHovered ? "auto" : "none"
         }}
         className="video-controls-overlay"
-        onMouseEnter={(e) => e.currentTarget.style.opacity = 1}
-        onMouseLeave={(e) => e.currentTarget.style.opacity = 0}
       >
         <button 
           onClick={handlePlayPause}
+          onPointerDown={(e) => e.stopPropagation()}
           style={{
             background: "white",
             border: "none",
