@@ -723,7 +723,7 @@ const Canvas = forwardRef(function Canvas(
               const newSW = sBounds.width * scaleX;
               const newSH = sBounds.height * scaleY;
 
-              if (s.type === "image" || s.type === "stamp") {
+              if (s.type === "image" || s.type === "stamp" || s.type === "video") {
                  onStrokeUpdate?.(id, { x: newSX, y: newSY, width: newSW, height: newSH });
               } else if (s.type === "shape") {
                  onStrokeUpdate?.(id, { 
@@ -756,7 +756,7 @@ const Canvas = forwardRef(function Canvas(
             const moveStroke = page?.strokes?.find(s => s.id === id);
             if (moveStroke) {
               let changes;
-              if (moveStroke.type === "image" || moveStroke.type === "text" || moveStroke.type === "stamp") {
+              if (moveStroke.type === "image" || moveStroke.type === "text" || moveStroke.type === "stamp" || moveStroke.type === "video") {
                 changes = { x: (moveStroke.x || 0) + dx, y: (moveStroke.y || 0) + dy };
               } else if (moveStroke.type === "shape") {
                 changes = {
