@@ -1,0 +1,510 @@
+// ============================================================
+// MathToolWidget.jsx — Draggable/Rotatable Math Overlays
+// ============================================================
+import { useState, useRef, useCallback } from "react";
+
+// ── SVG Tool Renderers (transparent, no background) ──
+function ProtractorSVG({ w, h }) {
+  const r = Math.min(w, h * 2) / 2 - 4;
+  const cx = w / 2, cy = h - 2;
+  const ticks = [];
+  for (let deg = 0; deg <= 180; deg += 10) {
+    const rad = (Math.PI * deg) / 180;
+    const inner = deg % 30 === 0 ? r - 18 : r - 10;
+    const x1 = cx - r * Math.cos(rad), y1 = cy - r * Math.sin(rad);
+    const x2 = cx - inner * Math.cos(rad), y2 = cy - inner * Math.sin(rad);
+    ticks.push(<line key={deg} x1={x1} y1={y1} x2={x2} y2={y2} stroke="rgba(37,99,235,0.7)" strokeWidth={deg % 30 === 0 ? 1.5 : 0.8} />);
+    if (deg % 30 === 0) {
+      const tx = cx - (r - 26) * Math.cos(rad), ty = cy - (r - 26) * Math.sin(rad);
+      ticks.push(<text key={`t${deg}`} x={tx} y={ty} textAnchor="middle" dominantBaseline="middle" fill="#1e40af" fontSize="10" fontWeight="600" fontFamily="monospace">{deg}°</text>);
+    }
+  }
+  return (
+    <svg width={w} height={h} style={{ display: "block" }}>
+      <path d={`M${cx - r},${cy} A${r},${r} 0 0,1 ${cx + r},${cy}`} fill="rgba(59,130,246,0.18)" stroke="rgba(37,99,235,0.8)" strokeWidth="2" />
+      <line x1={cx - r} y1={cy} x2={cx + r} y2={cy} stroke="rgba(37,99,235,0.8)" strokeWidth="1.5" />
+      {ticks}
+      <circle cx={cx} cy={cy} r={3} fill="#2563eb" />
+    </svg>
+  );
+}
+
+function FullProtractorSVG({ w, h }) {
+  const r = Math.min(w, h) / 2 - 6;
+  const cx = w / 2, cy = h / 2;
+  const ticks = [];
+  for (let deg = 0; deg < 360; deg += 10) {
+    const rad = (Math.PI * deg) / 180;
+    const inner = deg % 30 === 0 ? r - 18 : r - 10;
+    const x1 = cx + r * Math.cos(rad), y1 = cy - r * Math.sin(rad);
+    const x2 = cx + inner * Math.cos(rad), y2 = cy - inner * Math.sin(rad);
+    ticks.push(<line key={deg} x1={x1} y1={y1} x2={x2} y2={y2} stroke="rgba(126,34,206,0.6)" strokeWidth={deg % 30 === 0 ? 1.5 : 0.7} />);
+    if (deg % 90 === 0) {
+      const tx = cx + (r - 26) * Math.cos(rad), ty = cy - (r - 26) * Math.sin(rad);
+      ticks.push(<text key={`t${deg}`} x={tx} y={ty} textAnchor="middle" dominantBaseline="middle" fill="#7e22ce" fontSize="10" fontWeight="600" fontFamily="monospace">{deg}°</text>);
+    }
+  }
+  return (
+    <svg width={w} height={h} style={{ display: "block" }}>
+      <circle cx={cx} cy={cy} r={r} fill="rgba(168,85,247,0.12)" stroke="rgba(126,34,206,0.7)" strokeWidth="2" />
+      {ticks}
+      <line x1={cx} y1={cy - r + 2} x2={cx} y2={cy + r - 2} stroke="rgba(126,34,206,0.15)" strokeWidth="0.5" />
+      <line x1={cx - r + 2} y1={cy} x2={cx + r - 2} y2={cy} stroke="rgba(126,34,206,0.15)" strokeWidth="0.5" />
+      <circle cx={cx} cy={cy} r={3} fill="#7e22ce" />
+    </svg>
+  );
+}
+
+function RulerSVG({ w, h }) {
+  const margin = 8;
+  const usableW = w - margin * 2;
+  const cmCount = Math.floor(usableW / 30);
+  const ticks = [];
+  for (let i = 0; i <= cmCount * 10; i++) {
+    const x = margin + (i / 10) * (usableW / cmCount);
+    if (x > w - margin + 1) break;
+    const tickH = i % 10 === 0 ? h * 0.4 : i % 5 === 0 ? h * 0.25 : h * 0.15;
+    ticks.push(<line key={i} x1={x} y1={4} x2={x} y2={4 + tickH} stroke="rgba(161,98,7,0.7)" strokeWidth={i % 10 === 0 ? 1.5 : 0.7} />);
+    if (i % 10 === 0) {
+      ticks.push(<text key={`t${i}`} x={x} y={4 + tickH + 12} textAnchor="middle" fill="#92400e" fontSize="10" fontWeight="600" fontFamily="monospace">{i / 10}</text>);
+    }
+  }
+  return (
+    <svg width={w} height={h} style={{ display: "block" }}>
+      <rect x={1} y={1} width={w - 2} height={h - 2} rx={4} fill="rgba(253,224,71,0.2)" stroke="rgba(161,98,7,0.6)" strokeWidth="1.5" />
+      {ticks}
+      <text x={w - 14} y={h - 6} textAnchor="end" fill="rgba(161,98,7,0.5)" fontSize="8" fontFamily="monospace">cm</text>
+    </svg>
+  );
+}
+
+function SetSquare45SVG({ w, h }) {
+  const m = 6;
+  const pts = `${m},${h - m} ${m},${m} ${w - m},${h - m}`;
+  const sq = 16;
+  return (
+    <svg width={w} height={h} style={{ display: "block" }}>
+      <polygon points={pts} fill="rgba(34,197,94,0.12)" stroke="rgba(21,128,61,0.7)" strokeWidth="1.5" strokeLinejoin="round" />
+      <rect x={m} y={h - m - sq} width={sq} height={sq} fill="none" stroke="rgba(21,128,61,0.5)" strokeWidth="1" />
+      <text x={m + 22} y={h - m - 8} fill="#166534" fontSize="9" fontWeight="600" fontFamily="monospace">90°</text>
+      <text x={w / 2 + 10} y={h - m - 6} fill="#15803d" fontSize="9" fontFamily="monospace">45°</text>
+      <text x={m + 6} y={m + 18} fill="#15803d" fontSize="9" fontFamily="monospace">45°</text>
+    </svg>
+  );
+}
+
+function SetSquare60SVG({ w, h }) {
+  const m = 6;
+  const pts = `${m},${h - m} ${w / 2},${m} ${w - m},${h - m}`;
+  const sq = 16;
+  return (
+    <svg width={w} height={h} style={{ display: "block" }}>
+      <polygon points={pts} fill="rgba(6,182,212,0.12)" stroke="rgba(14,116,144,0.7)" strokeWidth="1.5" strokeLinejoin="round" />
+      <rect x={m} y={h - m - sq} width={sq} height={sq} fill="none" stroke="rgba(14,116,144,0.5)" strokeWidth="1" />
+      <text x={m + 22} y={h - m - 8} fill="#0e7490" fontSize="9" fontWeight="600" fontFamily="monospace">90°</text>
+      <text x={w - m - 28} y={h - m - 8} fill="#0e7490" fontSize="9" fontFamily="monospace">60°</text>
+      <text x={w / 2 - 4} y={m + 20} fill="#0e7490" fontSize="9" fontFamily="monospace">30°</text>
+    </svg>
+  );
+}
+
+function CompassSVG({ w, h }) {
+  const cx = w / 2, cy = h / 2;
+  const r = Math.min(w, h) / 2 - 10;
+  return (
+    <svg width={w} height={h} style={{ display: "block" }}>
+      <circle cx={cx} cy={cy} r={r} fill="none" stroke="rgba(220,38,38,0.5)" strokeWidth="1.5" strokeDasharray="4 3" />
+      <line x1={cx} y1={cy - r - 6} x2={cx - 6} y2={cy} stroke="rgba(71,85,105,0.8)" strokeWidth="1.5" />
+      <line x1={cx} y1={cy - r - 6} x2={cx + 6} y2={cy} stroke="rgba(71,85,105,0.8)" strokeWidth="1.5" />
+      <circle cx={cx} cy={cy - r - 6} r={4} fill="none" stroke="rgba(71,85,105,0.7)" strokeWidth="1.5" />
+      <circle cx={cx} cy={cy} r={2} fill="#dc2626" />
+      <text x={cx + 10} y={cy + 4} fill="#991b1b" fontSize="9" fontWeight="600" fontFamily="monospace">r={Math.round(r)}</text>
+    </svg>
+  );
+}
+
+// ── New tools ──
+function LSquareSVG({ w, h }) {
+  const armW = Math.max(16, w * 0.12);
+  const ticks = [];
+  // Vertical arm ticks
+  for (let i = 1; i <= Math.floor((h - armW) / 20); i++) {
+    const y = i * 20;
+    const big = i % 3 === 0;
+    ticks.push(<line key={`v${i}`} x1={armW - (big ? 8 : 5)} y1={y} x2={armW} y2={y} stroke="rgba(71,85,105,0.5)" strokeWidth={big ? 1.2 : 0.6} />);
+    if (big) ticks.push(<text key={`vt${i}`} x={armW - 12} y={y + 3} textAnchor="middle" fill="#475569" fontSize="7" fontFamily="monospace">{i}</text>);
+  }
+  // Horizontal arm ticks
+  for (let i = 1; i <= Math.floor((w - armW) / 20); i++) {
+    const x = armW + i * 20;
+    const big = i % 3 === 0;
+    ticks.push(<line key={`h${i}`} x1={x} y1={h - armW} x2={x} y2={h - armW + (big ? 8 : 5)} stroke="rgba(71,85,105,0.5)" strokeWidth={big ? 1.2 : 0.6} />);
+    if (big) ticks.push(<text key={`ht${i}`} x={x} y={h - armW + 16} textAnchor="middle" fill="#475569" fontSize="7" fontFamily="monospace">{i}</text>);
+  }
+  return (
+    <svg width={w} height={h} style={{ display: "block" }}>
+      {/* Vertical arm */}
+      <rect x={0} y={0} width={armW} height={h - armW + armW} rx={2} fill="rgba(100,116,139,0.12)" stroke="rgba(71,85,105,0.6)" strokeWidth="1.5" />
+      {/* Horizontal arm */}
+      <rect x={0} y={h - armW} width={w} height={armW} rx={2} fill="rgba(100,116,139,0.12)" stroke="rgba(71,85,105,0.6)" strokeWidth="1.5" />
+      {/* Corner square indicator */}
+      <rect x={armW + 2} y={h - armW - 14} width={12} height={12} fill="none" stroke="rgba(71,85,105,0.4)" strokeWidth="0.8" />
+      <text x={armW + 8} y={h - armW - 4} textAnchor="middle" fill="#475569" fontSize="7" fontFamily="monospace">90°</text>
+      {ticks}
+    </svg>
+  );
+}
+
+function TSquareSVG({ w, h }) {
+  const barH = Math.max(12, h * 0.12);
+  return (
+    <svg width={w} height={h} style={{ display: "block" }}>
+      <rect x={0} y={0} width={w} height={barH} rx={3} fill="rgba(100,116,139,0.2)" stroke="rgba(71,85,105,0.6)" strokeWidth="1.5" />
+      <line x1={w / 2} y1={barH} x2={w / 2} y2={h} stroke="rgba(71,85,105,0.6)" strokeWidth="1.5" />
+      {Array.from({ length: Math.floor(h / 30) }).map((_, i) => {
+        const y = barH + i * 30;
+        return <line key={i} x1={w / 2 - 6} y1={y} x2={w / 2 + 6} y2={y} stroke="rgba(71,85,105,0.4)" strokeWidth="0.8" />;
+      })}
+    </svg>
+  );
+}
+
+function NumberLineSVG({ w, h }) {
+  const cy = h / 2, m = 20;
+  const count = Math.floor((w - m * 2) / 40);
+  const half = Math.floor(count / 2);
+  const ticks = [];
+  for (let i = -half; i <= half; i++) {
+    const x = w / 2 + i * 40;
+    ticks.push(<line key={i} x1={x} y1={cy - 8} x2={x} y2={cy + 8} stroke="rgba(30,64,175,0.7)" strokeWidth={i === 0 ? 2 : 1} />);
+    ticks.push(<text key={`t${i}`} x={x} y={cy + 22} textAnchor="middle" fill="#1e40af" fontSize="10" fontWeight={i === 0 ? "700" : "400"} fontFamily="monospace">{i}</text>);
+  }
+  return (
+    <svg width={w} height={h} style={{ display: "block" }}>
+      <line x1={m} y1={cy} x2={w - m} y2={cy} stroke="rgba(30,64,175,0.8)" strokeWidth="2" />
+      <polygon points={`${w - m},${cy} ${w - m - 8},${cy - 4} ${w - m - 8},${cy + 4}`} fill="#1e40af" />
+      <polygon points={`${m},${cy} ${m + 8},${cy - 4} ${m + 8},${cy + 4}`} fill="#1e40af" />
+      {ticks}
+    </svg>
+  );
+}
+
+function CoordGridSVG({ w, h }) {
+  const cx = w / 2, cy = h / 2, step = 30, m = 15;
+  const gridLines = [];
+  for (let x = cx % step; x < w; x += step) gridLines.push(<line key={`v${x}`} x1={x} y1={m} x2={x} y2={h - m} stroke="rgba(59,130,246,0.15)" strokeWidth="0.5" />);
+  for (let y = cy % step; y < h; y += step) gridLines.push(<line key={`h${y}`} x1={m} y1={y} x2={w - m} y2={y} stroke="rgba(59,130,246,0.15)" strokeWidth="0.5" />);
+  const labels = [];
+  for (let i = 1; i <= Math.floor((w / 2 - m) / step); i++) {
+    labels.push(<text key={`xp${i}`} x={cx + i * step} y={cy + 14} textAnchor="middle" fill="#64748b" fontSize="8" fontFamily="monospace">{i}</text>);
+    labels.push(<text key={`xn${i}`} x={cx - i * step} y={cy + 14} textAnchor="middle" fill="#64748b" fontSize="8" fontFamily="monospace">{-i}</text>);
+  }
+  for (let i = 1; i <= Math.floor((h / 2 - m) / step); i++) {
+    labels.push(<text key={`yp${i}`} x={cx - 10} y={cy - i * step + 3} textAnchor="middle" fill="#64748b" fontSize="8" fontFamily="monospace">{i}</text>);
+    labels.push(<text key={`yn${i}`} x={cx - 10} y={cy + i * step + 3} textAnchor="middle" fill="#64748b" fontSize="8" fontFamily="monospace">{-i}</text>);
+  }
+  return (
+    <svg width={w} height={h} style={{ display: "block" }}>
+      {gridLines}
+      <line x1={m} y1={cy} x2={w - m} y2={cy} stroke="rgba(30,41,59,0.7)" strokeWidth="1.5" />
+      <line x1={cx} y1={m} x2={cx} y2={h - m} stroke="rgba(30,41,59,0.7)" strokeWidth="1.5" />
+      <polygon points={`${w - m},${cy} ${w - m - 6},${cy - 3} ${w - m - 6},${cy + 3}`} fill="#334155" />
+      <polygon points={`${cx},${m} ${cx - 3},${m + 6} ${cx + 3},${m + 6}`} fill="#334155" />
+      <text x={w - m + 4} y={cy - 4} fill="#334155" fontSize="10" fontWeight="600">x</text>
+      <text x={cx + 6} y={m + 4} fill="#334155" fontSize="10" fontWeight="600">y</text>
+      {labels}
+    </svg>
+  );
+}
+
+function ClockFaceSVG({ w, h, hours = 10, minutes = 10 }) {
+  const r = Math.min(w, h) / 2 - 6;
+  const cx = w / 2, cy = h / 2;
+  const ticks = [];
+  for (let i = 1; i <= 12; i++) {
+    const rad = (Math.PI * 2 * i) / 12 - Math.PI / 2;
+    const tx = cx + (r - 16) * Math.cos(rad), ty = cy + (r - 16) * Math.sin(rad);
+    const ix = cx + r * Math.cos(rad), iy = cy + r * Math.sin(rad);
+    const ox = cx + (r - 8) * Math.cos(rad), oy = cy + (r - 8) * Math.sin(rad);
+    ticks.push(<line key={`t${i}`} x1={ix} y1={iy} x2={ox} y2={oy} stroke="rgba(71,85,105,0.6)" strokeWidth="2" />);
+    ticks.push(<text key={`n${i}`} x={tx} y={ty + 4} textAnchor="middle" fill="#334155" fontSize="12" fontWeight="600" fontFamily="sans-serif">{i}</text>);
+  }
+  for (let i = 0; i < 60; i++) {
+    if (i % 5 === 0) continue;
+    const rad = (Math.PI * 2 * i) / 60;
+    ticks.push(<line key={`m${i}`} x1={cx + r * Math.cos(rad)} y1={cy + r * Math.sin(rad)} x2={cx + (r - 4) * Math.cos(rad)} y2={cy + (r - 4) * Math.sin(rad)} stroke="rgba(148,163,184,0.4)" strokeWidth="0.8" />);
+  }
+  const hAngle = (Math.PI * 2 * (hours % 12 + minutes / 60)) / 12 - Math.PI / 2;
+  const mAngle = (Math.PI * 2 * minutes) / 60 - Math.PI / 2;
+  return (
+    <svg width={w} height={h} style={{ display: "block" }}>
+      <circle cx={cx} cy={cy} r={r} fill="rgba(251,191,36,0.08)" stroke="rgba(161,98,7,0.5)" strokeWidth="2" />
+      {ticks}
+      <line x1={cx} y1={cy} x2={cx + (r * 0.5) * Math.cos(hAngle)} y2={cy + (r * 0.5) * Math.sin(hAngle)} stroke="#1e293b" strokeWidth="3" strokeLinecap="round" />
+      <line x1={cx} y1={cy} x2={cx + (r * 0.75) * Math.cos(mAngle)} y2={cy + (r * 0.75) * Math.sin(mAngle)} stroke="#334155" strokeWidth="2" strokeLinecap="round" />
+      <circle cx={cx} cy={cy} r={4} fill="#1e293b" />
+    </svg>
+  );
+}
+
+function FractionCircleSVG({ w, h, divisions = 4 }) {
+  const r = Math.min(w, h) / 2 - 6;
+  const cx = w / 2, cy = h / 2;
+  const colors = ["rgba(239,68,68,0.2)","rgba(59,130,246,0.2)","rgba(34,197,94,0.2)","rgba(234,179,8,0.2)","rgba(168,85,247,0.2)","rgba(236,72,153,0.2)","rgba(6,182,212,0.2)","rgba(249,115,22,0.2)"];
+  const slices = [];
+  for (let i = 0; i < divisions; i++) {
+    const a1 = (Math.PI * 2 * i) / divisions - Math.PI / 2;
+    const a2 = (Math.PI * 2 * (i + 1)) / divisions - Math.PI / 2;
+    const x1 = cx + r * Math.cos(a1), y1 = cy + r * Math.sin(a1);
+    const x2 = cx + r * Math.cos(a2), y2 = cy + r * Math.sin(a2);
+    const large = (a2 - a1) > Math.PI ? 1 : 0;
+    slices.push(<path key={i} d={`M${cx},${cy} L${x1},${y1} A${r},${r} 0 ${large},1 ${x2},${y2} Z`} fill={colors[i % colors.length]} stroke="rgba(71,85,105,0.5)" strokeWidth="1" />);
+  }
+  return (
+    <svg width={w} height={h} style={{ display: "block" }}>
+      <circle cx={cx} cy={cy} r={r} fill="none" stroke="rgba(71,85,105,0.5)" strokeWidth="1.5" />
+      {slices}
+      <text x={cx} y={cy + 4} textAnchor="middle" fill="#334155" fontSize="14" fontWeight="700" fontFamily="monospace">1/{divisions}</text>
+    </svg>
+  );
+}
+
+function GraphPaperSVG({ w, h }) {
+  const step = 20;
+  const lines = [];
+  for (let x = 0; x <= w; x += step) lines.push(<line key={`v${x}`} x1={x} y1={0} x2={x} y2={h} stroke="rgba(59,130,246,0.25)" strokeWidth="0.5" />);
+  for (let y = 0; y <= h; y += step) lines.push(<line key={`h${y}`} x1={0} y1={y} x2={w} y2={y} stroke="rgba(59,130,246,0.25)" strokeWidth="0.5" />);
+  return (
+    <svg width={w} height={h} style={{ display: "block" }}>
+      <rect x={0} y={0} width={w} height={h} rx={4} fill="rgba(59,130,246,0.04)" stroke="rgba(59,130,246,0.3)" strokeWidth="1.5" />
+      {lines}
+    </svg>
+  );
+}
+
+function DiceSVG({ w, h, value = 5 }) {
+  const s = Math.min(w, h);
+  const cx = w / 2, cy = h / 2, r = s * 0.08;
+  const layouts = {
+    1: [[cx, cy]],
+    2: [[cx - s * 0.2, cy - s * 0.2], [cx + s * 0.2, cy + s * 0.2]],
+    3: [[cx - s * 0.2, cy - s * 0.2], [cx, cy], [cx + s * 0.2, cy + s * 0.2]],
+    4: [[cx - s * 0.2, cy - s * 0.2], [cx + s * 0.2, cy - s * 0.2], [cx - s * 0.2, cy + s * 0.2], [cx + s * 0.2, cy + s * 0.2]],
+    5: [[cx - s * 0.2, cy - s * 0.2], [cx + s * 0.2, cy - s * 0.2], [cx, cy], [cx - s * 0.2, cy + s * 0.2], [cx + s * 0.2, cy + s * 0.2]],
+    6: [[cx - s * 0.2, cy - s * 0.25], [cx + s * 0.2, cy - s * 0.25], [cx - s * 0.2, cy], [cx + s * 0.2, cy], [cx - s * 0.2, cy + s * 0.25], [cx + s * 0.2, cy + s * 0.25]],
+  };
+  const dots = layouts[value] || layouts[1];
+  return (
+    <svg width={w} height={h} style={{ display: "block" }}>
+      <rect x={cx - s * 0.4} y={cy - s * 0.4} width={s * 0.8} height={s * 0.8} rx={s * 0.1} fill="rgba(255,255,255,0.9)" stroke="rgba(30,41,59,0.6)" strokeWidth="2" />
+      {dots.map(([dx, dy], i) => <circle key={i} cx={dx} cy={dy} r={r} fill="#1e293b" />)}
+    </svg>
+  );
+}
+
+function SpinnerSVG({ w, h, sections = 6, angle = 0 }) {
+  const r = Math.min(w, h) / 2 - 8;
+  const cx = w / 2, cy = h / 2;
+  const colors = ["#ef4444","#3b82f6","#22c55e","#f59e0b","#a855f7","#ec4899","#06b6d4","#f97316"];
+  const slices = [];
+  for (let i = 0; i < sections; i++) {
+    const a1 = (Math.PI * 2 * i) / sections - Math.PI / 2;
+    const a2 = (Math.PI * 2 * (i + 1)) / sections - Math.PI / 2;
+    const x1 = cx + r * Math.cos(a1), y1 = cy + r * Math.sin(a1);
+    const x2 = cx + r * Math.cos(a2), y2 = cy + r * Math.sin(a2);
+    const large = (a2 - a1) > Math.PI ? 1 : 0;
+    slices.push(<path key={i} d={`M${cx},${cy} L${x1},${y1} A${r},${r} 0 ${large},1 ${x2},${y2} Z`} fill={colors[i % colors.length] + "40"} stroke={colors[i % colors.length]} strokeWidth="1.5" />);
+    const mid = (a1 + a2) / 2;
+    slices.push(<text key={`t${i}`} x={cx + (r * 0.6) * Math.cos(mid)} y={cy + (r * 0.6) * Math.sin(mid) + 4} textAnchor="middle" fill="#334155" fontSize="12" fontWeight="700">{i + 1}</text>);
+  }
+  // Pointer
+  const pAngle = (angle * Math.PI) / 180 - Math.PI / 2;
+  const px = cx + (r - 12) * Math.cos(pAngle), py = cy + (r - 12) * Math.sin(pAngle);
+  return (
+    <svg width={w} height={h} style={{ display: "block" }}>
+      {slices}
+      <line x1={cx} y1={cy} x2={px} y2={py} stroke="#1e293b" strokeWidth="3" strokeLinecap="round" />
+      <circle cx={cx} cy={cy} r={6} fill="#1e293b" />
+      <polygon points={`${cx},${cy - r - 4} ${cx - 6},${cy - r + 6} ${cx + 6},${cy - r + 6}`} fill="#ef4444" />
+    </svg>
+  );
+}
+
+const TOOL_DEFAULTS = {
+  protractor:      { w: 300, h: 170, label: "Protractor" },
+  full_protractor: { w: 260, h: 260, label: "360° Protractor" },
+  ruler:           { w: 400, h: 60,  label: "Ruler" },
+  set_square_45:   { w: 240, h: 240, label: "Set Square 45°" },
+  set_square_60:   { w: 260, h: 230, label: "Set Square 30-60°" },
+  compass:         { w: 200, h: 220, label: "Compass" },
+  t_square:        { w: 60,  h: 400, label: "T-Square" },
+  number_line:     { w: 500, h: 60,  label: "Number Line" },
+  coord_grid:      { w: 300, h: 300, label: "Coordinate Grid" },
+  clock_face:      { w: 240, h: 240, label: "Clock" },
+  fraction_circle: { w: 200, h: 200, label: "Fraction Circle" },
+  graph_paper:     { w: 300, h: 300, label: "Graph Paper" },
+  dice:            { w: 120, h: 120, label: "Dice" },
+  spinner:         { w: 240, h: 240, label: "Spinner Wheel" },
+  l_square:        { w: 240, h: 240, label: "L-Square" },
+};
+
+const TOOL_RENDERER = {
+  protractor:      ProtractorSVG,
+  full_protractor: FullProtractorSVG,
+  ruler:           RulerSVG,
+  set_square_45:   SetSquare45SVG,
+  set_square_60:   SetSquare60SVG,
+  compass:         CompassSVG,
+  t_square:        TSquareSVG,
+  number_line:     NumberLineSVG,
+  coord_grid:      CoordGridSVG,
+  clock_face:      ClockFaceSVG,
+  fraction_circle: FractionCircleSVG,
+  graph_paper:     GraphPaperSVG,
+  dice:            DiceSVG,
+  spinner:         SpinnerSVG,
+  l_square:        LSquareSVG,
+};
+
+// ============================================================
+export default function MathToolWidget({ toolId, toolType, onClose, onDrawCircle }) {
+  const def = TOOL_DEFAULTS[toolType] || TOOL_DEFAULTS.ruler;
+  const [pos, setPos] = useState({ x: window.innerWidth / 2 - def.w / 2, y: window.innerHeight / 2 - def.h / 2 });
+  const [size, setSize] = useState({ w: def.w, h: def.h });
+  const [rotation, setRotation] = useState(0);
+  const [hovered, setHovered] = useState(false);
+  // Interactive state
+  const [diceValue, setDiceValue] = useState(Math.ceil(Math.random() * 6));
+  const [spinnerAngle, setSpinnerAngle] = useState(0);
+  const [spinning, setSpinning] = useState(false);
+  const [clockH, setClockH] = useState(10);
+  const [clockM, setClockM] = useState(10);
+  const [fractionDiv, setFractionDiv] = useState(4);
+
+  const containerRef = useRef(null);
+  const dragRef = useRef(null);
+  const resizeRef = useRef(null);
+
+  // Drag
+  const startDrag = useCallback((e) => {
+    e.stopPropagation(); e.preventDefault();
+    dragRef.current = { sx: e.clientX, sy: e.clientY, ox: pos.x, oy: pos.y };
+    const onMove = (ev) => {
+      if (!dragRef.current) return;
+      setPos({ x: dragRef.current.ox + ev.clientX - dragRef.current.sx, y: dragRef.current.oy + ev.clientY - dragRef.current.sy });
+    };
+    const onUp = () => { dragRef.current = null; window.removeEventListener("pointermove", onMove); window.removeEventListener("pointerup", onUp); };
+    window.addEventListener("pointermove", onMove);
+    window.addEventListener("pointerup", onUp);
+  }, [pos]);
+
+  // Resize
+  const startResize = useCallback((e) => {
+    e.stopPropagation(); e.preventDefault();
+    const aspect = size.w / size.h;
+    resizeRef.current = { sx: e.clientX, ow: size.w, oh: size.h };
+    const onMove = (ev) => {
+      if (!resizeRef.current) return;
+      const nw = Math.max(80, resizeRef.current.ow + (ev.clientX - resizeRef.current.sx));
+      setSize({ w: nw, h: Math.round(nw / aspect) });
+    };
+    const onUp = () => { resizeRef.current = null; window.removeEventListener("pointermove", onMove); window.removeEventListener("pointerup", onUp); };
+    window.addEventListener("pointermove", onMove);
+    window.addEventListener("pointerup", onUp);
+  }, [size]);
+
+  // Rotate
+  const startRotate = useCallback((e) => {
+    e.stopPropagation(); e.preventDefault();
+    const rect = containerRef.current?.getBoundingClientRect();
+    if (!rect) return;
+    const ccx = rect.left + rect.width / 2, ccy = rect.top + rect.height / 2;
+    const startAngle = Math.atan2(e.clientY - ccy, e.clientX - ccx);
+    const startRot = rotation;
+    const onMove = (ev) => {
+      const angle = Math.atan2(ev.clientY - ccy, ev.clientX - ccx);
+      setRotation(startRot + (angle - startAngle) * (180 / Math.PI));
+    };
+    const onUp = () => { window.removeEventListener("pointermove", onMove); window.removeEventListener("pointerup", onUp); };
+    window.addEventListener("pointermove", onMove);
+    window.addEventListener("pointerup", onUp);
+  }, [rotation]);
+
+  // Actions
+  const handleDrawCircle = (e) => { e.stopPropagation(); if (onDrawCircle) { const r = Math.min(size.w, size.h) / 2 - 10; onDrawCircle({ cx: pos.x + size.w / 2, cy: pos.y + size.h / 2, radius: r }); } };
+  const rollDice = (e) => { e.stopPropagation(); setDiceValue(Math.ceil(Math.random() * 6)); };
+  const spinWheel = (e) => { e.stopPropagation(); if (spinning) return; setSpinning(true); const target = spinnerAngle + 720 + Math.random() * 360; const start = performance.now(); const dur = 2000; const animate = (t) => { const p = Math.min(1, (t - start) / dur); const ease = 1 - Math.pow(1 - p, 3); setSpinnerAngle(spinnerAngle + (target - spinnerAngle) * ease); if (p < 1) requestAnimationFrame(animate); else setSpinning(false); }; requestAnimationFrame(animate); };
+  const adjClock = (e, dh, dm) => { e.stopPropagation(); setClockH(h => (h + dh + 12) % 12 || 12); setClockM(m => (m + dm + 60) % 60); };
+  const adjFraction = (e, d) => { e.stopPropagation(); setFractionDiv(v => Math.max(2, Math.min(12, v + d))); };
+
+  const Renderer = TOOL_RENDERER[toolType];
+  if (!Renderer) return null;
+
+  // Extra props for interactive tools
+  const extraProps = {};
+  if (toolType === "dice") extraProps.value = diceValue;
+  if (toolType === "spinner") { extraProps.angle = spinnerAngle; extraProps.sections = 6; }
+  if (toolType === "clock_face") { extraProps.hours = clockH; extraProps.minutes = clockM; }
+  if (toolType === "fraction_circle") extraProps.divisions = fractionDiv;
+
+  const btnS = { background: "none", border: "none", cursor: "pointer", padding: "2px 4px", lineHeight: 1, fontSize: 12 };
+
+  return (
+    <div ref={containerRef}
+      onMouseEnter={() => setHovered(true)} onMouseLeave={() => setHovered(false)}
+      style={{
+        position: "fixed", left: pos.x, top: pos.y - 36, width: size.w, zIndex: 50,
+        paddingTop: 36,
+        transform: `rotate(${rotation}deg)`, transformOrigin: `center calc(50% + 18px)`,
+        pointerEvents: "auto", userSelect: "none", cursor: "grab",
+      }}
+      onPointerDown={(e) => { e.stopPropagation(); startDrag(e); }}
+    >
+      {/* Floating mini toolbar — inside container padding */}
+      <div style={{
+        position: "absolute", top: 4, left: "50%", transform: "translateX(-50%)",
+        display: "flex", alignItems: "center", gap: 2,
+        background: "rgba(30,30,40,0.9)", borderRadius: 6, padding: "3px 6px",
+        opacity: hovered ? 1 : 0, pointerEvents: hovered ? "auto" : "none",
+        transition: "opacity 0.2s", whiteSpace: "nowrap",
+        boxShadow: "0 2px 8px rgba(0,0,0,0.3)", zIndex: 3,
+      }}>
+        <span style={{ fontSize: 10, color: "#94a3b8", padding: "0 4px", userSelect: "none" }}>📐 {def.label}</span>
+        <button onClick={(e) => { e.stopPropagation(); setRotation(r => r + 15); }} style={{ ...btnS, color: "#60a5fa" }} title="หมุน +15°">↻</button>
+        <button onClick={(e) => { e.stopPropagation(); setRotation(r => r - 15); }} style={{ ...btnS, color: "#60a5fa" }} title="หมุน -15°">↺</button>
+        {toolType === "compass" && <button onClick={handleDrawCircle} style={{ ...btnS, color: "#22c55e" }} title="วาดวงกลม">⭕</button>}
+        {toolType === "dice" && <button onClick={rollDice} style={{ ...btnS, color: "#f59e0b" }} title="ทอยลูกเต๋า">🎲</button>}
+        {toolType === "spinner" && <button onClick={spinWheel} style={{ ...btnS, color: "#a855f7" }} title="หมุนวงล้อ">🎡</button>}
+        {toolType === "clock_face" && <>
+          <button onClick={(e) => adjClock(e, 1, 0)} style={{ ...btnS, color: "#f59e0b" }} title="+1 ชม.">H+</button>
+          <button onClick={(e) => adjClock(e, 0, 5)} style={{ ...btnS, color: "#f59e0b" }} title="+5 นาที">M+</button>
+        </>}
+        {toolType === "fraction_circle" && <>
+          <button onClick={(e) => adjFraction(e, -1)} style={{ ...btnS, color: "#ec4899" }} title="ลดส่วน">−</button>
+          <button onClick={(e) => adjFraction(e, 1)} style={{ ...btnS, color: "#ec4899" }} title="เพิ่มส่วน">+</button>
+        </>}
+        <button onClick={(e) => { e.stopPropagation(); onClose(toolId); }} style={{ ...btnS, color: "#ef4444", fontSize: 13 }} title="ปิด">✕</button>
+      </div>
+
+      {/* Tool SVG */}
+      <Renderer w={size.w} h={size.h} {...extraProps} />
+
+      {/* Resize handle */}
+      <div onPointerDown={(e) => { e.stopPropagation(); startResize(e); }} style={{
+        position: "absolute", bottom: -5, right: -5, width: 10, height: 10,
+        background: "#fff", border: "2px solid #3b82f6", borderRadius: 2, cursor: "se-resize", zIndex: 2,
+        opacity: hovered ? 1 : 0, transition: "opacity 0.2s",
+      }} />
+
+      {/* Rotate handle */}
+      <div onPointerDown={(e) => { e.stopPropagation(); startRotate(e); }} style={{
+        position: "absolute", top: -12, right: -12, width: 14, height: 14,
+        background: "#60a5fa", borderRadius: "50%", cursor: "grab", zIndex: 2,
+        display: "flex", alignItems: "center", justifyContent: "center",
+        opacity: hovered ? 1 : 0, transition: "opacity 0.2s",
+      }}>
+        <span style={{ fontSize: 8, color: "#fff" }}>↻</span>
+      </div>
+    </div>
+  );
+}

@@ -109,17 +109,220 @@ const TOOLBOX_ITEMS = [
         ),
         category: "gadgets",
     },
-    // ── Future tools will be added here ──
-    // { id: "timer", label: "Timer", icon: ..., category: "gadgets" },
-    // { id: "stopwatch", label: "Stopwatch", icon: ..., category: "gadgets" },
-    // { id: "ruler", label: "Ruler", icon: ..., category: "math" },
-    // { id: "protractor", label: "Protractor", icon: ..., category: "math" },
+    // ── Math Tools ──
+    {
+        id: "protractor",
+        label: "Protractor",
+        icon: (
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M2 18 A10 10 0 0 1 22 18" fill="rgba(59,130,246,0.1)" />
+                <path d="M2 18h20" />
+                <path d="M12 18v-10" opacity="0.4" />
+                <path d="M5.5 10.5l1 1" opacity="0.3" />
+                <path d="M18.5 10.5l-1 1" opacity="0.3" />
+                <circle cx="12" cy="18" r="1" fill="currentColor" stroke="none" />
+            </svg>
+        ),
+        category: "math",
+    },
+    {
+        id: "full_protractor",
+        label: "360° Protractor",
+        icon: (
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="12" cy="12" r="9" fill="rgba(168,85,247,0.1)" />
+                <circle cx="12" cy="12" r="9" />
+                <path d="M12 3v3" opacity="0.4" />
+                <path d="M12 18v3" opacity="0.4" />
+                <path d="M3 12h3" opacity="0.4" />
+                <path d="M18 12h3" opacity="0.4" />
+                <circle cx="12" cy="12" r="1" fill="currentColor" stroke="none" />
+            </svg>
+        ),
+        category: "math",
+    },
+    {
+        id: "ruler",
+        label: "Ruler",
+        icon: (
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                <rect x="1" y="8" width="22" height="8" rx="1.5" fill="rgba(234,179,8,0.1)" />
+                <path d="M5 8v3" opacity="0.5" />
+                <path d="M9 8v5" opacity="0.5" />
+                <path d="M13 8v3" opacity="0.5" />
+                <path d="M17 8v5" opacity="0.5" />
+                <path d="M21 8v3" opacity="0.5" />
+            </svg>
+        ),
+        category: "math",
+    },
+    {
+        id: "set_square_45",
+        label: "Set Square 45°",
+        icon: (
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M3 20L3 4L21 20Z" fill="rgba(34,197,94,0.1)" />
+                <rect x="3" y="16" width="4" height="4" opacity="0.3" />
+            </svg>
+        ),
+        category: "math",
+    },
+    {
+        id: "set_square_60",
+        label: "Set Square 30-60°",
+        icon: (
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M3 20L12 4L21 20Z" fill="rgba(6,182,212,0.1)" />
+                <rect x="3" y="16" width="4" height="4" opacity="0.3" />
+            </svg>
+        ),
+        category: "math",
+    },
+    {
+        id: "compass",
+        label: "Compass",
+        icon: (
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="12" cy="14" r="7" strokeDasharray="3 2" opacity="0.4" />
+                <path d="M12 4l-2 10" />
+                <path d="M12 4l2 10" />
+                <circle cx="12" cy="4" r="1.5" />
+                <circle cx="12" cy="14" r="0.8" fill="currentColor" stroke="none" />
+            </svg>
+        ),
+        category: "math",
+    },
+    {
+        id: "t_square",
+        label: "T-Square",
+        icon: (
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M2 6h20" />
+                <path d="M12 6v16" />
+                <rect x="2" y="4" width="20" height="4" rx="1" fill="rgba(100,116,139,0.15)" />
+            </svg>
+        ),
+        category: "math",
+    },
+    {
+        id: "number_line",
+        label: "Number Line",
+        icon: (
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M2 12h20" />
+                <path d="M22 12l-2-2M22 12l-2 2" />
+                <path d="M6 10v4M12 10v4M18 10v4" opacity="0.6" />
+                <text x="6" y="20" textAnchor="middle" fill="currentColor" fontSize="5" stroke="none">-1</text>
+                <text x="12" y="20" textAnchor="middle" fill="currentColor" fontSize="5" stroke="none">0</text>
+                <text x="18" y="20" textAnchor="middle" fill="currentColor" fontSize="5" stroke="none">1</text>
+            </svg>
+        ),
+        category: "math",
+    },
+    {
+        id: "coord_grid",
+        label: "Coordinate Grid",
+        icon: (
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M2 12h20" />
+                <path d="M12 2v20" />
+                <path d="M22 12l-2-1.5M22 12l-2 1.5" opacity="0.5" />
+                <path d="M12 2l-1.5 2M12 2l1.5 2" opacity="0.5" />
+                <path d="M8 8h8v8H8z" stroke="currentColor" strokeWidth="0.5" opacity="0.2" />
+            </svg>
+        ),
+        category: "math",
+    },
+    {
+        id: "clock_face",
+        label: "Clock",
+        icon: (
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="12" cy="12" r="10" fill="rgba(251,191,36,0.1)" />
+                <path d="M12 6v6l4 2" />
+                <path d="M12 2v2" opacity="0.4" />
+                <path d="M12 20v2" opacity="0.4" />
+                <path d="M2 12h2" opacity="0.4" />
+                <path d="M20 12h2" opacity="0.4" />
+            </svg>
+        ),
+        category: "math",
+    },
+    {
+        id: "fraction_circle",
+        label: "Fraction Circle",
+        icon: (
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="12" cy="12" r="9" />
+                <path d="M12 3v18" />
+                <path d="M3 12h18" />
+                <path d="M12 12L5.6 5.6" opacity="0.4" />
+                <path fill="rgba(239,68,68,0.15)" d="M12 12L12 3A9 9 0 0 1 21 12Z" stroke="none" />
+            </svg>
+        ),
+        category: "math",
+    },
+    {
+        id: "graph_paper",
+        label: "Graph Paper",
+        icon: (
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="0.8" strokeLinecap="round" opacity="0.5">
+                <rect x="2" y="2" width="20" height="20" rx="1" strokeWidth="1.5" opacity="1" fill="rgba(59,130,246,0.05)" />
+                <path d="M6 2v20M10 2v20M14 2v20M18 2v20" />
+                <path d="M2 6h20M2 10h20M2 14h20M2 18h20" />
+            </svg>
+        ),
+        category: "math",
+    },
+    {
+        id: "dice",
+        label: "Dice",
+        icon: (
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                <rect x="3" y="3" width="18" height="18" rx="3" fill="rgba(255,255,255,0.05)" />
+                <circle cx="8" cy="8" r="1.2" fill="currentColor" stroke="none" />
+                <circle cx="16" cy="8" r="1.2" fill="currentColor" stroke="none" />
+                <circle cx="12" cy="12" r="1.2" fill="currentColor" stroke="none" />
+                <circle cx="8" cy="16" r="1.2" fill="currentColor" stroke="none" />
+                <circle cx="16" cy="16" r="1.2" fill="currentColor" stroke="none" />
+            </svg>
+        ),
+        category: "math",
+    },
+    {
+        id: "spinner",
+        label: "Spinner Wheel",
+        icon: (
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="12" cy="12" r="9" />
+                <path d="M12 3v9l6.36 3.64" />
+                <path d="M12 12L5.64 15.64" />
+                <path fill="rgba(34,197,94,0.15)" d="M12 12L12 3A9 9 0 0 1 18.36 15.64Z" stroke="none" />
+                <circle cx="12" cy="12" r="2" fill="currentColor" />
+            </svg>
+        ),
+        category: "math",
+    },
+    {
+        id: "l_square",
+        label: "L-Square",
+        icon: (
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M4 4v16h16" />
+                <path d="M4 4h4v16" fill="rgba(100,116,139,0.1)" />
+                <path d="M4 20h16v-4" fill="rgba(100,116,139,0.1)" />
+                <path d="M8 6v2M8 10v2M8 14v2" opacity="0.4" />
+                <path d="M10 16h2M14 16h2" opacity="0.4" />
+                <rect x="4" y="16" width="4" height="4" fill="none" stroke="currentColor" strokeWidth="0.8" opacity="0.4" />
+            </svg>
+        ),
+        category: "math",
+    },
 ];
 
 const CATEGORIES = [
     { id: "gadgets", label: "Gadgets" },
-    // { id: "math", label: "Math Tools" },
-    // { id: "science", label: "Science" },
+    { id: "math", label: "Math Tools" },
 ];
 
 export default function ToolBoxButton({ onToolSelect, activeTools = {} }) {

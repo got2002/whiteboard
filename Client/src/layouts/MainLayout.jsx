@@ -44,6 +44,7 @@ import PresentationMode from "../components/PresentationMode";
 import GraphWidget from "../components/GraphWidget";
 import PeriodicTableWidget from "../components/PeriodicTableWidget";
 import CurtainOverlay from "../components/CurtainOverlay";
+import MathToolWidget from "../components/MathToolWidget";
 
 // ============================================================
 // MainLayout Component
@@ -72,6 +73,7 @@ export default function MainLayout() {
   const [showGraph, setShowGraph] = useState(false);
   const [showPeriodic, setShowPeriodic] = useState(false);
   const [showCurtain, setShowCurtain] = useState(false);
+  const [activeMathTools, setActiveMathTools] = useState([]);
 
   // (ย้าย useEffect ลงไปด้านล่างเพื่อให้รู้จัก remoteScreen และ userRole)
 
@@ -344,6 +346,11 @@ export default function MainLayout() {
             if (toolId === 'graph') setShowGraph(v => !v);
             if (toolId === 'periodic') setShowPeriodic(v => !v);
             if (toolId === 'curtain') setShowCurtain(v => !v);
+            // Math tools
+            const mathIds = ['protractor','full_protractor','ruler','set_square_45','set_square_60','compass','t_square','number_line','coord_grid','clock_face','fraction_circle','graph_paper','dice','spinner','l_square'];
+            if (mathIds.includes(toolId)) {
+              setActiveMathTools(prev => [...prev, { id: `${toolId}-${Date.now()}`, type: toolId }]);
+            }
           }}
           onPresent={() => setShowPresentation(true)}
         />
@@ -363,6 +370,7 @@ export default function MainLayout() {
           onRedo={drawingHook.handleRedo}
           onClear={handleClear}
           onInsertImage={fileHook.handleInsertImage}
+          onInsertVideo={fileHook.handleInsertVideo}
           userRole={userRole}
         />
       )}
@@ -592,6 +600,25 @@ export default function MainLayout() {
         onConfirm={fileHook.confirmNewBoard}
         onCancel={fileHook.cancelNewBoard}
       />
+
+      {/* Math Tool Widgets */}
+      {activeMathTools.map(mt => (
+        <MathToolWidget
+          key={mt.id}
+          toolId={mt.id}
+          toolType={mt.type}
+          onClose={(id) => setActiveMathTools(prev => prev.filter(t => t.id !== id))}
+          onDrawCircle={mt.type === 'compass' ? ({ cx, cy, radius }) => {
+            const strokeId = `circle-${Date.now()}`;
+            handleStrokeComplete({
+              id: strokeId, type: 'circle',
+              x: cx - radius, y: cy - radius,
+              width: radius * 2, height: radius * 2,
+              color: drawingHook.color, size: drawingHook.penSize,
+            });
+          } : undefined}
+        />
+      ))}
 
       {/* Presentation Mode */}
       {showPresentation && (
