@@ -1423,7 +1423,9 @@ const Canvas = forwardRef(function Canvas(
           zoom={zoom.current}
           panOffset={panOffset.current}
           userRole={userRole}
+          tool={tool}
           onUpdate={(id, changes) => onStrokeUpdate(id, changes)}
+          onDelete={(id) => onStrokeDelete?.(id)}
         />
       ))}
 

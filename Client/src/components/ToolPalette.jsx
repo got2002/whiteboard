@@ -168,7 +168,7 @@ function PenPreview({ penStyle, color, size }) {
 function ToolPalette({
     tool, color, penSize, penStyle,
     onToolChange, onPenStyleChange, onPenSizeChange,
-    onUndo, onRedo, onClear, onInsertImage,
+    onUndo, onRedo, onClear, onInsertImage, onInsertVideo,
     userRole,
 }) {
     const [showPenPopup, setShowPenPopup] = useState(false);
@@ -400,6 +400,14 @@ function ToolPalette({
                             <rect width="18" height="18" x="3" y="3" rx="2" ry="2" />
                             <circle cx="9" cy="9" r="2" />
                             <path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21" />
+                        </svg>
+                    </button>
+                )}
+                {onInsertVideo && (
+                    <button className="tp-btn" onClick={() => { onInsertVideo(); setShowPenPopup(false); }} title="แทรกวิดีโอ (.mp4)">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <rect width="18" height="14" x="3" y="5" rx="2" ry="2" />
+                            <polygon points="10 9 16 12 10 15 10 9" fill="currentColor" stroke="none" />
                         </svg>
                     </button>
                 )}

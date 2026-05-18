@@ -248,24 +248,45 @@ export function useFileOps({ pages, setPages, setCurrentPageIndex, canvasRef, cu
       const reader = new FileReader();
       reader.onload = (ev) => {
         const dataURL = ev.target.result;
-        const displayW = 640;
-        const displayH = 360;
-        const centerX = (window.innerWidth / 2) - (displayW / 2);
-        const centerY = (window.innerHeight / 2) - (displayH / 2);
-        const strokeId = `video-${Date.now()}`;
-        const stroke = {
-          id: strokeId, 
-          type: "video", 
-          url: dataURL,
-          x: centerX, 
-          y: centerY, 
-          width: displayW, 
-          height: displayH,
-          isPlaying: false,
-          currentTime: 0,
+
+        // Create a temporary video element to detect actual dimensions
+        const tempVideo = document.createElement("video");
+        tempVideo.preload = "metadata";
+        tempVideo.onloadedmetadata = () => {
+          const vw = tempVideo.videoWidth;
+          const vh = tempVideo.videoHeight;
+
+          // Scale to fit within maxDisplaySize while keeping aspect ratio
+          let displayW = vw, displayH = vh;
+          const maxDisplaySize = Math.min(500, window.innerWidth * 0.45, window.innerHeight * 0.45);
+          if (displayW > maxDisplaySize || displayH > maxDisplaySize) {
+            const scale = maxDisplaySize / Math.max(displayW, displayH);
+            displayW = Math.round(displayW * scale);
+            displayH = Math.round(displayH * scale);
+          }
+
+          const centerX = (window.innerWidth / 2) - (displayW / 2);
+          const centerY = (window.innerHeight / 2) - (displayH / 2);
+          const strokeId = `video-${Date.now()}`;
+          const stroke = {
+            id: strokeId,
+            type: "video",
+            url: dataURL,
+            x: centerX,
+            y: centerY,
+            width: displayW,
+            height: displayH,
+            isPlaying: false,
+            currentTime: 0,
+          };
+          handleStrokeComplete(stroke);
+          // Dispatch event so Canvas auto-selects the video (same as image)
+          window.dispatchEvent(new CustomEvent('image-inserted', { detail: { strokeId } }));
+
+          // Clean up
+          URL.revokeObjectURL(tempVideo.src);
         };
-        handleStrokeComplete(stroke);
-        window.dispatchEvent(new CustomEvent('video-inserted', { detail: { strokeId } }));
+        tempVideo.src = URL.createObjectURL(file);
       };
       reader.readAsDataURL(file);
     };
