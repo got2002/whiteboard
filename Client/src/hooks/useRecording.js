@@ -49,6 +49,9 @@ export function useRecording(canvasRef) {
   const stopRecording = () => {
     if (mediaRecorderRef.current && mediaRecorderRef.current.state !== "inactive") {
       mediaRecorderRef.current.stop();
+      if (mediaRecorderRef.current.stream) {
+        mediaRecorderRef.current.stream.getTracks().forEach(t => t.stop());
+      }
     }
   };
 
