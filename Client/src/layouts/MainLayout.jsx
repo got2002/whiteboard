@@ -45,6 +45,8 @@ import GraphWidget from "../components/GraphWidget";
 import PeriodicTableWidget from "../components/PeriodicTableWidget";
 import CurtainOverlay from "../components/CurtainOverlay";
 import MathToolWidget from "../components/MathToolWidget";
+import SketchpadWidget from "../components/SketchpadWidget";
+import MathFunctionWidget from "../components/MathFunctionWidget";
 
 // ============================================================
 // MainLayout Component
@@ -71,8 +73,10 @@ export default function MainLayout() {
   const [canvasVideos, setCanvasVideos] = useState([]);
   const [showPresentation, setShowPresentation] = useState(false);
   const [showGraph, setShowGraph] = useState(false);
+  const [showMathGrapher, setShowMathGrapher] = useState(false);
   const [showPeriodic, setShowPeriodic] = useState(false);
   const [showCurtain, setShowCurtain] = useState(false);
+  const [showSketchpad, setShowSketchpad] = useState(false);
   const [activeMathTools, setActiveMathTools] = useState([]);
 
   // (ย้าย useEffect ลงไปด้านล่างเพื่อให้รู้จัก remoteScreen และ userRole)
@@ -338,14 +342,16 @@ export default function MainLayout() {
           onTogglePermissionPanel={() => setShowPermissionPanel(v => !v)}
           onToggleOnScreen={(val) => setIsOnScreen(val)}
           showCalculator={showCalculator}
-          activeTools={{ calculator: showCalculator, spotlight: showSpotlight, table: canvasTables.length > 0, graph: showGraph, periodic: showPeriodic, curtain: showCurtain }}
+          activeTools={{ calculator: showCalculator, spotlight: showSpotlight, table: canvasTables.length > 0, graph: showGraph, math_grapher: showMathGrapher, periodic: showPeriodic, curtain: showCurtain, sketchpad: showSketchpad }}
           onToolBoxSelect={(toolId) => {
             if (toolId === 'calculator') setShowCalculator(v => !v);
             if (toolId === 'spotlight') setShowSpotlight(v => !v);
             if (toolId === 'table') setShowTablePicker(true);
             if (toolId === 'graph') setShowGraph(v => !v);
+            if (toolId === 'math_grapher') setShowMathGrapher(v => !v);
             if (toolId === 'periodic') setShowPeriodic(v => !v);
             if (toolId === 'curtain') setShowCurtain(v => !v);
+            if (toolId === 'sketchpad') setShowSketchpad(v => !v);
             // Math tools
             const mathIds = ['protractor','full_protractor','ruler','set_square_45','set_square_60','compass','t_square','number_line','coord_grid','clock_face','fraction_circle','graph_paper','dice','spinner','l_square'];
             if (mathIds.includes(toolId)) {
@@ -524,8 +530,17 @@ export default function MainLayout() {
       {showGraph && (
         <GraphWidget
           onClose={() => setShowGraph(false)}
-          onInsertToBoard={handleStrokeComplete}
-          onToolChange={drawingHook.handleToolChange}
+          onInsertToBoard={fileHook.insertMediaToBoard}
+          onToolChange={drawingHook.setTool}
+        />
+      )}
+
+      {/* Math Function Grapher Widget */}
+      {showMathGrapher && (
+        <MathFunctionWidget
+          onClose={() => setShowMathGrapher(false)}
+          onInsertToBoard={fileHook.insertMediaToBoard}
+          onToolChange={drawingHook.setTool}
         />
       )}
 
@@ -629,6 +644,9 @@ export default function MainLayout() {
           onClose={() => setShowPresentation(false)}
         />
       )}
+
+      {/* Sketchpad Widget */}
+      {showSketchpad && <SketchpadWidget onClose={() => setShowSketchpad(false)} />}
     </div>
 
   );

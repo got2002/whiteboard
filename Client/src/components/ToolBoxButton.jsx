@@ -109,7 +109,33 @@ const TOOLBOX_ITEMS = [
         ),
         category: "gadgets",
     },
+
+    {
+        id: "sketchpad",
+        label: "Sketchpad",
+        icon: (
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M12 19l7-7 3 3-7 7-3-3z" stroke="rgba(168,85,247,0.8)" />
+                <path d="M18 13l-1.5-7.5L2 2l3.5 14.5L13 18l5-5z" stroke="rgba(168,85,247,0.5)" />
+                <path d="M2 2l7.586 7.586" />
+                <circle cx="11" cy="11" r="2" fill="rgba(168,85,247,0.2)" stroke="none" />
+            </svg>
+        ),
+        category: "gadgets",
+    },
+
     // ── Math Tools ──
+    {
+        id: "math_grapher",
+        label: "Function Grapher",
+        icon: (
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                <polyline points="22 12 18 12 15 21 9 3 6 12 2 12" stroke="rgba(168,85,247,0.8)" />
+                <path d="M22 12h-4l-3 9L9 3l-3 9H2" stroke="currentColor" strokeOpacity="0.2" />
+            </svg>
+        ),
+        category: "math",
+    },
     {
         id: "protractor",
         label: "Protractor",

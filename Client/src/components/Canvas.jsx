@@ -18,6 +18,7 @@ import { SHAPE_TOOLS, drawShapeOnCtx } from "../utils/shapeRenderer";
 import { getStrokeBounds, hitTestHandle, findStrokeAt, HANDLE_SIZE, getCombinedBounds, getStrokesInLasso, isPointInPolygon } from "../utils/hitTestUtils";
 import ColorPickerModal from "./ColorPickerModal";
 import VideoWidget from "./VideoWidget";
+import Tesseract from "tesseract.js";
 
 // สีคงที่สำหรับ Split Board
 const SLOT_COLORS = ["#ef4444", "#3b82f6", "#22c55e", "#f97316", "#a855f7", "#06b6d4", "#ec4899", "#eab308", "#6b7280", "#000000"];
@@ -54,7 +55,11 @@ const Canvas = forwardRef(function Canvas(
   const hoveredHandleRef = useRef(null);
   const [activeLassoPath, setActiveLassoPath] = useState(null);
 
-
+  // Magic Pen (Gesture to Text)
+  const gestureStrokesRef = useRef([]);
+  const gestureTimeoutRef = useRef(null);
+  const [isOcrProcessing, setIsOcrProcessing] = useState(false);
+  const [ocrBoundingBox, setOcrBoundingBox] = useState(null); // For loading UI
 
   // Inline Text Editing
   const [inlineText, setInlineText] = useState(null); // { x, y, screenX, screenY, fontSize }
@@ -120,7 +125,45 @@ const Canvas = forwardRef(function Canvas(
     sCanvas.width = canvas.width;
     sCanvas.height = canvas.height;
 
-    canvas.captureStreamWithBg = (fps) => streamCanvasRef.current.captureStream(fps);
+    canvas.captureStreamWithBg = (fps) => {
+      let isRecordingBg = true;
+      const sCtx = streamCanvasRef.current.getContext("2d");
+      
+      const drawFrame = () => {
+        if (!isRecordingBg) return;
+        const w = streamCanvasRef.current.width;
+        const h = streamCanvasRef.current.height;
+        
+        // Draw white background
+        sCtx.fillStyle = "#ffffff";
+        sCtx.fillRect(0, 0, w, h);
+        
+        // Draw the background layer (finished strokes)
+        if (bgCanvasRef.current) {
+          sCtx.drawImage(bgCanvasRef.current, 0, 0);
+        }
+        
+        // Draw the foreground layer (active drawing stroke)
+        if (canvasRef.current) {
+          sCtx.drawImage(canvasRef.current, 0, 0);
+        }
+        
+        requestAnimationFrame(drawFrame);
+      };
+      
+      drawFrame();
+      
+      const stream = streamCanvasRef.current.captureStream(fps || 30);
+      
+      // Listen to track end to stop the loop
+      if (stream.getTracks().length > 0) {
+        stream.getTracks()[0].onended = () => {
+          isRecordingBg = false;
+        };
+      }
+      
+      return stream;
+    };
   }, []);
 
   // ============================================================
@@ -411,6 +454,87 @@ const Canvas = forwardRef(function Canvas(
     }
   }, [isSplitMode, onExitSplitMode]);
 
+  // Magic Pen / Gesture to Text logic
+  const processGestureToText = async () => {
+    const strokesToProcess = [...gestureStrokesRef.current];
+    if (strokesToProcess.length === 0) return;
+
+    // Reset gesture tracking immediately
+    gestureStrokesRef.current = [];
+    if (gestureTimeoutRef.current) clearTimeout(gestureTimeoutRef.current);
+
+    const bounds = getCombinedBounds(strokesToProcess);
+    if (!bounds || bounds.width < 10 || bounds.height < 10) return; // Too small
+
+    setIsOcrProcessing(true);
+    setOcrBoundingBox(bounds);
+
+    try {
+      // Create offscreen canvas to draw just these strokes
+      const tempCanvas = document.createElement("canvas");
+      // Add padding
+      const padding = 20;
+      tempCanvas.width = bounds.width + padding * 2;
+      tempCanvas.height = bounds.height + padding * 2;
+      const tCtx = tempCanvas.getContext("2d");
+      
+      // White background for better OCR
+      tCtx.fillStyle = "white";
+      tCtx.fillRect(0, 0, tempCanvas.width, tempCanvas.height);
+      
+      // Draw strokes offset by bounds.x, bounds.y
+      tCtx.translate(-bounds.x + padding, -bounds.y + padding);
+      
+      strokesToProcess.forEach(s => {
+        if (s.points && s.points.length > 1) {
+          tCtx.beginPath();
+          tCtx.moveTo(s.points[0].x, s.points[0].y);
+          for (let i = 1; i < s.points.length; i++) {
+            tCtx.lineTo(s.points[i].x, s.points[i].y);
+          }
+          tCtx.strokeStyle = "black"; // force black for OCR
+          tCtx.lineWidth = 3;
+          tCtx.lineCap = "round";
+          tCtx.lineJoin = "round";
+          tCtx.stroke();
+        }
+      });
+      
+      const dataUrl = tempCanvas.toDataURL("image/jpeg", 1.0);
+      
+      // Call Tesseract
+      const result = await Tesseract.recognize(dataUrl, 'tha+eng', {
+        logger: m => console.log("[OCR]", m)
+      });
+      
+      const text = result.data.text.trim();
+      
+      if (text) {
+        // Delete original strokes
+        strokesToProcess.forEach(s => {
+          onStrokeDelete?.(s.id);
+        });
+        
+        // Add text stroke
+        const newTextStroke = {
+          id: Date.now().toString(36) + Math.random().toString(36).substr(2),
+          type: "text",
+          text: text,
+          x: bounds.x,
+          y: bounds.y,
+          fontSize: 32, // default readable size
+          color: color || "#000",
+        };
+        onStrokeComplete(newTextStroke);
+      }
+    } catch (err) {
+      console.error("Gesture to Text failed:", err);
+    } finally {
+      setIsOcrProcessing(false);
+      setOcrBoundingBox(null);
+    }
+  };
+
   const handlePointerDown = (e) => {
     const pId = e.pointerId;
     activePointers.current.set(pId, { x: e.clientX, y: e.clientY });
@@ -540,8 +664,12 @@ const Canvas = forwardRef(function Canvas(
     }
 
     const isShapeTool = SHAPE_TOOLS.includes(tool);
-    const isPenLike = tool === "pen" || tool === "eraser" || tool === "highlighter";
+    const isPenLike = tool === "pen" || tool === "eraser" || tool === "highlighter" || tool === "ai_text";
     if (!isShapeTool && !isPenLike) return;
+
+    if (tool === "ai_text") {
+      if (gestureTimeoutRef.current) clearTimeout(gestureTimeoutRef.current);
+    }
 
     e.target.setPointerCapture(pId);
     const rect = canvasRef.current.getBoundingClientRect();
@@ -853,6 +981,15 @@ const Canvas = forwardRef(function Canvas(
     } else {
       if (drawState.currentStroke && drawState.currentStroke.points.length > 1) {
         onStrokeComplete(drawState.currentStroke);
+        
+        // Trigger Gesture to Text timeout if magic pen is used
+        if (tool === "ai_text") {
+           gestureStrokesRef.current.push(drawState.currentStroke);
+           if (gestureTimeoutRef.current) clearTimeout(gestureTimeoutRef.current);
+           gestureTimeoutRef.current = setTimeout(() => {
+              processGestureToText();
+           }, 1500); // 1.5 seconds after last stroke
+        }
       }
       drawState.currentStroke = null;
     }
@@ -1428,6 +1565,46 @@ const Canvas = forwardRef(function Canvas(
           onDelete={(id) => onStrokeDelete?.(id)}
         />
       ))}
+
+      {/* OCR Processing Indicator */}
+      {isOcrProcessing && ocrBoundingBox && (
+        <div style={{
+          position: "fixed",
+          left: (ocrBoundingBox.x * zoom.current + panOffset.current.x) + "px",
+          top: (ocrBoundingBox.y * zoom.current + panOffset.current.y - 35) + "px",
+          zIndex: 100,
+          background: "rgba(255, 255, 255, 0.95)",
+          backdropFilter: "blur(4px)",
+          padding: "6px 12px",
+          borderRadius: "20px",
+          boxShadow: "0 4px 15px rgba(0,0,0,0.1)",
+          display: "flex",
+          alignItems: "center",
+          gap: "8px",
+          border: "1px solid rgba(168, 85, 247, 0.3)",
+          color: "#a855f7",
+          fontSize: "13px",
+          fontWeight: "600",
+          pointerEvents: "none",
+          animation: "ocr-pulse 2s infinite"
+        }}>
+          <style>{`
+            @keyframes ocr-pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.7; } }
+            @keyframes ocr-spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+          `}</style>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ animation: "ocr-spin 1.5s linear infinite" }}>
+            <line x1="12" y1="2" x2="12" y2="6" />
+            <line x1="12" y1="18" x2="12" y2="22" />
+            <line x1="4.93" y1="4.93" x2="7.76" y2="7.76" />
+            <line x1="16.24" y1="16.24" x2="19.07" y2="19.07" />
+            <line x1="2" y1="12" x2="6" y2="12" />
+            <line x1="18" y1="12" x2="22" y2="12" />
+            <line x1="4.93" y1="19.07" x2="7.76" y2="16.24" />
+            <line x1="16.24" y1="7.76" x2="19.07" y2="4.93" />
+          </svg>
+          กำลังแปลงเป็นข้อความ...
+        </div>
+      )}
 
       {showTextColorModal && !!inlineText && (
         <ColorPickerModal
