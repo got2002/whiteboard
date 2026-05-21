@@ -61,6 +61,10 @@ const Canvas = forwardRef(function Canvas(
   const [isOcrProcessing, setIsOcrProcessing] = useState(false);
   const [ocrBoundingBox, setOcrBoundingBox] = useState(null); // For loading UI
 
+  // Voice to Text
+  const [isListeningVoice, setIsListeningVoice] = useState(false);
+  const [voicePos, setVoicePos] = useState(null);
+
   // Inline Text Editing
   const [inlineText, setInlineText] = useState(null); // { x, y, screenX, screenY, fontSize }
   const inlineTextRef = useRef(null);
@@ -568,6 +572,58 @@ const Canvas = forwardRef(function Canvas(
     }
 
     if (isViewer) return;
+
+    if (tool === "voice_text") {
+      const rect = canvasRef.current.getBoundingClientRect();
+      const canvasX = (e.clientX - rect.left - panOffset.current.x) / zoom.current;
+      const canvasY = (e.clientY - rect.top - panOffset.current.y) / zoom.current;
+
+      const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+      if (!SpeechRecognition) {
+        alert("เบราว์เซอร์ของคุณไม่รองรับการพิมพ์ด้วยเสียง (Voice to Text)");
+        return;
+      }
+
+      if (isListeningVoice) return; // Prevent multiple instances
+
+      const recognition = new SpeechRecognition();
+      recognition.lang = 'th-TH'; // Default to Thai
+      recognition.interimResults = false;
+      recognition.maxAlternatives = 1;
+
+      setIsListeningVoice(true);
+      setVoicePos({ x: canvasX, y: canvasY });
+
+      recognition.start();
+
+      recognition.onresult = (event) => {
+         const transcript = event.results[0][0].transcript;
+         if (transcript) {
+            const stroke = {
+               id: `text-${Date.now()}`,
+               type: "text",
+               text: transcript,
+               x: canvasX,
+               y: canvasY,
+               color: color || "#000",
+               fontSize: 32,
+               fontFamily: "Inter, sans-serif",
+            };
+            onStrokeComplete(stroke);
+         }
+      };
+
+      recognition.onerror = (event) => {
+         console.error("Speech recognition error", event.error);
+         setIsListeningVoice(false);
+      };
+
+      recognition.onend = () => {
+         setIsListeningVoice(false);
+      };
+
+      return;
+    }
 
     if (tool === "text") {
       const rect = canvasRef.current.getBoundingClientRect();
@@ -1565,6 +1621,37 @@ const Canvas = forwardRef(function Canvas(
           onDelete={(id) => onStrokeDelete?.(id)}
         />
       ))}
+
+      {/* Voice Listening Indicator */}
+      {isListeningVoice && voicePos && (
+        <div style={{
+          position: "fixed",
+          left: (voicePos.x * zoom.current + panOffset.current.x) + "px",
+          top: (voicePos.y * zoom.current + panOffset.current.y - 35) + "px",
+          zIndex: 100,
+          background: "rgba(255, 255, 255, 0.95)",
+          backdropFilter: "blur(4px)",
+          padding: "6px 12px",
+          borderRadius: "20px",
+          boxShadow: "0 4px 15px rgba(0,0,0,0.1)",
+          display: "flex",
+          alignItems: "center",
+          gap: "8px",
+          border: "1px solid rgba(59, 130, 246, 0.3)",
+          color: "#3b82f6",
+          fontSize: "13px",
+          fontWeight: "600",
+          pointerEvents: "none",
+          animation: "ocr-pulse 1.5s infinite"
+        }}>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z" />
+            <path d="M19 10v2a7 7 0 0 1-14 0v-2" />
+            <line x1="12" x2="12" y1="19" y2="22" />
+          </svg>
+          กำลังฟังเสียง...
+        </div>
+      )}
 
       {/* OCR Processing Indicator */}
       {isOcrProcessing && ocrBoundingBox && (
