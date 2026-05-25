@@ -47,6 +47,7 @@ import CurtainOverlay from "../components/CurtainOverlay";
 import MathToolWidget from "../components/MathToolWidget";
 import SketchpadWidget from "../components/SketchpadWidget";
 import MathFunctionWidget from "../components/MathFunctionWidget";
+import LockScreenOverlay from "../components/LockScreenOverlay";
 
 // ============================================================
 // MainLayout Component
@@ -77,6 +78,7 @@ export default function MainLayout() {
   const [showPeriodic, setShowPeriodic] = useState(false);
   const [showCurtain, setShowCurtain] = useState(false);
   const [showSketchpad, setShowSketchpad] = useState(false);
+  const [showLockScreen, setShowLockScreen] = useState(false);
   const [activeMathTools, setActiveMathTools] = useState([]);
 
   // (ย้าย useEffect ลงไปด้านล่างเพื่อให้รู้จัก remoteScreen และ userRole)
@@ -104,7 +106,7 @@ export default function MainLayout() {
     setHostTool: drawingHook.setHostTool,
     setHostPenStyle: drawingHook.setHostPenStyle,
   });
-  const { username, userRole, setUserRole, userColor, userCount, hostExists, showNameDialog, serverIp, waitingForAck } = userHook;
+  const { username, userRole, setUserRole, userColor, userCount, hostExists, showNameDialog, serverIp, waitingForAck, isLockedInitial } = userHook;
   const isActive = !showNameDialog;
 
   // ── อัปเดต userRole ให้กับ hooks ที่ต้องการ (ผ่าน callbacks) ──
@@ -342,7 +344,7 @@ export default function MainLayout() {
           onTogglePermissionPanel={() => setShowPermissionPanel(v => !v)}
           onToggleOnScreen={(val) => setIsOnScreen(val)}
           showCalculator={showCalculator}
-          activeTools={{ calculator: showCalculator, spotlight: showSpotlight, table: canvasTables.length > 0, graph: showGraph, math_grapher: showMathGrapher, periodic: showPeriodic, curtain: showCurtain, sketchpad: showSketchpad }}
+          activeTools={{ calculator: showCalculator, spotlight: showSpotlight, table: canvasTables.length > 0, graph: showGraph, math_grapher: showMathGrapher, periodic: showPeriodic, curtain: showCurtain, sketchpad: showSketchpad, lock_screen: showLockScreen }}
           onToolBoxSelect={(toolId) => {
             if (toolId === 'calculator') setShowCalculator(v => !v);
             if (toolId === 'spotlight') setShowSpotlight(v => !v);
@@ -352,6 +354,7 @@ export default function MainLayout() {
             if (toolId === 'periodic') setShowPeriodic(v => !v);
             if (toolId === 'curtain') setShowCurtain(v => !v);
             if (toolId === 'sketchpad') setShowSketchpad(v => !v);
+            if (toolId === 'lock_screen') setShowLockScreen(v => !v);
             // Math tools
             const mathIds = ['protractor','full_protractor','ruler','set_square_45','set_square_60','compass','t_square','number_line','coord_grid','clock_face','fraction_circle','graph_paper','dice','spinner','l_square'];
             if (mathIds.includes(toolId)) {
@@ -563,6 +566,15 @@ export default function MainLayout() {
       <CurtainOverlay
         isActive={showCurtain}
         onClose={() => setShowCurtain(false)}
+      />
+
+      {/* Lock Screen Overlay */}
+      <LockScreenOverlay
+        isActive={showLockScreen}
+        onClose={() => setShowLockScreen(false)}
+        socket={socket}
+        isHost={userRole === "host"}
+        initialLocked={isLockedInitial}
       />
 
       {showScreenshotOverlay && (

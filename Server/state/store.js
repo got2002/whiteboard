@@ -10,6 +10,7 @@ let hostTool = "pen";
 let hostPenStyle = "pen";
 
 let connectedUsers = 0;
+let isLocked = false;
 
 module.exports = {
   pages,
@@ -26,4 +27,7 @@ module.exports = {
 
   get connectedUsers() { return connectedUsers; },
   set connectedUsers(val) { connectedUsers = val; },
+
+  get isLocked() { return isLocked; },
+  set isLocked(val) { isLocked = val; },
 };

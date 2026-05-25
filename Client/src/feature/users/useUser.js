@@ -26,6 +26,7 @@ export function useUser({ setPages, setHostTool, setHostPenStyle }) {
   const [serverIp, setServerIp] = useState("localhost");
   const [showNameDialog, setShowNameDialog] = useState(true);
   const [waitingForAck, setWaitingForAck] = useState(false);
+  const [isLockedInitial, setIsLockedInitial] = useState(false);
 
   // refs
   const hasSubmittedRef = useRef(false);
@@ -47,15 +48,17 @@ export function useUser({ setPages, setHostTool, setHostPenStyle }) {
       socket.on("connect", doCheckHost);
     }
 
-    const handleHostExists = ({ exists }) => {
-      console.log("[useUser] host-exists:", exists);
+    const handleHostExists = ({ exists, serverIp: sip }) => {
+      console.log("[useUser] host-exists:", exists, "ip:", sip);
       setHostExists(exists);
+      if (sip) setServerIp(sip);
     };
-    const handleInitState = ({ pages: serverPages, hostTool: ht, hostPenStyle: hps, serverIp: sip }) => {
+    const handleInitState = ({ pages: serverPages, hostTool: ht, hostPenStyle: hps, serverIp: sip, isLocked }) => {
       if (serverPages && serverPages.length > 0) setPages(serverPages);
       if (ht) setHostTool(ht);
       if (hps) setHostPenStyle(hps);
       if (sip) setServerIp(sip);
+      if (isLocked !== undefined) setIsLockedInitial(isLocked);
     };
     const handleUserCount = (count) => setUserCount(count);
 
@@ -125,7 +128,7 @@ export function useUser({ setPages, setHostTool, setHostPenStyle }) {
   return {
     username, userRole, setUserRole, userColor, userCount,
     hostExists, showNameDialog, serverIp,
-    waitingForAck,
+    waitingForAck, isLockedInitial,
     handleNameSubmit,
   };
 }
