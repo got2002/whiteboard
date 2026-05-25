@@ -51,7 +51,11 @@ module.exports = (io, socket) => {
 
   // ── ตรวจสอบว่ามี host หรือยัง ──
   socket.on("check-host", () => {
-    socket.emit("host-exists", { exists: !!store.hostSocketId });
+    const { getLocalIP } = require("../utils/network");
+    socket.emit("host-exists", { 
+      exists: !!store.hostSocketId,
+      serverIp: getLocalIP()
+    });
   });
 
   // ── Host เปลี่ยนเครื่องมือ → sync ไปทุกคน ──

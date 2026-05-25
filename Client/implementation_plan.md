@@ -1,96 +1,98 @@
-# ProEdu1 Professional UX/UI Redesign
+# Lock Screen — ฟีเจอร์ล็อคหน้าจอสำหรับ ToolBox
 
-## Problem
-ปัจจุบัน UI ของ ProEdu1 ยัดทุกอย่างลงใน Toolbar ด้านล่างเส้นเดียว — เมนู, ปากกา, สี, พื้นหลัง, undo/redo, shape, ผู้ใช้, บันทึก — ทำให้ดูรก ไม่เป็นมืออาชีพ และใช้งานยากโดยเฉพาะบนมือถือ
+## สรุปฟีเจอร์
+Lock Screen คือฟีเจอร์ที่ **Host** สามารถล็อคหน้าจอ Whiteboard ได้ เมื่อเปิดใช้งาน จะมี Overlay เต็มจอปิดบังเนื้อหาทั้งหมด พร้อมแสดงข้อความ "หน้าจอถูกล็อค" และมี **PIN 4 หลัก** สำหรับปลดล็อค
 
-## Design Direction
-จัดวาง UI ใหม่แบบ **Miro / Figma-style** — แยกเครื่องมือตามหน้าที่ ใส่ตำแหน่งที่เหมาะสม
-
-> [!IMPORTANT]
-> การเปลี่ยนนี้จะแก้ไข **Toolbar.jsx** ใหม่ทั้งหมดและปรับ CSS อย่างมาก แต่ **ไม่เปลี่ยนแปลง logic/state ใน App.jsx** — props ทั้งหมดยังคงเดิม
-
-## Proposed Changes
-
-### Layout Overview
-
-```
-┌─────────────────────────────────────────────────────────┐
-│  [≡ Menu]  [◀ 1/5 ▶]  │  Title  │  [👥 3] [QR] [🔐]  │  ← HeaderBar
-├─────────────────────────────────────────────────────────┤
-│                                                         │
-│  ┌─────────────────────────────────────────┐            │
-│  │  ✏️ 🧹 T 📐 👆 🖐️ │ ↩️ ↪️ 🗑️ │  🔴 ⏺️  │           │  ← ToolPalette (center-top float)
-│  └─────────────────────────────────────────┘            │
-│                                                    ●    │
-│                                                    ●    │
-│              [ Canvas Area ]                       ●    │  ← ColorSidebar (right)
-│                                                    ●    │
-│                                                    ●    │
-│                                                    🎨   │
-│                                                         │
-│  ┌──────┐                                               │
-│  │ BG   │                                               │  ← BackgroundPicker (bottom-left, host only)
-│  └──────┘                                               │
-└─────────────────────────────────────────────────────────┘
-```
+### Use Case
+- ครู/Host ต้องการหยุดพักการสอน → ล็อคหน้าจอเพื่อไม่ให้นักเรียนเห็นเนื้อหาที่กำลังเตรียม
+- ป้องกันไม่ให้ผู้เข้าร่วมเห็นคำตอบ/เนื้อหาที่ยังไม่พร้อมแสดง
 
 ---
 
-### Component Structure
+## Open Questions
 
-#### [NEW] [HeaderBar.jsx](file:///c:/test_ai/ProEdu1/Client/src/components/HeaderBar.jsx)
-- ตำแหน่ง: Fixed top, full width
-- ซ้าย: Menu button (☰), Page navigation (◀ 1/5 ▶), Page panel toggle
-- กลาง: ชื่อโปรเจกต์ / App title
-- ขวา: User count badge, QR button, Permission button (host), Webcam toggle
+### Q1: Lock Screen ต้อง Sync ไปยัง Client (นักเรียน) ด้วยหรือไม่?
+- **Option A**: Lock เฉพาะหน้าจอ Host เท่านั้น (เหมือน Curtain — ทำงานแค่ฝั่ง Host)
+- **Option B**: Lock ทุกคน — เมื่อ Host ล็อค, Client ทุกคนจะเห็น Lock Screen ด้วย (ผ่าน Socket.io)
 
-#### [MODIFY] [Toolbar.jsx](file:///c:/test_ai/ProEdu1/Client/src/components/Toolbar.jsx) → Rename to **ToolPalette.jsx**
-- ตำแหน่ง: Fixed top-center, ด้านล่าง HeaderBar
-- เฉพาะเครื่องมือวาดเท่านั้น: Pen (popup), Eraser, Text, Shape (popup), Select, Pan, Laser
-- กลุ่ม Actions: Undo, Redo, Clear
-- กลุ่ม Recording: Record, Insert Image
-- ลดความยาวของ bar ลงอย่างมาก
+✅ **แนะนำ Option A** ก่อน เพราะทำง่ายกว่า สามารถเพิ่ม sync ทีหลังได้
 
-#### [NEW] [ColorSidebar.jsx](file:///c:/test_ai/ProEdu1/Client/src/components/ColorSidebar.jsx)
-- ตำแหน่ง: Fixed right, vertical, centered
-- Quick colors 12 สี (วงกลมเล็ก)
-- Color picker (เปิด modal)
-- Background picker (4 ปุ่ม) — host only
-- Pen size slider — โผล่เมื่อ hover/click
+### Q2: ต้องการ PIN หรือแค่ปุ่ม Unlock?
+- **Option A**: มี PIN 4 หลัก ที่ Host ตั้งก่อนล็อค → ต้องกรอก PIN ถูกจึงปลดได้
+- **Option B**: แค่กดปุ่ม "ปลดล็อค" โดยไม่มี PIN
 
-#### [MODIFY] [App.jsx](file:///c:/test_ai/ProEdu1/Client/src/App.jsx)
-- เปลี่ยนจากการ render `<Toolbar>` เป็น `<HeaderBar>` + `<ToolPalette>` + `<ColorSidebar>`
-- ย้าย UI elements (user-count, qr-toggle, permission-toggle-btn, focus-drawer-btn) เข้า HeaderBar
-- Props ยังคงเดิม — แค่กระจายไปให้คนละ component
+✅ **แนะนำ Option A** เพราะป้องกันการปลดล็อคโดยไม่ตั้งใจ
 
-#### [MODIFY] [index.css](file:///c:/test_ai/ProEdu1/Client/src/index.css)
-- เพิ่ม styles สำหรับ `.header-bar`, `.tool-palette`, `.color-sidebar`
-- ลบหรือปรับ styles เดิมของ `.toolbar`
-- ปรับ responsive breakpoints ให้รองรับ layout ใหม่
-- เพิ่ม animations สำหรับ sidebar expand/collapse
+---
 
-#### [MODIFY] [NameDialog.jsx](file:///c:/test_ai/ProEdu1/Client/src/components/NameDialog.jsx)
-- ปรับ design ให้ดูเป็น modern card — เพิ่ม role indicator icon, gradient accent
+## Proposed Changes
+
+### Component: ToolBoxButton
+**[MODIFY] ToolBoxButton.jsx**
+- เพิ่มรายการ `lock_screen` ใน `TOOLBOX_ITEMS` ใต้ category `"gadgets"`
+- ไอคอน: รูปแม่กุญแจ (padlock icon) ใน SVG
+- Label: `"Lock Screen"`
+
+---
+
+### Component: LockScreenOverlay (ใหม่)
+**[NEW] LockScreenOverlay.jsx**
+
+สร้าง Component ใหม่ที่ทำงานคล้าย CurtainOverlay:
+
+**States ภายใน Component:**
+- `pin` — PIN 4 หลักที่ Host ตั้ง (default: `""`)
+- `inputPin` — PIN ที่กำลังกรอกเพื่อปลดล็อค
+- `phase` — `"setup"` (ตั้ง PIN) → `"locked"` (หน้าจอล็อคแล้ว) → `"unlock"` (กำลังกรอก PIN)
+- `shake` — animation สั่นเมื่อกรอกผิด
+
+**UI Flow:**
+```
+[เปิด Lock Screen]
+    ↓
+[Phase: setup] — Dialog ตั้ง PIN 4 หลัก
+    ↓ (ยืนยัน)
+[Phase: locked] — Overlay เต็มจอ สีเข้ม + ไอคอนแม่กุญแจ + ข้อความ
+    ↓ (คลิกตรงไหนก็ได้ หรือกดปุ่ม "ปลดล็อค")
+[Phase: unlock] — ช่องกรอก PIN 4 ช่อง
+    ↓ (ถูกต้อง)
+[ปิด Overlay] — onClose()
+    ↓ (ผิด)
+[Shake animation] — กลับไป "unlock" ให้กรอกใหม่
+```
+
+**Design:**
+- Overlay: `position: fixed; inset: 0; z-index: 9999` (สูงกว่า Curtain)
+- พื้นหลัง: gradient สีเข้ม + animated particles/blur
+- ไอคอนแม่กุญแจขนาดใหญ่ตรงกลาง พร้อม pulse animation
+- ข้อความ "🔒 หน้าจอถูกล็อค"
+- เวลานาฬิกาแสดงเรียลไทม์
+- PIN input ใช้ 4 ช่อง input แยก (auto-focus ไปช่องถัดไป)
+- Shake animation เมื่อกรอก PIN ผิด
+
+---
+
+### Layout: MainLayout
+**[MODIFY] MainLayout.jsx**
+
+- เพิ่ม state: `showLockScreen`
+- เพิ่มใน `activeTools` และ `onToolBoxSelect`
+- Render `<LockScreenOverlay>`
+
+---
+
+### Styles
+**[MODIFY] index.css**
+
+เพิ่ม CSS ท้ายไฟล์สำหรับ lockscreen-* classes
 
 ---
 
 ## Verification Plan
 
-### Browser Testing
-1. Start dev server: `cd c:\test_ai\ProEdu1\Server && node server.js` then `cd c:\test_ai\ProEdu1\Client && npm run dev`
-2. Open browser at `http://localhost:5173`
-3. Verify:
-   - HeaderBar แสดงถูกต้องด้านบน (menu, pages, users)
-   - ToolPalette อยู่กลางด้านบน ใต้ HeaderBar
-   - ColorSidebar อยู่ด้านขวา
-   - Pen popup ยังทำงาน
-   - Shape popup ยังทำงาน
-   - สีเปลี่ยนได้
-   - Undo/Redo/Clear ทำงาน
-   - Page navigation ทำงาน
-   - Name dialog แสดงสวยงาม
-   - Viewer mode ซ่อน toolbar อย่างถูกต้อง
-   - Mobile responsiveness (resize browser)
-
-### Manual Verification (ผู้ใช้)
-- ผู้ใช้ทดสอบรัน dev server และตรวจสอบ UI ใหม่ในเบราว์เซอร์
+1. เปิดแอป → กด ToolBox → เห็น "Lock Screen" ใน category Gadgets
+2. กด Lock Screen → เห็น dialog ตั้ง PIN
+3. ตั้ง PIN 4 หลัก → หน้าจอล็อค (Overlay เต็มจอ สวยงาม)
+4. คลิกที่หน้าจอ → แสดงช่อง PIN
+5. กรอก PIN ผิด → Shake animation
+6. กรอก PIN ถูก → ปลดล็อค กลับสู่ Whiteboard
