@@ -48,6 +48,7 @@ import MathToolWidget from "../components/MathToolWidget";
 import SketchpadWidget from "../components/SketchpadWidget";
 import MathFunctionWidget from "../components/MathFunctionWidget";
 import LockScreenOverlay from "../components/LockScreenOverlay";
+import AiSolutionWidget from "../components/AiSolutionWidget";
 
 // ============================================================
 // MainLayout Component
@@ -79,6 +80,7 @@ export default function MainLayout() {
   const [showCurtain, setShowCurtain] = useState(false);
   const [showSketchpad, setShowSketchpad] = useState(false);
   const [showLockScreen, setShowLockScreen] = useState(false);
+  const [showAiSolution, setShowAiSolution] = useState(false);
   const [activeMathTools, setActiveMathTools] = useState([]);
 
   // (ย้าย useEffect ลงไปด้านล่างเพื่อให้รู้จัก remoteScreen และ userRole)
@@ -142,6 +144,22 @@ export default function MainLayout() {
   const handleClear = useCallback(() => {
     drawingHook.handleClear(currentPage.id);
   }, [drawingHook.handleClear, currentPage.id]);
+
+  const handleInsertAIText = useCallback((text) => {
+    const strokeId = `text-${Date.now()}-${Math.random().toString(36).substr(2, 5)}`;
+    // วางข้อความ AI ไว้ที่ (100, 100) ของหน้าจอ (ปรับตามความเหมาะสม)
+    const stroke = {
+      id: strokeId,
+      type: "text",
+      x: 100,
+      y: 100,
+      text: text,
+      color: drawingHook.color,
+      size: 24, // default size
+      font: "Inter",
+    };
+    handleStrokeComplete(stroke);
+  }, [handleStrokeComplete, drawingHook.color]);
 
 
 
@@ -362,6 +380,8 @@ export default function MainLayout() {
             }
           }}
           onPresent={() => setShowPresentation(true)}
+          showAI={showAiSolution}
+          onToggleAI={() => setShowAiSolution(v => !v)}
         />
       )}
 
@@ -533,7 +553,7 @@ export default function MainLayout() {
       {showGraph && (
         <GraphWidget
           onClose={() => setShowGraph(false)}
-          onInsertToBoard={fileHook.insertMediaToBoard}
+          onInsertToBoard={(stroke) => drawingHook.handleStrokeComplete(stroke, currentPage.id)}
           onToolChange={drawingHook.setTool}
         />
       )}
@@ -542,7 +562,7 @@ export default function MainLayout() {
       {showMathGrapher && (
         <MathFunctionWidget
           onClose={() => setShowMathGrapher(false)}
-          onInsertToBoard={fileHook.insertMediaToBoard}
+          onInsertToBoard={(stroke) => drawingHook.handleStrokeComplete(stroke, currentPage.id)}
           onToolChange={drawingHook.setTool}
         />
       )}
@@ -659,6 +679,15 @@ export default function MainLayout() {
 
       {/* Sketchpad Widget */}
       {showSketchpad && <SketchpadWidget onClose={() => setShowSketchpad(false)} />}
+
+      {/* AI Solution Widget */}
+      {showAiSolution && (
+        <AiSolutionWidget
+          onClose={() => setShowAiSolution(false)}
+          canvasRef={canvasRef}
+          onInsertText={handleInsertAIText}
+        />
+      )}
     </div>
 
   );

@@ -67,6 +67,9 @@ function HeaderBar({
     onToolBoxSelect,
     // Presentation
     onPresent,
+    // AI Solution
+    showAI,
+    onToggleAI,
 }) {
     const isHost = userRole === "host";
     const [showMainMenu, setShowMainMenu] = useState(false);
@@ -181,6 +184,21 @@ function HeaderBar({
                     onToolSelect={onToolBoxSelect}
                     activeTools={{ calculator: showCalculator }}
                 />
+
+                {/* AI Solution Button — host only */}
+                {isHost && (
+                    <>
+                        <div className="header-divider" />
+                        <button
+                            className={`header-btn ${showAI ? "header-btn-active" : ""}`}
+                            onClick={onToggleAI}
+                            title="ผู้ช่วย AI (สร้างเนื้อหา & แปลภาษา)"
+                            style={{ width: 'auto', padding: '0 10px', gap: '6px' }}
+                        >
+                            <span style={{ fontSize: '11px', whiteSpace: 'nowrap', fontWeight: '600' }}>ผู้ช่วย AI</span>
+                        </button>
+                    </>
+                )}
 
                 {/* Present Button — host only */}
                 {isHost && (

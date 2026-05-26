@@ -1,13 +1,22 @@
+require('dotenv').config({ path: require('path').join(__dirname, '..', '.env') });
+
 const express = require("express");
 const http = require("http");
+const cors = require("cors");
 const { Server } = require("socket.io");
 const socketHandler = require("./socket");
 const store = require("./state/store");
 const { getLocalIP } = require("./utils/network");
+const aiRoutes = require("./routes/ai");
 
 const app = express();
+app.use(cors());
+app.use(express.json({ limit: '10mb' }));
 const server = http.createServer(app);
 const io = new Server(server, { cors: { origin: "*" }, maxHttpBufferSize: 1e8 });
+
+// AI Solution routes
+app.use('/api/ai', aiRoutes);
 
 app.get("/api/status", (req, res) => {
   res.json({
