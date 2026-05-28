@@ -355,11 +355,26 @@ const TOOLBOX_ITEMS = [
         ),
         category: "math",
     },
+    {
+        id: "physics_lab",
+        label: "Physics Lab",
+        icon: (
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M9 3h6" />
+                <path d="M10 3v6l-4 8a1 1 0 001 1.5h10a1 1 0 001-1.5l-4-8V3" fill="rgba(59,130,246,0.15)" />
+                <circle cx="10" cy="15" r="1" fill="rgba(239,68,68,0.6)" stroke="none" />
+                <circle cx="13" cy="16" r="0.8" fill="rgba(34,197,94,0.6)" stroke="none" />
+                <circle cx="14" cy="14" r="0.6" fill="rgba(251,191,36,0.6)" stroke="none" />
+            </svg>
+        ),
+        category: "science",
+    },
 ];
 
 const CATEGORIES = [
     { id: "gadgets", label: "Gadgets" },
     { id: "math", label: "Math Tools" },
+    { id: "science", label: "🔬 Science" },
 ];
 
 export default function ToolBoxButton({ onToolSelect, activeTools = {} }) {

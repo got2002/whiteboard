@@ -49,6 +49,7 @@ import SketchpadWidget from "../components/SketchpadWidget";
 import MathFunctionWidget from "../components/MathFunctionWidget";
 import LockScreenOverlay from "../components/LockScreenOverlay";
 import AiSolutionWidget from "../components/AiSolutionWidget";
+import PhysicsLabWidget from "../components/PhysicsLabWidget";
 
 // ============================================================
 // MainLayout Component
@@ -82,6 +83,7 @@ export default function MainLayout() {
   const [showLockScreen, setShowLockScreen] = useState(false);
   const [showAiSolution, setShowAiSolution] = useState(false);
   const [activeMathTools, setActiveMathTools] = useState([]);
+  const [showPhysicsLab, setShowPhysicsLab] = useState(false);
 
   // (ย้าย useEffect ลงไปด้านล่างเพื่อให้รู้จัก remoteScreen และ userRole)
 
@@ -362,7 +364,7 @@ export default function MainLayout() {
           onTogglePermissionPanel={() => setShowPermissionPanel(v => !v)}
           onToggleOnScreen={(val) => setIsOnScreen(val)}
           showCalculator={showCalculator}
-          activeTools={{ calculator: showCalculator, spotlight: showSpotlight, table: canvasTables.length > 0, graph: showGraph, math_grapher: showMathGrapher, periodic: showPeriodic, curtain: showCurtain, sketchpad: showSketchpad, lock_screen: showLockScreen }}
+          activeTools={{ calculator: showCalculator, spotlight: showSpotlight, table: canvasTables.length > 0, graph: showGraph, math_grapher: showMathGrapher, periodic: showPeriodic, curtain: showCurtain, sketchpad: showSketchpad, lock_screen: showLockScreen, physics_lab: showPhysicsLab }}
           onToolBoxSelect={(toolId) => {
             if (toolId === 'calculator') setShowCalculator(v => !v);
             if (toolId === 'spotlight') setShowSpotlight(v => !v);
@@ -373,6 +375,7 @@ export default function MainLayout() {
             if (toolId === 'curtain') setShowCurtain(v => !v);
             if (toolId === 'sketchpad') setShowSketchpad(v => !v);
             if (toolId === 'lock_screen') setShowLockScreen(v => !v);
+            if (toolId === 'physics_lab') setShowPhysicsLab(v => !v);
             // Math tools
             const mathIds = ['protractor','full_protractor','ruler','set_square_45','set_square_60','compass','t_square','number_line','coord_grid','clock_face','fraction_circle','graph_paper','dice','spinner','l_square'];
             if (mathIds.includes(toolId)) {
@@ -655,13 +658,20 @@ export default function MainLayout() {
           toolId={mt.id}
           toolType={mt.type}
           onClose={(id) => setActiveMathTools(prev => prev.filter(t => t.id !== id))}
-          onDrawCircle={mt.type === 'compass' ? ({ cx, cy, radius }) => {
-            const strokeId = `circle-${Date.now()}`;
+          penColor={drawingHook.color}
+          penSize={drawingHook.penSize}
+          onDrawCircle={mt.type === 'compass' ? ({ cx, cy, radius, arcStart = 0, arcEnd = 360 }) => {
+            if (!canvasRef.current?.screenToCanvas) return;
+            const center = canvasRef.current.screenToCanvas(cx, cy);
+            const rCanvas = radius * center.scale;
+            const strokeId = `compass-${Date.now()}`;
+            // Create a shape stroke for the circle/arc
             handleStrokeComplete({
-              id: strokeId, type: 'circle',
-              x: cx - radius, y: cy - radius,
-              width: radius * 2, height: radius * 2,
+              id: strokeId, type: 'shape', shapeType: 'circle',
+              startX: center.x - rCanvas, startY: center.y - rCanvas,
+              endX: center.x + rCanvas, endY: center.y + rCanvas,
               color: drawingHook.color, size: drawingHook.penSize,
+              penStyle: drawingHook.penStyle,
             });
           } : undefined}
         />
@@ -688,6 +698,9 @@ export default function MainLayout() {
           onInsertText={handleInsertAIText}
         />
       )}
+
+      {/* Physics Lab Widget */}
+      {showPhysicsLab && <PhysicsLabWidget onClose={() => setShowPhysicsLab(false)} />}
     </div>
 
   );

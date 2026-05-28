@@ -108,17 +108,114 @@ function SetSquare60SVG({ w, h }) {
   );
 }
 
-function CompassSVG({ w, h }) {
-  const cx = w / 2, cy = h / 2;
-  const r = Math.min(w, h) / 2 - 10;
+function CompassSVG({ w, h, radius = 80, onRadiusChange, pencilColor = "#000", arcStart = 0, arcEnd = 360 }) {
+  const pivotX = w / 2, pivotY = 28;
+  const legLen = h - 50;
+  const maxRadius = w / 2 - 20;
+  const clampedR = Math.max(20, Math.min(radius, maxRadius));
+
+  // Needle tip (center point) — goes straight down
+  const needleX = pivotX - clampedR / 2;
+  const needleY = pivotY + legLen;
+
+  // Pencil tip — spread to the right
+  const pencilX = pivotX + clampedR / 2;
+  const pencilY = pivotY + legLen;
+
+  // Preview circle center at needle tip
+  const previewCx = needleX;
+  const previewCy = needleY;
+
+  // Arc path
+  const drawArc = arcEnd - arcStart < 360;
+  const aStartRad = (arcStart - 90) * Math.PI / 180;
+  const aEndRad = (arcEnd - 90) * Math.PI / 180;
+  const arcX1 = previewCx + clampedR * Math.cos(aStartRad);
+  const arcY1 = previewCy + clampedR * Math.sin(aStartRad);
+  const arcX2 = previewCx + clampedR * Math.cos(aEndRad);
+  const arcY2 = previewCy + clampedR * Math.sin(aEndRad);
+  const largeArc = (arcEnd - arcStart) > 180 ? 1 : 0;
+
+  // Drag handler for pencil tip
+  const handlePencilDown = (e) => {
+    e.stopPropagation();
+    e.preventDefault();
+    const startX = e.clientX;
+    const startR = clampedR;
+    const onMove = (ev) => {
+      const dx = ev.clientX - startX;
+      const newR = Math.max(20, Math.min(maxRadius, startR + dx));
+      if (onRadiusChange) onRadiusChange(Math.round(newR));
+    };
+    const onUp = () => { window.removeEventListener("pointermove", onMove); window.removeEventListener("pointerup", onUp); };
+    window.addEventListener("pointermove", onMove);
+    window.addEventListener("pointerup", onUp);
+  };
+
   return (
-    <svg width={w} height={h} style={{ display: "block" }}>
-      <circle cx={cx} cy={cy} r={r} fill="none" stroke="rgba(220,38,38,0.5)" strokeWidth="1.5" strokeDasharray="4 3" />
-      <line x1={cx} y1={cy - r - 6} x2={cx - 6} y2={cy} stroke="rgba(71,85,105,0.8)" strokeWidth="1.5" />
-      <line x1={cx} y1={cy - r - 6} x2={cx + 6} y2={cy} stroke="rgba(71,85,105,0.8)" strokeWidth="1.5" />
-      <circle cx={cx} cy={cy - r - 6} r={4} fill="none" stroke="rgba(71,85,105,0.7)" strokeWidth="1.5" />
-      <circle cx={cx} cy={cy} r={2} fill="#dc2626" />
-      <text x={cx + 10} y={cy + 4} fill="#991b1b" fontSize="9" fontWeight="600" fontFamily="monospace">r={Math.round(r)}</text>
+    <svg width={w} height={h} style={{ display: "block", overflow: "visible" }}>
+      {/* Preview circle/arc — dashed */}
+      {drawArc ? (
+        <path
+          d={`M${arcX1},${arcY1} A${clampedR},${clampedR} 0 ${largeArc},1 ${arcX2},${arcY2}`}
+          fill="none" stroke="rgba(220,38,38,0.35)" strokeWidth="1.5" strokeDasharray="6 4"
+        />
+      ) : (
+        <circle cx={previewCx} cy={previewCy} r={clampedR}
+          fill="none" stroke="rgba(220,38,38,0.25)" strokeWidth="1.5" strokeDasharray="6 4"
+        />
+      )}
+
+      {/* Radius line */}
+      <line x1={needleX} y1={needleY} x2={pencilX} y2={pencilY}
+        stroke="rgba(220,38,38,0.3)" strokeWidth="0.8" strokeDasharray="3 2" />
+
+      {/* Left leg — needle */}
+      <line x1={pivotX} y1={pivotY} x2={needleX} y2={needleY}
+        stroke="rgba(100,116,139,0.9)" strokeWidth="2.5" strokeLinecap="round" />
+      {/* Needle tip */}
+      <line x1={needleX} y1={needleY} x2={needleX} y2={needleY + 8}
+        stroke="rgba(71,85,105,0.9)" strokeWidth="1.5" strokeLinecap="round" />
+      <circle cx={needleX} cy={needleY + 8} r={1.5} fill="#dc2626" />
+
+      {/* Right leg — pencil */}
+      <line x1={pivotX} y1={pivotY} x2={pencilX} y2={pencilY}
+        stroke="rgba(100,116,139,0.9)" strokeWidth="2.5" strokeLinecap="round" />
+      {/* Pencil tip */}
+      <line x1={pencilX} y1={pencilY} x2={pencilX} y2={pencilY + 10}
+        stroke={pencilColor} strokeWidth="2" strokeLinecap="round" />
+      <line x1={pencilX - 3} y1={pencilY + 8} x2={pencilX + 3} y2={pencilY + 8}
+        stroke={pencilColor} strokeWidth="1" opacity="0.5" />
+
+      {/* Pivot hinge */}
+      <circle cx={pivotX} cy={pivotY} r={5} fill="rgba(71,85,105,0.15)" stroke="rgba(71,85,105,0.7)" strokeWidth="1.5" />
+      <circle cx={pivotX} cy={pivotY} r={2} fill="rgba(71,85,105,0.5)" />
+
+      {/* Hinge screw detail */}
+      <line x1={pivotX - 2} y1={pivotY} x2={pivotX + 2} y2={pivotY}
+        stroke="rgba(71,85,105,0.4)" strokeWidth="0.8" />
+
+      {/* Radius label */}
+      <rect x={(needleX + pencilX) / 2 - 22} y={needleY - 20} width={44} height={16} rx={3}
+        fill="rgba(30,30,40,0.85)" />
+      <text x={(needleX + pencilX) / 2} y={needleY - 9}
+        textAnchor="middle" fill="#f0f0f0" fontSize="9" fontWeight="600" fontFamily="monospace">
+        r={clampedR}
+      </text>
+
+      {/* Draggable pencil handle */}
+      <circle cx={pencilX} cy={pencilY} r={8}
+        fill="rgba(59,130,246,0.15)" stroke="rgba(59,130,246,0.6)" strokeWidth="1.5"
+        style={{ cursor: "ew-resize" }}
+        onPointerDown={handlePencilDown}
+      />
+
+      {/* Needle center mark */}
+      <circle cx={needleX} cy={needleY} r={3} fill="rgba(220,38,38,0.2)" stroke="rgba(220,38,38,0.6)" strokeWidth="1" />
+
+      {/* Center crosshair */}
+      <line x1={needleX - 6} y1={needleY} x2={needleX + 6} y2={needleY} stroke="rgba(220,38,38,0.3)" strokeWidth="0.5" />
+      <line x1={needleX} y1={needleY - 6} x2={needleX} y2={needleY + 6} stroke="rgba(220,38,38,0.3)" strokeWidth="0.5" />
     </svg>
   );
 }
@@ -336,7 +433,7 @@ const TOOL_DEFAULTS = {
   ruler:           { w: 400, h: 60,  label: "Ruler" },
   set_square_45:   { w: 240, h: 240, label: "Set Square 45°" },
   set_square_60:   { w: 260, h: 230, label: "Set Square 30-60°" },
-  compass:         { w: 200, h: 220, label: "Compass" },
+  compass:         { w: 300, h: 280, label: "Compass" },
   t_square:        { w: 60,  h: 400, label: "T-Square" },
   number_line:     { w: 500, h: 60,  label: "Number Line" },
   coord_grid:      { w: 300, h: 300, label: "Coordinate Grid" },
@@ -367,7 +464,7 @@ const TOOL_RENDERER = {
 };
 
 // ============================================================
-export default function MathToolWidget({ toolId, toolType, onClose, onDrawCircle }) {
+export default function MathToolWidget({ toolId, toolType, onClose, onDrawCircle, penColor = "#000", penSize = 3 }) {
   const def = TOOL_DEFAULTS[toolType] || TOOL_DEFAULTS.ruler;
   const [pos, setPos] = useState({ x: window.innerWidth / 2 - def.w / 2, y: window.innerHeight / 2 - def.h / 2 });
   const [size, setSize] = useState({ w: def.w, h: def.h });
@@ -380,6 +477,10 @@ export default function MathToolWidget({ toolId, toolType, onClose, onDrawCircle
   const [clockH, setClockH] = useState(10);
   const [clockM, setClockM] = useState(10);
   const [fractionDiv, setFractionDiv] = useState(4);
+  // Compass state
+  const [compassRadius, setCompassRadius] = useState(80);
+  const [compassArcStart, setCompassArcStart] = useState(0);
+  const [compassArcEnd, setCompassArcEnd] = useState(360);
 
   const containerRef = useRef(null);
   const dragRef = useRef(null);
@@ -431,7 +532,24 @@ export default function MathToolWidget({ toolId, toolType, onClose, onDrawCircle
   }, [rotation]);
 
   // Actions
-  const handleDrawCircle = (e) => { e.stopPropagation(); if (onDrawCircle) { const r = Math.min(size.w, size.h) / 2 - 10; onDrawCircle({ cx: pos.x + size.w / 2, cy: pos.y + size.h / 2, radius: r }); } };
+  const handleDrawCircle = (e) => {
+    e.stopPropagation();
+    if (!onDrawCircle) return;
+    // Needle is at pivotX - compassRadius/2 (relative to compass widget)
+    const needleScreenX = pos.x + size.w / 2 - compassRadius / 2;
+    const needleScreenY = pos.y + size.h - 50 + 28; // pivotY + legLen
+    onDrawCircle({ cx: needleScreenX, cy: needleScreenY, radius: compassRadius, arcStart: compassArcStart, arcEnd: compassArcEnd });
+  };
+  const handleDrawArc = (e) => {
+    e.stopPropagation();
+    if (!onDrawCircle) return;
+    const needleScreenX = pos.x + size.w / 2 - compassRadius / 2;
+    const needleScreenY = pos.y + size.h - 50 + 28;
+    // Draw a 90-degree arc by default, or the current arc setting
+    const aStart = compassArcEnd - compassArcStart < 360 ? compassArcStart : 0;
+    const aEnd = compassArcEnd - compassArcStart < 360 ? compassArcEnd : 90;
+    onDrawCircle({ cx: needleScreenX, cy: needleScreenY, radius: compassRadius, arcStart: aStart, arcEnd: aEnd });
+  };
   const rollDice = (e) => { e.stopPropagation(); setDiceValue(Math.ceil(Math.random() * 6)); };
   const spinWheel = (e) => { e.stopPropagation(); if (spinning) return; setSpinning(true); const target = spinnerAngle + 720 + Math.random() * 360; const start = performance.now(); const dur = 2000; const animate = (t) => { const p = Math.min(1, (t - start) / dur); const ease = 1 - Math.pow(1 - p, 3); setSpinnerAngle(spinnerAngle + (target - spinnerAngle) * ease); if (p < 1) requestAnimationFrame(animate); else setSpinning(false); }; requestAnimationFrame(animate); };
   const adjClock = (e, dh, dm) => { e.stopPropagation(); setClockH(h => (h + dh + 12) % 12 || 12); setClockM(m => (m + dm + 60) % 60); };
@@ -446,6 +564,13 @@ export default function MathToolWidget({ toolId, toolType, onClose, onDrawCircle
   if (toolType === "spinner") { extraProps.angle = spinnerAngle; extraProps.sections = 6; }
   if (toolType === "clock_face") { extraProps.hours = clockH; extraProps.minutes = clockM; }
   if (toolType === "fraction_circle") extraProps.divisions = fractionDiv;
+  if (toolType === "compass") {
+    extraProps.radius = compassRadius;
+    extraProps.onRadiusChange = setCompassRadius;
+    extraProps.pencilColor = penColor;
+    extraProps.arcStart = compassArcStart;
+    extraProps.arcEnd = compassArcEnd;
+  }
 
   const btnS = { background: "none", border: "none", cursor: "pointer", padding: "2px 4px", lineHeight: 1, fontSize: 12 };
 
@@ -472,7 +597,12 @@ export default function MathToolWidget({ toolId, toolType, onClose, onDrawCircle
         <span style={{ fontSize: 10, color: "#94a3b8", padding: "0 4px", userSelect: "none" }}>📐 {def.label}</span>
         <button onClick={(e) => { e.stopPropagation(); setRotation(r => r + 15); }} style={{ ...btnS, color: "#60a5fa" }} title="หมุน +15°">↻</button>
         <button onClick={(e) => { e.stopPropagation(); setRotation(r => r - 15); }} style={{ ...btnS, color: "#60a5fa" }} title="หมุน -15°">↺</button>
-        {toolType === "compass" && <button onClick={handleDrawCircle} style={{ ...btnS, color: "#22c55e" }} title="วาดวงกลม">⭕</button>}
+        {toolType === "compass" && <>
+          <button onClick={handleDrawCircle} style={{ ...btnS, color: "#22c55e" }} title="วาดวงกลมเต็มวง">⭕</button>
+          <button onClick={handleDrawArc} style={{ ...btnS, color: "#f59e0b" }} title="วาดส่วนโค้ง">◠</button>
+          <button onClick={(e) => { e.stopPropagation(); setCompassRadius(r => Math.max(20, r - 10)); }} style={{ ...btnS, color: "#60a5fa" }} title="ลดรัศมี">−</button>
+          <button onClick={(e) => { e.stopPropagation(); setCompassRadius(r => Math.min(300, r + 10)); }} style={{ ...btnS, color: "#60a5fa" }} title="เพิ่มรัศมี">+</button>
+        </>}
         {toolType === "dice" && <button onClick={rollDice} style={{ ...btnS, color: "#f59e0b" }} title="ทอยลูกเต๋า">🎲</button>}
         {toolType === "spinner" && <button onClick={spinWheel} style={{ ...btnS, color: "#a855f7" }} title="หมุนวงล้อ">🎡</button>}
         {toolType === "clock_face" && <>

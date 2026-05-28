@@ -355,6 +355,14 @@ const Canvas = forwardRef(function Canvas(
         };
         redrawAll();
       };
+      canvasRef.current.screenToCanvas = (screenX, screenY) => {
+        const rect = canvasRef.current.getBoundingClientRect();
+        return {
+          x: (screenX - rect.left - panOffset.current.x) / zoom.current,
+          y: (screenY - rect.top - panOffset.current.y) / zoom.current,
+          scale: 1 / zoom.current // To scale radius properly
+        };
+      };
     }
   }, [redrawAll]);
 
@@ -546,7 +554,7 @@ const Canvas = forwardRef(function Canvas(
     const isViewer = userRole === "viewer";
     const effectiveTool = isViewer || isSpacePressed ? "pan" : tool;
     const isExplicitPan = effectiveTool === "pan";
-    const isMultiTouchPan = activePointers.current.size >= 2;
+    const isMultiTouchPan = activePointers.current.size >= 2 && effectiveTool === "pan";
 
     if (isExplicitPan || isMultiTouchPan) {
       // Exit split mode when pan/zoom is attempted
@@ -780,7 +788,7 @@ const Canvas = forwardRef(function Canvas(
     const isViewer = userRole === "viewer";
     const effectiveTool = isViewer || isSpacePressed ? "pan" : tool;
     const isExplicitPan = effectiveTool === "pan";
-    const isMultiTouchPan = activePointers.current.size >= 2;
+    const isMultiTouchPan = activePointers.current.size >= 2 && effectiveTool === "pan";
 
     // Pan & Zoom
     if (isExplicitPan || isMultiTouchPan) {
