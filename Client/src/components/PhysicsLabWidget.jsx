@@ -34,9 +34,20 @@ const EXPERIMENTS = {
     { id: "prism", label: "ปริซึม", icon: "🌈" },
     { id: "snell", label: "กฎสเนลล์", icon: "↗️" },
   ],
-  wave: [{ id: "coming_soon", label: "เร็วๆ นี้", icon: "🔜" }],
-  force: [{ id: "coming_soon", label: "เร็วๆ นี้", icon: "🔜" }],
-  instrument: [{ id: "coming_soon", label: "เร็วๆ นี้", icon: "🔜" }],
+  wave: [
+    { id: "transverse", label: "คลื่นตามขวาง", icon: "〰️" },
+    { id: "standing", label: "คลื่นนิ่ง", icon: "🔗" },
+    { id: "interference", label: "การแทรกสอด", icon: "🌊" },
+  ],
+  force: [
+    { id: "inclined_plane", label: "พื้นเอียง", icon: "📐" },
+    { id: "pulley", label: "รอก (Atwood)", icon: "⚙️" },
+    { id: "seesaw", label: "คานสมดุล", icon: "⚖️" },
+  ],
+  instrument: [
+    { id: "vernier", label: "เวอร์เนียร์คาลิปเปอร์", icon: "📏" },
+    { id: "micrometer", label: "ไมโครมิเตอร์", icon: "🗜️" },
+  ],
 };
 
 const DEFAULT_PARAMS = {
@@ -49,6 +60,14 @@ const DEFAULT_PARAMS = {
   lens: { focalLength: 80, objectDist: 180, lensType: 1 },
   prism: { prismAngle: 60, incidentAngle: 45, refIndex: 1.52 },
   snell: { n1: 1.0, n2: 1.5, incidentAngle: 30 },
+  transverse: { amplitude: 40, frequency: 1.5, wavelength: 120 },
+  standing: { amplitude: 35, length: 200, n: 3 },
+  interference: { frequency: 1.5, separation: 100, wavelength: 40 },
+  inclined_plane: { angle: 30, mass: 5, friction: 0.2, gravity: 9.8 },
+  pulley: { m1: 5, m2: 3, gravity: 9.8 },
+  seesaw: { m1: 50, d1: 2, m2: 25, d2: 4 },
+  vernier: { length: 12.3 },
+  micrometer: { length: 5.42 },
 };
 
 const SLIDER_CONFIG = {
@@ -97,6 +116,43 @@ const SLIDER_CONFIG = {
     { key: "n1", label: "ดัชนีหักเห n₁", min: 1.0, max: 2.5, step: 0.05, unit: "" },
     { key: "n2", label: "ดัชนีหักเห n₂", min: 1.0, max: 2.5, step: 0.05, unit: "" },
     { key: "incidentAngle", label: "มุมตกกระทบ (θ₁)", min: 0, max: 89, step: 1, unit: "°" },
+  ],
+  transverse: [
+    { key: "amplitude", label: "แอมพลิจูด (A)", min: 10, max: 80, step: 1, unit: "px" },
+    { key: "frequency", label: "ความถี่ (f)", min: 0.1, max: 5, step: 0.1, unit: "Hz" },
+    { key: "wavelength", label: "ความยาวคลื่น (λ)", min: 50, max: 300, step: 5, unit: "px" },
+  ],
+  standing: [
+    { key: "amplitude", label: "แอมพลิจูด (A)", min: 10, max: 80, step: 1, unit: "px" },
+    { key: "length", label: "ความยาวเชือก (L)", min: 100, max: 400, step: 10, unit: "px" },
+    { key: "n", label: "ฮาร์มอนิก (n)", min: 1, max: 8, step: 1, unit: "" },
+  ],
+  interference: [
+    { key: "frequency", label: "ความถี่ (f)", min: 0.5, max: 5, step: 0.1, unit: "Hz" },
+    { key: "separation", label: "ระยะห่างแหล่ง (d)", min: 20, max: 200, step: 5, unit: "px" },
+    { key: "wavelength", label: "ความยาวคลื่น (λ)", min: 20, max: 100, step: 2, unit: "px" },
+  ],
+  inclined_plane: [
+    { key: "angle", label: "มุมเอียง (θ)", min: 0, max: 60, step: 1, unit: "°" },
+    { key: "mass", label: "มวล (m)", min: 1, max: 20, step: 1, unit: "kg" },
+    { key: "friction", label: "สัมประสิทธิ์ (μ)", min: 0, max: 0.8, step: 0.05, unit: "" },
+  ],
+  pulley: [
+    { key: "m1", label: "มวล m₁", min: 1, max: 20, step: 1, unit: "kg" },
+    { key: "m2", label: "มวล m₂", min: 1, max: 20, step: 1, unit: "kg" },
+    { key: "gravity", label: "แรงโน้มถ่วง (g)", min: 1, max: 25, step: 0.1, unit: "m/s²" },
+  ],
+  seesaw: [
+    { key: "m1", label: "มวลซ้าย (m₁)", min: 10, max: 100, step: 5, unit: "kg" },
+    { key: "d1", label: "ระยะซ้าย (d₁)", min: 1, max: 5, step: 0.5, unit: "m" },
+    { key: "m2", label: "มวลขวา (m₂)", min: 10, max: 100, step: 5, unit: "kg" },
+    { key: "d2", label: "ระยะขวา (d₂)", min: 1, max: 5, step: 0.5, unit: "m" },
+  ],
+  vernier: [
+    { key: "length", label: "ขนาดวัตถุ (L)", min: 0, max: 40, step: 0.1, unit: "mm" },
+  ],
+  micrometer: [
+    { key: "length", label: "ขนาดวัตถุ (L)", min: 0, max: 15, step: 0.01, unit: "mm" },
   ],
 };
 
@@ -978,6 +1034,835 @@ function renderSnellLaw(ctx, w, h, sim, params) {
 }
 
 // ============================================================
+// Phase 3: Wave Render Functions
+// ============================================================
+function renderTransverseWave(ctx, w, h, sim, params) {
+  const { amplitude: A, frequency: f, wavelength: lambda } = params;
+  const cy = h / 2;
+  const k = 2 * Math.PI / lambda;
+  const omega = 2 * Math.PI * f;
+  
+  // Center axis
+  ctx.strokeStyle = "rgba(148,163,184,0.3)"; ctx.lineWidth = 1; ctx.setLineDash([5, 5]);
+  ctx.beginPath(); ctx.moveTo(0, cy); ctx.lineTo(w, cy); ctx.stroke();
+  ctx.setLineDash([]);
+
+  // Draw wave
+  ctx.strokeStyle = "#3b82f6"; ctx.lineWidth = 3; ctx.lineJoin = "round";
+  ctx.beginPath();
+  for (let x = 0; x <= w; x += 2) {
+    const y = cy - A * Math.sin(k * x - omega * sim.t);
+    if (x === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+  }
+  ctx.stroke();
+
+  // Draw some particles
+  ctx.fillStyle = "#fbbf24";
+  for (let i = 1; i <= 5; i++) {
+    const px = i * (w / 6);
+    const py = cy - A * Math.sin(k * px - omega * sim.t);
+    ctx.beginPath(); ctx.arc(px, py, 5, 0, Math.PI * 2); ctx.fill();
+    ctx.strokeStyle = "rgba(251,191,36,0.4)";
+    ctx.beginPath(); ctx.moveTo(px, cy); ctx.lineTo(px, py); ctx.stroke();
+  }
+
+  // Wavelength marker
+  const startX = 50 + ((omega * sim.t / k) % lambda);
+  const endX = startX + lambda;
+  if (endX < w) {
+    ctx.strokeStyle = "rgba(34,197,94,0.6)"; ctx.lineWidth = 1.5;
+    ctx.beginPath(); ctx.moveTo(startX, cy - A - 15); ctx.lineTo(endX, cy - A - 15); ctx.stroke();
+    drawArrow(ctx, startX + 15, cy - A - 15, startX, cy - A - 15, "rgba(34,197,94,0.6)", 1.5);
+    drawArrow(ctx, endX - 15, cy - A - 15, endX, cy - A - 15, "rgba(34,197,94,0.6)", 1.5);
+    ctx.fillStyle = "#22c55e"; ctx.font = "10px 'Inter',sans-serif"; ctx.textAlign = "center";
+    ctx.fillText(`λ = ${lambda}px`, (startX + endX) / 2, cy - A - 20);
+    ctx.textAlign = "start";
+  }
+
+  const v = f * lambda;
+  const T = 1 / f;
+  return { v: v.toFixed(1), T: T.toFixed(2), k: k.toFixed(3), omega: omega.toFixed(1) };
+}
+
+function renderStandingWave(ctx, w, h, sim, params) {
+  const { amplitude: A, length: L, n } = params;
+  const cx = w / 2, cy = h / 2;
+  const startX = cx - L / 2;
+  const endX = cx + L / 2;
+  const lambda = 2 * L / n;
+  const k = 2 * Math.PI / lambda;
+  const v = 200; // arbitrary wave speed
+  const f = v / lambda;
+  const omega = 2 * Math.PI * f;
+
+  // Supports
+  ctx.fillStyle = "#64748b";
+  ctx.fillRect(startX - 10, cy - 30, 10, 60);
+  ctx.fillRect(endX, cy - 30, 10, 60);
+
+  // Center axis
+  ctx.strokeStyle = "rgba(148,163,184,0.2)"; ctx.lineWidth = 1; ctx.setLineDash([5, 5]);
+  ctx.beginPath(); ctx.moveTo(startX, cy); ctx.lineTo(endX, cy); ctx.stroke();
+  ctx.setLineDash([]);
+
+  // Envelope (ghost waves)
+  ctx.strokeStyle = "rgba(168,85,247,0.15)"; ctx.lineWidth = 1;
+  ctx.beginPath();
+  for (let x = startX; x <= endX; x += 2) {
+    const y = cy - A * Math.sin(k * (x - startX));
+    if (x === startX) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+  }
+  ctx.stroke();
+  ctx.beginPath();
+  for (let x = startX; x <= endX; x += 2) {
+    const y = cy + A * Math.sin(k * (x - startX));
+    if (x === startX) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+  }
+  ctx.stroke();
+
+  // Current wave
+  ctx.strokeStyle = "#a78bfa"; ctx.lineWidth = 3; ctx.lineJoin = "round";
+  ctx.beginPath();
+  for (let x = startX; x <= endX; x += 2) {
+    const y = cy - A * Math.sin(k * (x - startX)) * Math.cos(omega * sim.t);
+    if (x === startX) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+  }
+  ctx.stroke();
+
+  // Nodes and Antinodes
+  ctx.fillStyle = "#fbbf24";
+  for (let i = 0; i <= n; i++) {
+    const nx = startX + i * (L / n);
+    ctx.beginPath(); ctx.arc(nx, cy, 4, 0, Math.PI * 2); ctx.fill(); // Nodes
+    if (i < n) {
+      const ax = startX + (i + 0.5) * (L / n);
+      ctx.fillStyle = "rgba(34,197,94,0.6)";
+      ctx.beginPath(); ctx.arc(ax, cy, 3, 0, Math.PI * 2); ctx.fill(); // Antinodes
+      ctx.fillStyle = "#fbbf24";
+    }
+  }
+
+  return { lambda: lambda.toFixed(1), f: f.toFixed(2), nodes: n + 1, antinodes: n };
+}
+
+function renderInterference(ctx, w, h, sim, params) {
+  const { frequency: f, separation: d, wavelength: lambda } = params;
+  const cx = w / 2, cy = h / 2;
+  const s1 = { x: cx - d / 2, y: cy };
+  const s2 = { x: cx + d / 2, y: cy };
+  const v = f * lambda;
+  
+  const maxR = Math.max(w, h);
+  
+  const drawRings = (source, color) => {
+    ctx.strokeStyle = color;
+    ctx.lineWidth = 2;
+    const maxDist = v * sim.t;
+    let r = maxDist % lambda;
+    while (r < maxR) {
+      if (r > 0) {
+        const alpha = Math.max(0, 1 - r / (maxR * 0.8));
+        ctx.globalAlpha = alpha;
+        ctx.beginPath(); ctx.arc(source.x, source.y, r, 0, Math.PI * 2); ctx.stroke();
+      }
+      r += lambda;
+    }
+    ctx.globalAlpha = 1;
+  };
+
+  // Draw source 1
+  drawRings(s1, "rgba(59,130,246,0.6)");
+  // Draw source 2
+  drawRings(s2, "rgba(239,68,68,0.6)");
+
+  // Source markers
+  ctx.fillStyle = "#3b82f6"; ctx.beginPath(); ctx.arc(s1.x, s1.y, 4, 0, Math.PI * 2); ctx.fill();
+  ctx.fillStyle = "#ef4444"; ctx.beginPath(); ctx.arc(s2.x, s2.y, 4, 0, Math.PI * 2); ctx.fill();
+  ctx.fillStyle = "#fff"; ctx.font = "9px 'Inter',sans-serif";
+  ctx.fillText("S₁", s1.x - 12, s1.y - 8);
+  ctx.fillText("S₂", s2.x + 4, s2.y - 8);
+
+  ctx.fillStyle = "#fbbf24";
+  ctx.beginPath(); ctx.arc(cx, cy, 3, 0, Math.PI * 2); ctx.fill();
+  ctx.fillText("P₀", cx - 4, cy + 12);
+
+  return { d, lambda, v: v.toFixed(1), f: f.toFixed(1) };
+}
+
+// ============================================================
+// Phase 4: Force Render Functions
+// ============================================================
+function renderInclinedPlane(ctx, w, h, sim, params) {
+  const { angle, mass, friction, gravity } = params;
+  const theta = angle * Math.PI / 180;
+  
+  const originX = w * 0.75;
+  const originY = h * 0.8;
+  const planeLength = w * 0.6;
+  const topX = originX - planeLength * Math.cos(theta);
+  const topY = originY - planeLength * Math.sin(theta);
+  
+  drawGround(ctx, w, originY);
+  
+  ctx.fillStyle = "rgba(100,116,139,0.3)";
+  ctx.strokeStyle = "rgba(148,163,184,0.6)";
+  ctx.lineWidth = 2;
+  ctx.beginPath(); ctx.moveTo(originX, originY); ctx.lineTo(topX, topY); ctx.lineTo(topX, originY); ctx.closePath();
+  ctx.fill(); ctx.stroke();
+
+  if (angle > 5) {
+    ctx.strokeStyle = "#fbbf24"; ctx.lineWidth = 1.5;
+    ctx.beginPath(); ctx.arc(originX, originY, 40, Math.PI, Math.PI + theta); ctx.stroke();
+    ctx.fillStyle = "#fbbf24"; ctx.font = "11px 'Inter',sans-serif";
+    ctx.fillText(`${angle}°`, originX - 50, originY - 10);
+  }
+
+  const bw = 30 + mass;
+  const bh = 20 + mass / 2;
+  
+  const W = mass * gravity;
+  const W_x = W * Math.sin(theta);
+  const W_y = W * Math.cos(theta);
+  const N = W_y;
+  let maxFriction = friction * N;
+  
+  let a = 0;
+  let F_fric = 0;
+  if (W_x > maxFriction) {
+    a = (W_x - maxFriction) / mass;
+    F_fric = maxFriction;
+  } else {
+    F_fric = W_x;
+  }
+  
+  const displacement = 0.5 * a * sim.t * sim.t;
+  const maxDisplacement = planeLength - bw;
+  
+  let currentD = displacement;
+  if (currentD >= maxDisplacement) {
+    currentD = maxDisplacement;
+    sim.hitBottom = true;
+  } else {
+    sim.hitBottom = false;
+  }
+
+  const blockCenterX = topX + (bw/2 + currentD) * Math.cos(theta) + (bh/2) * Math.sin(theta);
+  const blockCenterY = topY + (bw/2 + currentD) * Math.sin(theta) - (bh/2) * Math.cos(theta);
+  
+  ctx.save();
+  ctx.translate(blockCenterX, blockCenterY);
+  ctx.rotate(theta);
+
+  ctx.fillStyle = "#f97316";
+  ctx.shadowColor = "rgba(0,0,0,0.3)"; ctx.shadowBlur = 5; ctx.shadowOffsetY = 2;
+  ctx.fillRect(-bw/2, -bh/2, bw, bh);
+  ctx.shadowColor = "transparent";
+  ctx.strokeStyle = "rgba(255,255,255,0.2)"; ctx.lineWidth = 1;
+  ctx.strokeRect(-bw/2, -bh/2, bw, bh);
+  ctx.fillStyle = "#fff"; ctx.font = "bold 10px 'Inter',monospace"; ctx.textAlign = "center";
+  ctx.fillText(`${mass}kg`, 0, 4);
+
+  ctx.rotate(-theta);
+  
+  drawArrow(ctx, 0, 0, 0, W * 2, "#ef4444", 2);
+  ctx.fillStyle = "#ef4444"; ctx.fillText("mg", 15, W * 2);
+  
+  const nx = N * 2 * Math.sin(theta);
+  const ny = -N * 2 * Math.cos(theta);
+  drawArrow(ctx, 0, 0, nx, ny, "#3b82f6", 2);
+  ctx.fillStyle = "#3b82f6"; ctx.fillText("N", nx - 10, ny - 5);
+
+  if (F_fric > 0.1) {
+    const fx = -F_fric * 2 * Math.cos(theta);
+    const fy = -F_fric * 2 * Math.sin(theta);
+    drawArrow(ctx, 0, 0, fx, fy, "#22c55e", 2);
+    ctx.fillStyle = "#22c55e"; ctx.fillText("f", fx - 10, fy - 5);
+  }
+  
+  ctx.restore();
+  
+  return { a, N, f: F_fric, v: a * sim.t };
+}
+
+function renderPulley(ctx, w, h, sim, params) {
+  const { m1, m2, gravity } = params;
+  const cx = w / 2;
+  const cy = 60;
+  const r = 30;
+  
+  const totalM = m1 + m2;
+  const a = ((m2 - m1) * gravity) / totalM;
+  const T = (2 * m1 * m2 * gravity) / totalM;
+  
+  const d = 0.5 * a * sim.t * sim.t;
+  const maxD = h - cy - 80;
+  let currentD = d;
+  if (Math.abs(currentD) > maxD) {
+    currentD = Math.sign(currentD) * maxD;
+    sim.hitBottom = true;
+  } else {
+    sim.hitBottom = false;
+  }
+
+  const y1 = cy + 100 - currentD;
+  const y2 = cy + 100 + currentD;
+  
+  const ceilGrad = ctx.createLinearGradient(0, 0, 0, cy - 40);
+  ceilGrad.addColorStop(0, "rgba(71,85,105,0.2)"); ceilGrad.addColorStop(1, "rgba(71,85,105,0.05)");
+  ctx.fillStyle = ceilGrad; ctx.fillRect(0, 0, w, cy - 40);
+  ctx.fillStyle = "rgba(71,85,105,0.5)"; ctx.fillRect(cx - 30, cy - 40, 60, 10);
+  
+  ctx.strokeStyle = "#94a3b8"; ctx.lineWidth = 4;
+  ctx.beginPath(); ctx.moveTo(cx, cy - 30); ctx.lineTo(cx, cy); ctx.stroke();
+  
+  ctx.strokeStyle = "#e2e8f0"; ctx.lineWidth = 2;
+  ctx.beginPath(); ctx.moveTo(cx - r, cy); ctx.lineTo(cx - r, y1); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(cx + r, cy); ctx.lineTo(cx + r, y2); ctx.stroke();
+  
+  ctx.fillStyle = "#475569";
+  ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI * 2); ctx.fill();
+  ctx.strokeStyle = "#1e293b"; ctx.lineWidth = 3;
+  ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI * 2); ctx.stroke();
+  
+  const angle = currentD / r;
+  ctx.strokeStyle = "rgba(255,255,255,0.3)"; ctx.lineWidth = 2;
+  for(let i=0; i<4; i++){
+    const ang = angle + i * Math.PI/2;
+    ctx.beginPath(); ctx.moveTo(cx, cy); ctx.lineTo(cx + (r-4)*Math.cos(ang), cy + (r-4)*Math.sin(ang)); ctx.stroke();
+  }
+  ctx.fillStyle = "#cbd5e1"; ctx.beginPath(); ctx.arc(cx, cy, 4, 0, Math.PI*2); ctx.fill();
+  
+  const drawMass = (x, y, m, color, label) => {
+    const s = 25 + m;
+    ctx.fillStyle = color;
+    ctx.shadowColor = "rgba(0,0,0,0.3)"; ctx.shadowBlur = 6; ctx.shadowOffsetY = 3;
+    ctx.fillRect(x - s/2, y, s, s);
+    ctx.shadowColor = "transparent";
+    ctx.strokeStyle = "rgba(255,255,255,0.2)"; ctx.lineWidth = 1;
+    ctx.strokeRect(x - s/2, y, s, s);
+    ctx.fillStyle = "#fff"; ctx.font = "bold 10px 'Inter',sans-serif"; ctx.textAlign = "center";
+    ctx.fillText(`${m}kg`, x, y + s/2 + 4);
+    
+    drawArrow(ctx, x, y, x, y - Math.min(60, T * 2), "#22c55e", 2);
+    const W = m * gravity;
+    drawArrow(ctx, x, y + s, x, y + s + Math.min(80, W * 2), "#ef4444", 2);
+  };
+  
+  drawMass(cx - r, y1, m1, "#3b82f6", "m1");
+  drawMass(cx + r, y2, m2, "#f97316", "m2");
+
+  return { a: Math.abs(a), T, v: Math.abs(a * sim.t) };
+}
+
+function renderSeesaw(ctx, w, h, sim, params) {
+  const { m1, d1, m2, d2 } = params;
+  const gravity = 9.8;
+  const cx = w / 2;
+  const cy = h * 0.75;
+  const scale = 30;
+  
+  const t1 = m1 * gravity * d1;
+  const t2 = m2 * gravity * d2;
+  const netTorque = t1 - t2;
+  
+  const I = m1 * d1 * d1 + m2 * d2 * d2;
+  const alpha = netTorque / I;
+  
+  let currentTheta = 0;
+  if (sim.t > 0) {
+    // In Canvas 2D, negative rotation is Counter-Clockwise. So we negate the physics angle.
+    currentTheta = -0.5 * alpha * sim.t * sim.t;
+    // Prevent clipping into the ground (ground is 40px below pivot, beam is 180px long)
+    // maxTheta = asin(40/180) ≈ 12.8 degrees
+    const maxTheta = 12.5 * Math.PI / 180;
+    if (Math.abs(currentTheta) > maxTheta) {
+      currentTheta = Math.sign(currentTheta) * maxTheta;
+      sim.hitBottom = true;
+    } else {
+      sim.hitBottom = false;
+    }
+  }
+
+  ctx.fillStyle = "#64748b";
+  ctx.beginPath();
+  ctx.moveTo(cx, cy);
+  ctx.lineTo(cx - 20, cy + 40);
+  ctx.lineTo(cx + 20, cy + 40);
+  ctx.fill();
+  
+  drawGround(ctx, w, cy + 40);
+
+  ctx.save();
+  ctx.translate(cx, cy);
+  ctx.rotate(currentTheta);
+  
+  const beamL = 12 * scale;
+  ctx.fillStyle = "#d4d4d8";
+  ctx.fillRect(-beamL/2, -4, beamL, 8);
+  ctx.strokeStyle = "#94a3b8"; ctx.lineWidth = 1;
+  ctx.strokeRect(-beamL/2, -4, beamL, 8);
+  
+  ctx.fillStyle = "#64748b"; ctx.font = "9px 'Inter',sans-serif"; ctx.textAlign = "center";
+  for(let i=1; i<=5; i++) {
+    ctx.fillRect(-i*scale, -4, 2, 8);
+    ctx.fillText(`${i}m`, -i*scale, 16);
+    ctx.fillRect(i*scale, -4, 2, 8);
+    ctx.fillText(`${i}m`, i*scale, 16);
+  }
+
+  const x1 = -d1 * scale;
+  const s1 = 20 + Math.sqrt(m1) * 3;
+  ctx.fillStyle = "#3b82f6";
+  ctx.fillRect(x1 - s1/2, -4 - s1, s1, s1);
+  ctx.fillStyle = "#fff"; ctx.fillText(`${m1}kg`, x1, -4 - s1/2 + 3);
+  
+  const x2 = d2 * scale;
+  const s2 = 20 + Math.sqrt(m2) * 3;
+  ctx.fillStyle = "#f97316";
+  ctx.fillRect(x2 - s2/2, -4 - s2, s2, s2);
+  ctx.fillStyle = "#fff"; ctx.fillText(`${m2}kg`, x2, -4 - s2/2 + 3);
+
+  ctx.rotate(-currentTheta);
+  const w1 = m1 * gravity;
+  const w2 = m2 * gravity;
+  const actualX1 = x1 * Math.cos(currentTheta) + 4 * Math.sin(currentTheta);
+  const actualY1 = x1 * Math.sin(currentTheta) - 4 * Math.cos(currentTheta);
+  drawArrow(ctx, actualX1, actualY1, actualX1, actualY1 + Math.min(80, w1), "#ef4444", 2);
+  
+  const actualX2 = x2 * Math.cos(currentTheta) + 4 * Math.sin(currentTheta);
+  const actualY2 = x2 * Math.sin(currentTheta) - 4 * Math.cos(currentTheta);
+  drawArrow(ctx, actualX2, actualY2, actualX2, actualY2 + Math.min(80, w2), "#ef4444", 2);
+
+  ctx.restore();
+
+  return { t1, t2, netTorque, alpha: Math.abs(alpha) };
+}
+
+// ============================================================
+// Phase 5: Instrument Render Functions
+// ============================================================
+function renderVernier(ctx, w, h, sim, params) {
+  const { length } = params;
+  const cx = w / 2;
+  const cy = h / 2 + 20; 
+  const scale = 15;
+  
+  const startX = 50;
+  const mainScaleLength = 60 * scale;
+  const jawHeight = 130;
+  
+  // Gradients
+  const beamGrad = ctx.createLinearGradient(0, cy - 25, 0, cy + 25);
+  beamGrad.addColorStop(0, "#f1f5f9");
+  beamGrad.addColorStop(0.5, "#e2e8f0");
+  beamGrad.addColorStop(1, "#cbd5e1");
+  
+  const slideGrad = ctx.createLinearGradient(0, cy - 35, 0, cy + 45);
+  slideGrad.addColorStop(0, "#cbd5e1");
+  slideGrad.addColorStop(0.5, "#e2e8f0");
+  slideGrad.addColorStop(1, "#94a3b8");
+
+  // Drop shadow
+  ctx.shadowColor = "rgba(0,0,0,0.5)";
+  ctx.shadowBlur = 12;
+  ctx.shadowOffsetY = 8;
+  
+  // --- Main Scale Body ---
+  ctx.fillStyle = beamGrad;
+  ctx.fillRect(startX, cy - 25, mainScaleLength + 80, 50);
+  
+  // Fixed Jaw (lower)
+  ctx.beginPath();
+  ctx.moveTo(startX, cy - 25);
+  ctx.lineTo(startX + 30, cy - 25);
+  ctx.lineTo(startX + 30, cy - jawHeight/2);
+  ctx.lineTo(startX, cy - jawHeight/2 + 20);
+  ctx.closePath();
+  ctx.fill();
+  
+  // Fixed Jaw (upper)
+  ctx.beginPath();
+  ctx.moveTo(startX, cy + 25);
+  ctx.lineTo(startX + 30, cy + 25);
+  ctx.lineTo(startX + 30, cy + jawHeight/3);
+  ctx.lineTo(startX, cy + jawHeight/3 - 10);
+  ctx.closePath();
+  ctx.fill();
+  
+  ctx.shadowColor = "transparent";
+  
+  // Highlight edge
+  ctx.strokeStyle = "rgba(255,255,255,0.8)"; ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.moveTo(startX, cy - 24); ctx.lineTo(startX + mainScaleLength + 80, cy - 24); ctx.stroke();
+  
+  // Main scale marks
+  ctx.fillStyle = "#0f172a"; ctx.font = "bold 11px 'Inter',sans-serif"; ctx.textAlign = "center";
+  for (let i = 0; i <= 60; i++) {
+    const x = startX + 30 + i * scale;
+    if (i % 10 === 0) {
+      ctx.fillRect(x - 1, cy - 25, 2, 18);
+      ctx.fillText((i / 10).toString(), x, cy - 2);
+    } else if (i % 5 === 0) {
+      ctx.fillRect(x - 0.5, cy - 25, 1, 12);
+    } else {
+      ctx.fillRect(x - 0.5, cy - 25, 1, 7);
+    }
+  }
+
+  // --- Object ---
+  if (length > 0) {
+    ctx.shadowColor = "rgba(239, 68, 68, 0.4)"; ctx.shadowBlur = 10;
+    const objGrad = ctx.createLinearGradient(startX + 30, 0, startX + 30 + length * scale, 0);
+    objGrad.addColorStop(0, "#f97316"); objGrad.addColorStop(1, "#f59e0b");
+    ctx.fillStyle = objGrad;
+    ctx.fillRect(startX + 30, cy - jawHeight/2 + 30, length * scale, jawHeight/2 - 35);
+    ctx.shadowColor = "transparent";
+    ctx.strokeStyle = "rgba(255,255,255,0.4)"; ctx.strokeRect(startX + 30, cy - jawHeight/2 + 30, length * scale, jawHeight/2 - 35);
+  }
+
+  // --- Sliding Jaw ---
+  const slideX = startX + 30 + length * scale;
+  
+  ctx.shadowColor = "rgba(0,0,0,0.5)"; ctx.shadowBlur = 10; ctx.shadowOffsetY = 5;
+  ctx.fillStyle = slideGrad;
+  
+  // Sliding jaw body
+  const slideW = 10 * 0.9 * scale + 40;
+  ctx.fillRect(slideX, cy - 35, slideW, 70);
+  
+  // Sliding jaw (lower)
+  ctx.beginPath();
+  ctx.moveTo(slideX, cy - 35);
+  ctx.lineTo(slideX, cy - jawHeight/2);
+  ctx.lineTo(slideX + 20, cy - jawHeight/2 + 20);
+  ctx.lineTo(slideX + 20, cy - 35);
+  ctx.closePath();
+  ctx.fill();
+  
+  ctx.shadowColor = "transparent";
+  
+  // Highlight / bevel on slider
+  ctx.strokeStyle = "rgba(255,255,255,0.7)"; ctx.lineWidth = 1;
+  ctx.strokeRect(slideX, cy - 35, slideW, 70);
+  
+  // Vernier scale backing
+  ctx.fillStyle = "rgba(255,255,255,0.6)";
+  const vScale = 0.9 * scale;
+  ctx.fillRect(slideX, cy, 10 * vScale + 2, 35);
+  
+  // Vernier scale marks
+  ctx.fillStyle = "#0f172a"; ctx.font = "bold 11px 'Inter',sans-serif";
+  for (let i = 0; i <= 10; i++) {
+    const x = slideX + i * vScale;
+    if (i % 5 === 0) {
+      ctx.fillRect(x - 1, cy, 2, 18);
+      ctx.fillText(i.toString(), x, cy + 30);
+    } else {
+      ctx.fillRect(x - 0.5, cy, 1, 10);
+    }
+  }
+  
+  // Locking screw
+  ctx.fillStyle = "#64748b";
+  ctx.beginPath(); ctx.arc(slideX + slideW/2, cy - 35, 6, Math.PI, 0); ctx.fill();
+  ctx.fillStyle = "#475569";
+  for(let i=0; i<3; i++) ctx.fillRect(slideX + slideW/2 - 4 + i*4, cy - 40, 1, 4);
+
+  // Thumb grip
+  ctx.fillStyle = "#94a3b8";
+  ctx.fillRect(slideX + slideW - 15, cy + 5, 10, 25);
+  ctx.fillStyle = "#475569";
+  for(let i=0; i<4; i++) ctx.fillRect(slideX + slideW - 15, cy + 8 + i*5, 10, 2);
+
+  // --- Zoom Lens ---
+  const zR = 90;
+  const zoomX = w - zR - 30;
+  const zoomY = zR + 20;
+  
+  ctx.save();
+  ctx.shadowColor = "rgba(0,0,0,0.6)"; ctx.shadowBlur = 15; ctx.shadowOffsetY = 10;
+  ctx.beginPath(); ctx.arc(zoomX, zoomY, zR, 0, Math.PI*2);
+  ctx.fillStyle = "#fff"; ctx.fill();
+  ctx.shadowColor = "transparent";
+  ctx.clip();
+  
+  const zScale = 45;
+  const mapZ = (origX) => zoomX + (origX - slideX) * (zScale / scale);
+  
+  ctx.fillStyle = "#f8fafc"; ctx.fillRect(zoomX - zR, zoomY - zR, zR*2, zR*2);
+  
+  // Main scale (zoom)
+  const zBeamGrad = ctx.createLinearGradient(0, zoomY - 40, 0, zoomY + 40);
+  zBeamGrad.addColorStop(0, "#f1f5f9"); zBeamGrad.addColorStop(1, "#cbd5e1");
+  ctx.fillStyle = zBeamGrad;
+  ctx.fillRect(zoomX - zR, zoomY - 40, zR*2, 40);
+  ctx.strokeStyle = "rgba(255,255,255,0.8)"; ctx.lineWidth = 2;
+  ctx.beginPath(); ctx.moveTo(zoomX - zR, zoomY - 39); ctx.lineTo(zoomX + zR, zoomY - 39); ctx.stroke();
+  
+  ctx.fillStyle = "#0f172a"; ctx.font = "bold 16px 'Inter',sans-serif";
+  for (let i = 0; i <= 60; i++) {
+    const zx = mapZ(startX + 30 + i * scale);
+    if (zx > zoomX - zR && zx < zoomX + zR) {
+      if (i % 10 === 0) {
+        ctx.fillRect(zx - 1.5, zoomY - 40, 3, 30);
+        ctx.fillText((i / 10).toString() + " cm", zx, zoomY - 45);
+      } else if (i % 5 === 0) {
+        ctx.fillRect(zx - 1, zoomY - 40, 2, 20);
+      } else {
+        ctx.fillRect(zx - 0.5, zoomY - 40, 1, 12);
+      }
+    }
+  }
+
+  // Vernier scale (zoom)
+  const zSlideGrad = ctx.createLinearGradient(0, zoomY, 0, zoomY + 60);
+  zSlideGrad.addColorStop(0, "#cbd5e1"); zSlideGrad.addColorStop(1, "#94a3b8");
+  ctx.fillStyle = zSlideGrad;
+  ctx.fillRect(zoomX - zR, zoomY, zR*2, zR);
+  ctx.strokeStyle = "rgba(255,255,255,0.8)"; ctx.lineWidth = 2;
+  ctx.beginPath(); ctx.moveTo(zoomX - zR, zoomY); ctx.lineTo(zoomX + zR, zoomY); ctx.stroke();
+  
+  ctx.fillStyle = "rgba(255,255,255,0.6)";
+  ctx.fillRect(zoomX - zR, zoomY, zR*2, zR);
+  
+  ctx.fillStyle = "#0f172a";
+  const zvScale = 0.9 * zScale;
+  for (let i = 0; i <= 10; i++) {
+    const zx = zoomX + i * zvScale;
+    if (zx > zoomX - zR && zx < zoomX + zR) {
+      if (i % 5 === 0) {
+        ctx.fillRect(zx - 1.5, zoomY, 3, 30);
+        ctx.fillText(i.toString(), zx, zoomY + 50);
+      } else {
+        ctx.fillRect(zx - 0.5, zoomY, 1, 15);
+      }
+    }
+  }
+  
+  ctx.restore();
+  
+  // Magnifying glass rim
+  ctx.beginPath(); ctx.arc(zoomX, zoomY, zR, 0, Math.PI*2);
+  ctx.strokeStyle = "#334155"; ctx.lineWidth = 8; ctx.stroke();
+  ctx.strokeStyle = "#94a3b8"; ctx.lineWidth = 4; ctx.stroke();
+  ctx.beginPath(); ctx.arc(zoomX, zoomY, zR, 0, Math.PI*2);
+  ctx.strokeStyle = "rgba(255,255,255,0.4)"; ctx.lineWidth = 2; ctx.stroke();
+  
+  ctx.fillStyle = "#f8fafc"; ctx.font = "bold 13px 'Inter',sans-serif";
+  ctx.shadowColor = "rgba(0,0,0,0.8)"; ctx.shadowBlur = 4;
+  ctx.fillText("🔍 แว่นขยาย (Zoom)", zoomX, zoomY + zR + 25);
+  ctx.shadowColor = "transparent";
+
+  const mainReading = Math.floor(length);
+  const vernierReading = Math.round((length - mainReading) * 10);
+  return { main: mainReading, vernier: vernierReading, total: length.toFixed(2) };
+}
+
+function renderMicrometer(ctx, w, h, sim, params) {
+  const { length } = params;
+  const cx = w / 2;
+  const cy = h / 2 + 20;
+  const scale = 20;
+  
+  const startX = 80;
+  
+  ctx.shadowColor = "rgba(0,0,0,0.6)"; ctx.shadowBlur = 15; ctx.shadowOffsetY = 10;
+
+  // Frame (C-shape)
+  const frameGrad = ctx.createLinearGradient(startX, cy, startX + 150, cy + 120);
+  frameGrad.addColorStop(0, "#1e293b");
+  frameGrad.addColorStop(0.5, "#334155");
+  frameGrad.addColorStop(1, "#0f172a");
+
+  ctx.strokeStyle = frameGrad;
+  ctx.lineWidth = 35;
+  ctx.lineCap = "round";
+  ctx.lineJoin = "round";
+  ctx.beginPath();
+  ctx.moveTo(startX + 50 + 25*scale, cy + 10);
+  ctx.lineTo(startX + 50 + 25*scale, cy + 80);
+  ctx.lineTo(startX, cy + 80);
+  ctx.lineTo(startX, cy);
+  ctx.lineTo(startX + 20, cy);
+  ctx.stroke();
+
+  ctx.strokeStyle = "#64748b"; ctx.lineWidth = 5; 
+  ctx.stroke();
+  
+  ctx.shadowColor = "transparent";
+
+  ctx.fillStyle = "rgba(255,255,255,0.6)"; ctx.font = "bold 14px 'Inter',sans-serif"; ctx.textAlign = "center";
+  ctx.fillText("0-25 mm  0.01 mm", startX + 12*scale, cy + 90);
+
+  // Object
+  if (length > 0) {
+    ctx.shadowColor = "rgba(239, 68, 68, 0.4)"; ctx.shadowBlur = 10;
+    const objGrad = ctx.createRadialGradient(startX + 30 + length/2 * scale, cy, 0, startX + 30 + length/2 * scale, cy, length/2 * scale);
+    objGrad.addColorStop(0, "#fb923c"); objGrad.addColorStop(1, "#ea580c");
+    ctx.fillStyle = objGrad;
+    ctx.beginPath(); ctx.arc(startX + 30 + length/2 * scale, cy, length/2 * scale, 0, Math.PI*2); ctx.fill();
+    ctx.shadowColor = "transparent";
+  }
+
+  // Anvil (left fixed)
+  const metalGrad = ctx.createLinearGradient(0, cy - 15, 0, cy + 15);
+  metalGrad.addColorStop(0, "#cbd5e1"); metalGrad.addColorStop(0.5, "#f8fafc"); metalGrad.addColorStop(1, "#94a3b8");
+  
+  ctx.fillStyle = metalGrad;
+  ctx.fillRect(startX + 15, cy - 10, 15, 20);
+  
+  // Spindle (moving)
+  const spindleX = startX + 30 + length * scale;
+  ctx.fillRect(spindleX, cy - 10, 25 * scale + (25 - length)*scale, 20);
+  
+  // Sleeve (Main scale body)
+  const sleeveX = startX + 30 + 25 * scale;
+  ctx.fillStyle = metalGrad;
+  ctx.fillRect(sleeveX, cy - 15, 30 * scale, 30);
+  
+  ctx.strokeStyle = "#334155"; ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.moveTo(sleeveX, cy); ctx.lineTo(sleeveX + 30*scale, cy); ctx.stroke();
+  
+  ctx.fillStyle = "#0f172a"; ctx.font = "bold 10px 'Inter',sans-serif";
+  for (let i = 0; i <= 25; i += 0.5) {
+    const mx = sleeveX + i * scale;
+    if (i % 1 === 0) {
+      ctx.fillRect(mx - 0.5, cy - 10, 1, 10);
+      if (i % 5 === 0) ctx.fillText(i.toString(), mx, cy - 12);
+    } else {
+      ctx.fillRect(mx - 0.5, cy, 1, 8);
+    }
+  }
+  
+  // Thimble (Rotates)
+  const thimbleX = sleeveX + length * scale;
+  const thimbleGrad = ctx.createLinearGradient(0, cy - 25, 0, cy + 25);
+  thimbleGrad.addColorStop(0, "#64748b"); thimbleGrad.addColorStop(0.2, "#94a3b8");
+  thimbleGrad.addColorStop(0.8, "#475569"); thimbleGrad.addColorStop(1, "#334155");
+  
+  ctx.shadowColor = "rgba(0,0,0,0.5)"; ctx.shadowBlur = 8; ctx.shadowOffsetY = 4;
+  ctx.fillStyle = thimbleGrad;
+  ctx.fillRect(thimbleX, cy - 22, 120, 44);
+  ctx.shadowColor = "transparent";
+  
+  // Knurling
+  ctx.fillStyle = "rgba(0,0,0,0.15)";
+  for(let i=0; i<40; i++) {
+    ctx.fillRect(thimbleX + 40 + i*2, cy - 22, 1, 44);
+  }
+
+  // Thimble edge taper
+  ctx.beginPath();
+  ctx.moveTo(thimbleX, cy - 22);
+  ctx.lineTo(thimbleX - 15, cy - 15);
+  ctx.lineTo(thimbleX - 15, cy + 15);
+  ctx.lineTo(thimbleX, cy + 22);
+  ctx.closePath();
+  ctx.fillStyle = metalGrad; 
+  ctx.fill();
+  ctx.strokeStyle = "#334155"; ctx.stroke();
+
+  // Thimble marks on taper
+  const thimbleRotOffset = (length % 0.5) * 100; // 0 to 50
+  ctx.fillStyle = "#0f172a";
+  for (let i = -10; i <= 10; i++) {
+    let markVal = i % 50;
+    while(markVal < 0) markVal += 50;
+    
+    const yOffset = (i - thimbleRotOffset) * 2;
+    if (Math.abs(yOffset) < 14) {
+      const markY = cy + yOffset;
+      if (Math.round(markVal) % 5 === 0) {
+        ctx.fillRect(thimbleX - 15, markY - 0.5, 8, 1);
+      } else {
+        ctx.fillRect(thimbleX - 15, markY - 0.5, 4, 1);
+      }
+    }
+  }
+
+  // --- Zoom Lens ---
+  const zR = 90;
+  const zoomX = w - zR - 30;
+  const zoomY = zR + 20;
+  
+  ctx.save();
+  ctx.shadowColor = "rgba(0,0,0,0.6)"; ctx.shadowBlur = 15; ctx.shadowOffsetY = 10;
+  ctx.beginPath(); ctx.arc(zoomX, zoomY, zR, 0, Math.PI*2);
+  ctx.fillStyle = "#fff"; ctx.fill();
+  ctx.shadowColor = "transparent";
+  ctx.clip();
+  
+  const zScale = 45;
+  
+  // Sleeve zoom
+  const zSleeveGrad = ctx.createLinearGradient(0, zoomY - zR, 0, zoomY + zR);
+  zSleeveGrad.addColorStop(0, "#f8fafc"); zSleeveGrad.addColorStop(1, "#cbd5e1");
+  ctx.fillStyle = zSleeveGrad;
+  ctx.fillRect(zoomX - zR, zoomY - zR, zR*2, zR*2);
+  
+  ctx.strokeStyle = "#334155"; ctx.lineWidth = 2;
+  ctx.beginPath(); ctx.moveTo(zoomX - zR, zoomY); ctx.lineTo(zoomX + zR, zoomY); ctx.stroke();
+  
+  ctx.fillStyle = "#0f172a"; ctx.font = "bold 18px 'Inter',sans-serif";
+  for (let i = 0; i <= 25; i += 0.5) {
+    const markX = zoomX - (length - i) * zScale;
+    if (markX > zoomX - zR && markX < zoomX + 20) {
+      if (i % 1 === 0) {
+        ctx.fillRect(markX - 1.5, zoomY - 30, 3, 30);
+        ctx.fillText(i.toString(), markX, zoomY - 40);
+      } else {
+        ctx.fillRect(markX - 1.5, zoomY, 3, 20);
+      }
+    }
+  }
+
+  // Thimble zoom
+  const zThimbleGrad = ctx.createLinearGradient(0, zoomY - zR, 0, zoomY + zR);
+  zThimbleGrad.addColorStop(0, "#94a3b8"); zThimbleGrad.addColorStop(1, "#64748b");
+  ctx.fillStyle = zThimbleGrad;
+  ctx.fillRect(zoomX + 10, zoomY - zR, zR, zR*2);
+  
+  ctx.fillStyle = "rgba(0,0,0,0.3)"; ctx.fillRect(zoomX + 10, zoomY - zR, 5, zR*2);
+  
+  const tSpacing = 12;
+  ctx.fillStyle = "#f8fafc"; ctx.font = "bold 16px 'Inter',sans-serif";
+  for (let i = -20; i <= 20; i++) {
+    let markVal = i % 50;
+    while(markVal < 0) markVal += 50;
+    
+    const yOffset = (i - thimbleRotOffset) * tSpacing;
+    const markY = zoomY + yOffset;
+    
+    if (markY > zoomY - zR && markY < zoomY + zR) {
+      if (Math.round(markVal) % 5 === 0) {
+        ctx.fillRect(zoomX + 10, markY - 1.5, 30, 3);
+        ctx.fillText(Math.round(markVal).toString(), zoomX + 50, markY + 6);
+      } else {
+        ctx.fillRect(zoomX + 10, markY - 1, 15, 2);
+      }
+    }
+  }
+  
+  ctx.restore();
+  
+  // Magnifying glass rim
+  ctx.beginPath(); ctx.arc(zoomX, zoomY, zR, 0, Math.PI*2);
+  ctx.strokeStyle = "#334155"; ctx.lineWidth = 8; ctx.stroke();
+  ctx.strokeStyle = "#94a3b8"; ctx.lineWidth = 4; ctx.stroke();
+  ctx.beginPath(); ctx.arc(zoomX, zoomY, zR, 0, Math.PI*2);
+  ctx.strokeStyle = "rgba(255,255,255,0.4)"; ctx.lineWidth = 2; ctx.stroke();
+  
+  ctx.fillStyle = "#f8fafc"; ctx.font = "bold 13px 'Inter',sans-serif";
+  ctx.shadowColor = "rgba(0,0,0,0.8)"; ctx.shadowBlur = 4;
+  ctx.fillText("🔍 แว่นขยาย (Zoom)", zoomX, zoomY + zR + 25);
+  ctx.shadowColor = "transparent";
+
+  const mainReading = Math.floor(length * 2) / 2;
+  const thimbleReading = Math.round((length - mainReading) * 100);
+  return { main: mainReading.toFixed(2), thimble: thimbleReading, total: length.toFixed(2) };
+}
+
+// ============================================================
 // Main Component
 // ============================================================
 export default function PhysicsLabWidget({ onClose }) {
@@ -1030,6 +1915,17 @@ export default function PhysicsLabWidget({ onClose }) {
       case "lens": result = renderLens(ctx, w, h, sim, p); break;
       case "prism": result = renderPrism(ctx, w, h, sim, p); break;
       case "snell": result = renderSnellLaw(ctx, w, h, sim, p); break;
+      // Waves
+      case "transverse": result = renderTransverseWave(ctx, w, h, sim, p); break;
+      case "standing": result = renderStandingWave(ctx, w, h, sim, p); break;
+      case "interference": result = renderInterference(ctx, w, h, sim, p); break;
+      // Force
+      case "inclined_plane": result = renderInclinedPlane(ctx, w, h, sim, p); break;
+      case "pulley": result = renderPulley(ctx, w, h, sim, p); break;
+      case "seesaw": result = renderSeesaw(ctx, w, h, sim, p); break;
+      // Instruments
+      case "vernier": result = renderVernier(ctx, w, h, sim, p); break;
+      case "micrometer": result = renderMicrometer(ctx, w, h, sim, p); break;
       default: break;
     }
     setInfo(result);
@@ -1092,10 +1988,25 @@ export default function PhysicsLabWidget({ onClose }) {
         sim.dotPhase = (sim.dotPhase || 0) + DT * 4; // animate current dots
         break;
       }
+      case "transverse":
+      case "standing":
+      case "interference": {
+        sim.t += DT;
+        break;
+      }
+      case "inclined_plane":
+      case "pulley":
+      case "seesaw": {
+        sim.t += DT;
+        if (sim.hitBottom) setRunning(false);
+        break;
+      }
       case "lens":
       case "prism":
       case "snell":
-        // Optics are static until params change, but we allow 'running' for consistency if needed
+      case "vernier":
+      case "micrometer":
+        // Optics and Instruments are static
         break;
       default: break;
     }
@@ -1159,7 +2070,6 @@ export default function PhysicsLabWidget({ onClose }) {
   }, [renderFrame]);
 
   const selectExperiment = (expId) => {
-    if (expId === "coming_soon") return;
     setExperiment(expId);
     experimentRef.current = expId;
   };
@@ -1167,8 +2077,9 @@ export default function PhysicsLabWidget({ onClose }) {
   const selectCategory = (catId) => {
     setCategory(catId);
     const exps = EXPERIMENTS[catId] || [];
-    const first = exps.find(e => e.id !== "coming_soon");
-    if (first) selectExperiment(first.id);
+    if (exps.length > 0) {
+      selectExperiment(exps[0].id);
+    }
   };
 
   const setParam = (key, val) => {
@@ -1239,6 +2150,51 @@ export default function PhysicsLabWidget({ onClose }) {
         { label: "sin(θ₁)", val: `${info.sinTheta1 || 0}`, color: "#fbbf24" },
         { label: "sin(θ₂)", val: `${info.sinTheta2 || 0}`, color: "#60a5fa" },
         { label: "สถานะ", val: info.tir ? "สะท้อนกลับหมด" : "หักเหปกติ", color: info.tir ? "#ef4444" : "#34d399" },
+      ];
+      case "transverse": return [
+        { label: "ความเร็ว (v)", val: `${info.v || 0} px/s`, color: "#34d399" },
+        { label: "คาบ (T)", val: `${info.T || 0} s`, color: "#60a5fa" },
+        { label: "เลขคลื่น (k)", val: `${info.k || 0} rad/px`, color: "#a78bfa" },
+        { label: "โอเมกา (ω)", val: `${info.omega || 0} rad/s`, color: "#fbbf24" },
+      ];
+      case "standing": return [
+        { label: "ความยาวคลื่น (λ)", val: `${info.lambda || 0} px`, color: "#34d399" },
+        { label: "ความถี่ (f)", val: `${info.f || 0} Hz`, color: "#60a5fa" },
+        { label: "จุดบัพ (Nodes)", val: `${info.nodes || 0}`, color: "#fbbf24" },
+        { label: "จุดปฏิบัพ (Antinodes)", val: `${info.antinodes || 0}`, color: "#a78bfa" },
+      ];
+      case "interference": return [
+        { label: "ระยะ (d)", val: `${info.d || 0} px`, color: "#f87171" },
+        { label: "ความยาวคลื่น (λ)", val: `${info.lambda || 0} px`, color: "#60a5fa" },
+        { label: "ความถี่ (f)", val: `${info.f || 0} Hz`, color: "#fbbf24" },
+        { label: "ความเร็ว (v)", val: `${info.v || 0} px/s`, color: "#34d399" },
+      ];
+      case "inclined_plane": return [
+        { label: "ความเร่ง (a)", val: `${info.a !== undefined ? info.a.toFixed(2) : 0} m/s²`, color: "#f87171" },
+        { label: "ความเร็ว (v)", val: `${info.v !== undefined ? info.v.toFixed(2) : 0} m/s`, color: "#34d399" },
+        { label: "แรงตั้งฉาก (N)", val: `${info.N !== undefined ? info.N.toFixed(1) : 0} N`, color: "#60a5fa" },
+        { label: "แรงเสียดทาน (f)", val: `${info.f !== undefined ? info.f.toFixed(1) : 0} N`, color: "#fbbf24" },
+      ];
+      case "pulley": return [
+        { label: "ความเร่ง (a)", val: `${info.a !== undefined ? info.a.toFixed(2) : 0} m/s²`, color: "#f87171" },
+        { label: "แรงตึงเชือก (T)", val: `${info.T !== undefined ? info.T.toFixed(1) : 0} N`, color: "#60a5fa" },
+        { label: "ความเร็ว (v)", val: `${info.v !== undefined ? info.v.toFixed(2) : 0} m/s`, color: "#34d399" },
+      ];
+      case "seesaw": return [
+        { label: "โมเมนต์ทวน (τ₁)", val: `${info.t1 !== undefined ? info.t1.toFixed(1) : 0} N·m`, color: "#60a5fa" },
+        { label: "โมเมนต์ตาม (τ₂)", val: `${info.t2 !== undefined ? info.t2.toFixed(1) : 0} N·m`, color: "#f87171" },
+        { label: "โมเมนต์ลัพธ์ (Στ)", val: `${info.netTorque !== undefined ? info.netTorque.toFixed(1) : 0} N·m`, color: "#a78bfa" },
+        { label: "สถานะ", val: info.netTorque === 0 ? "สมดุล" : "ไม่สมดุล", color: info.netTorque === 0 ? "#34d399" : "#ef4444" },
+      ];
+      case "vernier": return [
+        { label: "สเกลหลัก (Main)", val: `${info.main || 0} mm`, color: "#60a5fa" },
+        { label: "สเกลเวอร์เนียร์ (Vernier)", val: `${info.vernier || 0} (×0.1 mm)`, color: "#f87171" },
+        { label: "ค่าที่อ่านได้รวม (Total)", val: `${info.total || 0} mm`, color: "#34d399" },
+      ];
+      case "micrometer": return [
+        { label: "สเกลหลัก (Main)", val: `${info.main || 0} mm`, color: "#60a5fa" },
+        { label: "สเกลวงกลม (Thimble)", val: `${info.thimble || 0} (×0.01 mm)`, color: "#f87171" },
+        { label: "ค่าที่อ่านได้รวม (Total)", val: `${info.total || 0} mm`, color: "#34d399" },
       ];
       default: return [];
     }
@@ -1368,21 +2324,23 @@ export default function PhysicsLabWidget({ onClose }) {
               }}>
                 {/* Action Buttons */}
                 <div style={{ display: "flex", gap: 8, justifyContent: "center", padding: "2px 0" }}>
-                  <button
-                    onClick={() => { if (!running) lastTimeRef.current = null; setRunning(r => !r); }}
-                    style={{
-                      padding: "7px 22px", border: "none", borderRadius: 8, cursor: "pointer",
-                      fontSize: 12, fontWeight: 700, letterSpacing: 0.3,
-                      background: running
-                        ? "linear-gradient(135deg, rgba(239,68,68,0.25), rgba(239,68,68,0.15))"
-                        : "linear-gradient(135deg, rgba(34,197,94,0.25), rgba(34,197,94,0.15))",
-                      color: running ? "#f87171" : "#4ade80",
-                      border: `1px solid ${running ? "rgba(239,68,68,0.3)" : "rgba(34,197,94,0.3)"}`,
-                      transition: "all 0.2s",
-                    }}
-                  >
-                    {running ? "⏸ หยุด" : "▶ เริ่มจำลอง"}
-                  </button>
+                  {!["lens", "prism", "snell", "vernier", "micrometer"].includes(experiment) && (
+                    <button
+                      onClick={() => { if (!running) lastTimeRef.current = null; setRunning(r => !r); }}
+                      style={{
+                        padding: "7px 22px", border: "none", borderRadius: 8, cursor: "pointer",
+                        fontSize: 12, fontWeight: 700, letterSpacing: 0.3,
+                        background: running
+                          ? "linear-gradient(135deg, rgba(239,68,68,0.25), rgba(239,68,68,0.15))"
+                          : "linear-gradient(135deg, rgba(34,197,94,0.25), rgba(34,197,94,0.15))",
+                        color: running ? "#f87171" : "#4ade80",
+                        border: `1px solid ${running ? "rgba(239,68,68,0.3)" : "rgba(34,197,94,0.3)"}`,
+                        transition: "all 0.2s",
+                      }}
+                    >
+                      {running ? "⏸ หยุด" : "▶ เริ่มจำลอง"}
+                    </button>
+                  )}
                   <button
                     onClick={() => resetSim(experiment)}
                     style={{
