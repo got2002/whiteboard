@@ -12,15 +12,6 @@ let hostPenStyle = "pen";
 let connectedUsers = 0;
 let isLocked = false;
 
-let bannerState = {
-  text: "ยินดีต้อนรับสู่ห้องเรียน 🎓",
-  theme: { id: "classic", label: "คลาสสิก", bg: "#0a0a0a", text: "#fbbf24", glow: "rgba(251,191,36,0.3)" },
-  speed: { id: "normal", label: "ปกติ", duration: 15 },
-  fontSize: { id: "md", label: "M", size: 32 },
-  position: "bottom",
-  isShowing: false
-};
-
 module.exports = {
   pages,
   users,
@@ -39,7 +30,4 @@ module.exports = {
 
   get isLocked() { return isLocked; },
   set isLocked(val) { isLocked = val; },
-
-  get bannerState() { return bannerState; },
-  set bannerState(val) { bannerState = val; },
 };

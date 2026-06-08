@@ -51,7 +51,6 @@ import LockScreenOverlay from "../components/LockScreenOverlay";
 import AiSolutionWidget from "../components/AiSolutionWidget";
 import PhysicsLabWidget from "../components/PhysicsLabWidget";
 import BannerWidget from "../components/BannerWidget";
-import { useBanner } from "../feature/users/useBanner";
 
 // ============================================================
 // MainLayout Component
@@ -86,12 +85,7 @@ export default function MainLayout() {
   const [showAiSolution, setShowAiSolution] = useState(false);
   const [activeMathTools, setActiveMathTools] = useState([]);
   const [showPhysicsLab, setShowPhysicsLab] = useState(false);
-
-  // ════════════════════════════════════════════════════════════
-  // Hook: Banner (syncs across clients)
-  // ════════════════════════════════════════════════════════════
-  const { bannerState, updateBanner } = useBanner();
-  // We don't need local showBanner state anymore, we'll use bannerState.isShowing
+  const [showBanner, setShowBanner] = useState(false);
 
   // (ย้าย useEffect ลงไปด้านล่างเพื่อให้รู้จัก remoteScreen และ userRole)
 
@@ -377,7 +371,7 @@ export default function MainLayout() {
           onTogglePermissionPanel={() => setShowPermissionPanel(v => !v)}
           onToggleOnScreen={(val) => setIsOnScreen(val)}
           showCalculator={showCalculator}
-          activeTools={{ calculator: showCalculator, spotlight: showSpotlight, table: canvasTables.length > 0, graph: showGraph, math_grapher: showMathGrapher, periodic: showPeriodic, curtain: showCurtain, sketchpad: showSketchpad, lock_screen: showLockScreen, physics_lab: showPhysicsLab, banner: bannerState.isShowing }}
+          activeTools={{ calculator: showCalculator, spotlight: showSpotlight, table: canvasTables.length > 0, graph: showGraph, math_grapher: showMathGrapher, periodic: showPeriodic, curtain: showCurtain, sketchpad: showSketchpad, lock_screen: showLockScreen, physics_lab: showPhysicsLab, banner: showBanner }}
           onToolBoxSelect={(toolId) => {
             if (toolId === 'calculator') setShowCalculator(v => !v);
             if (toolId === 'spotlight') setShowSpotlight(v => !v);
@@ -389,7 +383,7 @@ export default function MainLayout() {
             if (toolId === 'sketchpad') setShowSketchpad(v => !v);
             if (toolId === 'lock_screen') setShowLockScreen(v => !v);
             if (toolId === 'physics_lab') setShowPhysicsLab(v => !v);
-            if (toolId === 'banner') updateBanner({ ...bannerState, isShowing: !bannerState.isShowing });
+            if (toolId === 'banner') setShowBanner(v => !v);
             // Math tools
             const mathIds = ['protractor','full_protractor','ruler','set_square_45','set_square_60','compass','t_square','number_line','coord_grid','clock_face','fraction_circle','graph_paper','dice','spinner','l_square'];
             if (mathIds.includes(toolId)) {
@@ -720,13 +714,7 @@ export default function MainLayout() {
       {showPhysicsLab && <PhysicsLabWidget onClose={() => setShowPhysicsLab(false)} />}
 
       {/* Banner อักษรวิ่ง */}
-      {bannerState.isShowing && (
-        <BannerWidget 
-          bannerState={bannerState} 
-          updateBanner={updateBanner} 
-          userRole={userRole} 
-        />
-      )}
+      {showBanner && <BannerWidget onClose={() => setShowBanner(false)} />}
     </div>
 
   );
