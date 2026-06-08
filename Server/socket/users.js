@@ -46,6 +46,7 @@ module.exports = (io, socket) => {
       name,
       role,
       color,
+      permissionLevel: store.users[socket.id].permissionLevel || null,
     });
   });
 
@@ -95,8 +96,9 @@ module.exports = (io, socket) => {
     const student = store.users[studentId];
     if (!student) return;
     student.role = "viewer";
-    io.to(studentId).emit("role-changed", { role: "viewer" });
-    io.emit("user-role-updated", { id: studentId, role: "viewer" });
+    student.permissionLevel = null;
+    io.to(studentId).emit("role-changed", { role: "viewer", permissionLevel: null });
+    io.emit("user-role-updated", { id: studentId, role: "viewer", permissionLevel: null });
   });
 
   // ── ปฏิเสธคำขอ (host only) ──

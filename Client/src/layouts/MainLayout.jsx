@@ -50,6 +50,7 @@ import MathFunctionWidget from "../components/MathFunctionWidget";
 import LockScreenOverlay from "../components/LockScreenOverlay";
 import AiSolutionWidget from "../components/AiSolutionWidget";
 import PhysicsLabWidget from "../components/PhysicsLabWidget";
+import BannerWidget from "../components/BannerWidget";
 
 // ============================================================
 // MainLayout Component
@@ -84,6 +85,7 @@ export default function MainLayout() {
   const [showAiSolution, setShowAiSolution] = useState(false);
   const [activeMathTools, setActiveMathTools] = useState([]);
   const [showPhysicsLab, setShowPhysicsLab] = useState(false);
+  const [showBanner, setShowBanner] = useState(false);
 
   // (ย้าย useEffect ลงไปด้านล่างเพื่อให้รู้จัก remoteScreen และ userRole)
 
@@ -258,7 +260,12 @@ export default function MainLayout() {
   // ════════════════════════════════════════════════════════════
   // Render: Name Dialog (ก่อน login)
   // ════════════════════════════════════════════════════════════
-  console.log("[MainLayout] render — showNameDialog:", showNameDialog, "username:", username, "userRole:", userRole);
+  // ── Permission Level ──
+  const { permissionLevel } = permHook;
+  // host = ทุกอย่าง, full_access contributor = เกือบทุกอย่าง, draw_only = วาดเท่านั้น
+  const canUseFullTools = userRole === "host" || permissionLevel === "full_access";
+
+  console.log("[MainLayout] render — showNameDialog:", showNameDialog, "username:", username, "userRole:", userRole, "permLevel:", permissionLevel);
 
   if (showNameDialog) {
     return <NameDialog onSubmit={userHook.handleNameSubmit} hostExists={hostExists} waitingForAck={waitingForAck} />;
@@ -364,7 +371,7 @@ export default function MainLayout() {
           onTogglePermissionPanel={() => setShowPermissionPanel(v => !v)}
           onToggleOnScreen={(val) => setIsOnScreen(val)}
           showCalculator={showCalculator}
-          activeTools={{ calculator: showCalculator, spotlight: showSpotlight, table: canvasTables.length > 0, graph: showGraph, math_grapher: showMathGrapher, periodic: showPeriodic, curtain: showCurtain, sketchpad: showSketchpad, lock_screen: showLockScreen, physics_lab: showPhysicsLab }}
+          activeTools={{ calculator: showCalculator, spotlight: showSpotlight, table: canvasTables.length > 0, graph: showGraph, math_grapher: showMathGrapher, periodic: showPeriodic, curtain: showCurtain, sketchpad: showSketchpad, lock_screen: showLockScreen, physics_lab: showPhysicsLab, banner: showBanner }}
           onToolBoxSelect={(toolId) => {
             if (toolId === 'calculator') setShowCalculator(v => !v);
             if (toolId === 'spotlight') setShowSpotlight(v => !v);
@@ -376,6 +383,7 @@ export default function MainLayout() {
             if (toolId === 'sketchpad') setShowSketchpad(v => !v);
             if (toolId === 'lock_screen') setShowLockScreen(v => !v);
             if (toolId === 'physics_lab') setShowPhysicsLab(v => !v);
+            if (toolId === 'banner') setShowBanner(v => !v);
             // Math tools
             const mathIds = ['protractor','full_protractor','ruler','set_square_45','set_square_60','compass','t_square','number_line','coord_grid','clock_face','fraction_circle','graph_paper','dice','spinner','l_square'];
             if (mathIds.includes(toolId)) {
@@ -385,6 +393,7 @@ export default function MainLayout() {
           onPresent={() => setShowPresentation(true)}
           showAI={showAiSolution}
           onToggleAI={() => setShowAiSolution(v => !v)}
+          canUseFullTools={canUseFullTools}
         />
       )}
 
@@ -400,15 +409,16 @@ export default function MainLayout() {
           onPenSizeChange={drawingHook.setPenSize}
           onUndo={drawingHook.handleUndo}
           onRedo={drawingHook.handleRedo}
-          onClear={handleClear}
-          onInsertImage={fileHook.handleInsertImage}
-          onInsertVideo={fileHook.handleInsertVideo}
+          onClear={canUseFullTools ? handleClear : undefined}
+          onInsertImage={canUseFullTools ? fileHook.handleInsertImage : undefined}
+          onInsertVideo={canUseFullTools ? fileHook.handleInsertVideo : undefined}
           userRole={userRole}
+          permissionLevel={permissionLevel}
         />
       )}
 
       {/* Color Sidebar — host/contributor only */}
-      {userRole !== "viewer" && showToolbars && (
+      {userRole !== "viewer" && canUseFullTools && showToolbars && (
         <ColorSidebar
           color={drawingHook.color}
           onColorChange={drawingHook.setColor}
@@ -518,6 +528,7 @@ export default function MainLayout() {
           onDeny={permHook.handleDenyRequest}
           onRevoke={permHook.handleRevokePermission}
           onGrant={permHook.handleGrantPermission}
+          onChangeLevel={permHook.handleChangePermissionLevel}
         />
       )}
 
@@ -701,6 +712,9 @@ export default function MainLayout() {
 
       {/* Physics Lab Widget */}
       {showPhysicsLab && <PhysicsLabWidget onClose={() => setShowPhysicsLab(false)} />}
+
+      {/* Banner อักษรวิ่ง */}
+      {showBanner && <BannerWidget onClose={() => setShowBanner(false)} />}
     </div>
 
   );

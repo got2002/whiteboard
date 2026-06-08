@@ -70,6 +70,8 @@ function HeaderBar({
     // AI Solution
     showAI,
     onToggleAI,
+    // Permission Level
+    canUseFullTools = true,
 }) {
     const isHost = userRole === "host";
     const [showMainMenu, setShowMainMenu] = useState(false);
@@ -178,12 +180,16 @@ function HeaderBar({
                     )}
                 </div>
 
-                {/* ToolBox — ทุก Role ใช้ได้ */}
-                <div className="header-divider" />
-                <ToolBoxButton
-                    onToolSelect={onToolBoxSelect}
-                    activeTools={{ calculator: showCalculator }}
-                />
+                {/* ToolBox — host + full_access ใช้ได้ */}
+                {canUseFullTools && (
+                    <>
+                        <div className="header-divider" />
+                        <ToolBoxButton
+                            onToolSelect={onToolBoxSelect}
+                            activeTools={{ calculator: showCalculator }}
+                        />
+                    </>
+                )}
 
                 {/* AI Solution Button — host only */}
                 {isHost && (

@@ -21,9 +21,13 @@ app.use('/api/ai', aiRoutes);
 app.get("/api/status", (req, res) => {
   res.json({
     status: "running",
-    users: store.connectedUsers,
+    users: Object.keys(store.users).length,
     pages: store.pages.length,
   });
+});
+
+app.get("/api/debug", (req, res) => {
+  res.json(store);
 });
 
 const path = require("path");
