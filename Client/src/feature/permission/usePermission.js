@@ -1,5 +1,10 @@
 // ============================================================
-// usePermission.js — Hook ระบบสิทธิ์การเขียน
+// usePermission.js — Hook ระบบสิทธิ์การเขียน (Permission Levels)
+// ============================================================
+// Permission Levels:
+//   "draw_only"    — วาดได้อย่างเดียว
+//   "full_access"  — เข้าถึงเต็มที่
+//   null           — viewer (ดูอย่างเดียว)
 // ============================================================
 import { useState, useEffect } from "react";
 import { permissionService } from "./permissionService";
@@ -7,6 +12,7 @@ import { permissionService } from "./permissionService";
 export function usePermission({ isActive, setUserRole }) {
   const [pendingRequests, setPendingRequests] = useState([]);
   const [requestStatus, setRequestStatus] = useState("idle"); // idle | pending | denied
+  const [permissionLevel, setPermissionLevel] = useState(null); // draw_only | full_access | null
 
   // ── Socket listeners ──
   useEffect(() => {
@@ -15,8 +21,9 @@ export function usePermission({ isActive, setUserRole }) {
     const handlePermissionRequest = ({ id, name }) => {
       setPendingRequests(prev => [...prev.filter(r => r.id !== id), { id, name }]);
     };
-    const handleRoleChanged = ({ role }) => {
+    const handleRoleChanged = ({ role, permissionLevel: level }) => {
       setUserRole(role);
+      setPermissionLevel(level || null);
       setRequestStatus("idle");
     };
     const handlePermissionDenied = () => {
@@ -40,8 +47,8 @@ export function usePermission({ isActive, setUserRole }) {
     permissionService.emitRequestWrite();
   };
 
-  const handleApproveRequest = (studentId) => {
-    permissionService.emitApproveRequest(studentId);
+  const handleApproveRequest = (studentId, level = "draw_only") => {
+    permissionService.emitApproveRequest(studentId, level);
     setPendingRequests(prev => prev.filter(r => r.id !== studentId));
   };
 
@@ -54,14 +61,19 @@ export function usePermission({ isActive, setUserRole }) {
     permissionService.emitRevokePermission(studentId);
   };
 
-  const handleGrantPermission = (studentId) => {
-    permissionService.emitGrantPermission(studentId);
+  const handleGrantPermission = (studentId, level = "draw_only") => {
+    permissionService.emitGrantPermission(studentId, level);
     setPendingRequests(prev => prev.filter(r => r.id !== studentId));
   };
 
+  const handleChangePermissionLevel = (studentId, level) => {
+    permissionService.emitChangePermissionLevel(studentId, level);
+  };
+
   return {
-    pendingRequests, requestStatus,
+    pendingRequests, requestStatus, permissionLevel,
     handleRequestWrite, handleApproveRequest,
-    handleDenyRequest, handleRevokePermission, handleGrantPermission,
+    handleDenyRequest, handleRevokePermission,
+    handleGrantPermission, handleChangePermissionLevel,
   };
 }

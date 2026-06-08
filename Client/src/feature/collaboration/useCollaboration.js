@@ -21,8 +21,8 @@ export function useCollaboration({ isActive, currentPageIndex, setCurrentPageInd
     const handleLaser = (data) => {
       setLaserPointers(prev => ({ ...prev, [data.id]: { ...data, timestamp: Date.now() } }));
     };
-    const handleUserJoined = ({ id, name, role, color }) => {
-      setRemoteUsers(prev => ({ ...prev, [id]: { name, role, color, pageIndex: 0 } }));
+    const handleUserJoined = ({ id, name, role, color, permissionLevel }) => {
+      setRemoteUsers(prev => ({ ...prev, [id]: { name, role, color, pageIndex: 0, permissionLevel } }));
     };
     const handleUserLeft = ({ id }) => {
       setRemoteUsers(prev => { const next = { ...prev }; delete next[id]; return next; });
@@ -32,8 +32,8 @@ export function useCollaboration({ isActive, currentPageIndex, setCurrentPageInd
     const handleUserPageChanged = ({ id, pageIndex }) => {
       setRemoteUsers(prev => ({ ...prev, [id]: { ...prev[id], pageIndex } }));
     };
-    const handleUserRoleUpdated = ({ id, role }) => {
-      setRemoteUsers(prev => ({ ...prev, [id]: { ...prev[id], role } }));
+    const handleUserRoleUpdated = ({ id, role, permissionLevel }) => {
+      setRemoteUsers(prev => ({ ...prev, [id]: { ...prev[id], role, permissionLevel } }));
     };
 
     collaborationService.onCursorMove(handleCursorMove);

@@ -137,6 +137,24 @@ const TOOLBOX_ITEMS = [
         category: "gadgets",
     },
     {
+        id: "banner",
+        label: "Banner อักษรวิ่ง",
+        icon: (
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                <rect x="2" y="8" width="20" height="8" rx="2" fill="rgba(251,191,36,0.15)" />
+                <path d="M2 12h20" />
+                <path d="M6 10.5h3" opacity="0.6" />
+                <path d="M11 10.5h4" opacity="0.4" />
+                <path d="M17 10.5h3" opacity="0.2" />
+                <path d="M5 13.5h2" opacity="0.2" />
+                <path d="M9 13.5h5" opacity="0.4" />
+                <path d="M16 13.5h4" opacity="0.6" />
+                <path d="M22 11l-2-1M22 13l-2 1" opacity="0.5" />
+            </svg>
+        ),
+        category: "gadgets",
+    },
+    {
         id: "math_grapher",
         label: "Function Grapher",
         icon: (
