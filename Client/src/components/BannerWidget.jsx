@@ -34,11 +34,16 @@ const FONT_SIZES = [
   { id: "xl", label: "XL", size: 64 },
 ];
 
-export default function BannerWidget({ bannerState, updateBanner, userRole }) {
-  const { text, theme: currentTheme, speed, fontSize, position } = bannerState;
-  
+export default function BannerWidget({ onClose }) {
+  // ── Settings State ──
+  const [text, setText] = useState("ยินดีต้อนรับสู่ห้องเรียน 🎓");
+  const [theme, setTheme] = useState(COLOR_THEMES[0]);
+  const [speed, setSpeed] = useState(SPEED_OPTIONS[1]);
+  const [fontSize, setFontSize] = useState(FONT_SIZES[1]);
+  const [position, setPosition] = useState("bottom"); // "top" | "bottom"
+  const [isShowing, setIsShowing] = useState(false);
   const [isPaused, setIsPaused] = useState(false);
-  const [showSettings, setShowSettings] = useState(userRole === "host");
+  const [showSettings, setShowSettings] = useState(true);
 
   const marqueeRef = useRef(null);
 
@@ -50,25 +55,18 @@ export default function BannerWidget({ bannerState, updateBanner, userRole }) {
   // ── Toggle Banner ──
   const toggleBanner = useCallback(() => {
     if (!text.trim()) return;
-    updateBanner({ ...bannerState, isShowing: !bannerState.isShowing });
+    setIsShowing(v => !v);
     setIsPaused(false);
-  }, [text, bannerState, updateBanner]);
+  }, [text]);
 
-  // Update specific setting
-  const updateSetting = (key, value) => {
-    updateBanner({ ...bannerState, [key]: value });
-  };
-
-  // ── Keyboard shortcut: Escape to close banner (host only) ──
+  // ── Keyboard shortcut: Escape to close banner ──
   useEffect(() => {
     const handleKey = (e) => {
-      if (e.key === "Escape" && bannerState.isShowing && userRole === "host") {
-        updateBanner({ ...bannerState, isShowing: false });
-      }
+      if (e.key === "Escape" && isShowing) setIsShowing(false);
     };
     window.addEventListener("keydown", handleKey);
     return () => window.removeEventListener("keydown", handleKey);
-  }, [bannerState, updateBanner, userRole]);
+  }, [isShowing]);
 
   // ── CSS Animation Keyframes (injected once) ──
   useEffect(() => {
@@ -92,12 +90,14 @@ export default function BannerWidget({ bannerState, updateBanner, userRole }) {
     };
   }, []);
 
+  const currentTheme = theme;
+
   return (
     <>
       {/* ══════════════════════════════════════════════════════ */}
-      {/* Settings Panel (Draggable) - Host Only                */}
+      {/* Settings Panel (Draggable)                            */}
       {/* ══════════════════════════════════════════════════════ */}
-      {userRole === "host" && showSettings && (
+      {showSettings && (
         <div
           data-draggable
           style={{
@@ -172,7 +172,7 @@ export default function BannerWidget({ bannerState, updateBanner, userRole }) {
               </label>
               <textarea
                 value={text}
-                onChange={(e) => updateSetting('text', e.target.value)}
+                onChange={e => setText(e.target.value)}
                 placeholder="พิมพ์ข้อความที่ต้องการให้วิ่ง..."
                 rows={2}
                 style={{
@@ -182,35 +182,36 @@ export default function BannerWidget({ bannerState, updateBanner, userRole }) {
                   fontFamily: "'Inter',sans-serif", outline: "none",
                   transition: "border-color 0.2s",
                 }}
+                onFocus={e => e.target.style.borderColor = "rgba(251,191,36,0.4)"}
+                onBlur={e => e.target.style.borderColor = "rgba(100,140,200,0.15)"}
               />
             </div>
 
+            {/* Color Theme */}
             <div>
               <label style={{ fontSize: 10, color: "#94a3b8", fontWeight: 600, marginBottom: 6, display: "block" }}>
                 🎨 ธีมสี
               </label>
               <div style={{ display: "flex", gap: 5, flexWrap: "wrap" }}>
                 {COLOR_THEMES.map(t => {
-                  const active = currentTheme.id === t.id;
+                  const active = theme.id === t.id;
                   return (
-                    <button
-                      key={t.id}
-                      onClick={() => updateSetting('theme', t)}
-                      style={{
-                        flex: 1, padding: "6px 8px", fontSize: 11, fontWeight: 600,
-                        borderRadius: 6, border: active ? `1px solid ${t.text}` : "1px solid rgba(100,140,200,0.15)",
-                        background: active ? "rgba(255,255,255,0.08)" : "transparent",
-                        color: active ? t.text : "#94a3b8",
-                        cursor: "pointer", transition: "all 0.2s",
-                      }}
-                    ><span style={{ color: t.text, marginRight: 3, fontSize: 12 }}>●</span>{t.label}
+                    <button key={t.id} onClick={() => setTheme(t)} style={{
+                      padding: "4px 10px", border: active ? "1px solid rgba(251,191,36,0.5)" : "1px solid rgba(100,140,200,0.1)",
+                      borderRadius: 6, cursor: "pointer", fontSize: 10, fontWeight: 600,
+                      background: active ? "rgba(251,191,36,0.15)" : "rgba(255,255,255,0.03)",
+                      color: active ? "#fbbf24" : "#94a3b8", transition: "all 0.15s",
+                    }}>
+                      <span style={{ color: t.text, marginRight: 3, fontSize: 12 }}>●</span>{t.label}
                     </button>
                   );
                 })}
               </div>
             </div>
 
+            {/* Speed + Font Size Row */}
             <div style={{ display: "flex", gap: 12 }}>
+              {/* Speed */}
               <div style={{ flex: 1 }}>
                 <label style={{ fontSize: 10, color: "#94a3b8", fontWeight: 600, marginBottom: 6, display: "block" }}>
                   ⚡ ความเร็ว
@@ -219,21 +220,18 @@ export default function BannerWidget({ bannerState, updateBanner, userRole }) {
                   {SPEED_OPTIONS.map(s => {
                     const active = speed.id === s.id;
                     return (
-                      <button
-                        key={s.id}
-                        onClick={() => updateSetting('speed', s)}
-                        style={{
-                          flex: 1, padding: "5px 0", fontSize: 11, fontWeight: 600,
-                          border: "none", cursor: "pointer",
-                          background: active ? "linear-gradient(135deg, rgba(59,130,246,0.3), rgba(37,99,235,0.2))" : "transparent",
-                          color: active ? "#60a5fa" : "#64748b", transition: "all 0.2s",
-                        }}
-                      >{s.label}</button>
+                      <button key={s.id} onClick={() => setSpeed(s)} style={{
+                        flex: 1, padding: "5px 0", border: active ? "1px solid rgba(59,130,246,0.4)" : "1px solid rgba(100,140,200,0.08)",
+                        borderRadius: 6, cursor: "pointer", fontSize: 9, fontWeight: 600,
+                        background: active ? "rgba(59,130,246,0.15)" : "rgba(255,255,255,0.02)",
+                        color: active ? "#60a5fa" : "#64748b", transition: "all 0.15s",
+                      }}>{s.label}</button>
                     );
                   })}
                 </div>
               </div>
 
+              {/* Font Size */}
               <div style={{ flex: 1 }}>
                 <label style={{ fontSize: 10, color: "#94a3b8", fontWeight: 600, marginBottom: 6, display: "block" }}>
                   🔤 ขนาดตัวอักษร
@@ -242,10 +240,10 @@ export default function BannerWidget({ bannerState, updateBanner, userRole }) {
                   {FONT_SIZES.map(f => {
                     const active = fontSize.id === f.id;
                     return (
-                      <button key={f.id} onClick={() => updateSetting('fontSize', f)} style={{
-                        flex: 1, padding: "5px 0", border: "none",
+                      <button key={f.id} onClick={() => setFontSize(f)} style={{
+                        flex: 1, padding: "5px 0", border: active ? "1px solid rgba(34,197,94,0.4)" : "1px solid rgba(100,140,200,0.08)",
                         borderRadius: 6, cursor: "pointer", fontSize: 10, fontWeight: 700,
-                        background: active ? "rgba(34,197,94,0.15)" : "transparent",
+                        background: active ? "rgba(34,197,94,0.15)" : "rgba(255,255,255,0.02)",
                         color: active ? "#4ade80" : "#64748b", transition: "all 0.15s",
                       }}>{f.label}</button>
                     );
@@ -254,64 +252,84 @@ export default function BannerWidget({ bannerState, updateBanner, userRole }) {
               </div>
             </div>
 
+            {/* Position */}
             <div>
               <label style={{ fontSize: 10, color: "#94a3b8", fontWeight: 600, marginBottom: 6, display: "block" }}>
                 📍 ตำแหน่ง
               </label>
               <div style={{ display: "flex", gap: 6 }}>
-                <button
-                  onClick={() => updateSetting('position', 'top')}
-                  style={{
-                    flex: 1, padding: "6px 0", fontSize: 11, fontWeight: 600,
-                    border: "none", cursor: "pointer",
-                    background: position === "top" ? "rgba(255,255,255,0.1)" : "transparent",
-                    color: position === "top" ? "#fff" : "#64748b", transition: "all 0.2s",
-                  }}
-                >
-                  บนสุด (Top)
-                </button>
-                <div style={{ width: 1, background: "rgba(100,140,200,0.15)" }} />
-                <button
-                  onClick={() => updateSetting('position', 'bottom')}
-                  style={{
-                    flex: 1, padding: "6px 0", fontSize: 11, fontWeight: 600,
-                    border: "none", cursor: "pointer",
-                    background: position === "bottom" ? "rgba(255,255,255,0.1)" : "transparent",
-                    color: position === "bottom" ? "#fff" : "#64748b", transition: "all 0.2s",
-                  }}
-                >
-                  ล่างสุด (Bottom)
-                </button>
+                {[
+                  { id: "top", label: "▲ ด้านบน" },
+                  { id: "bottom", label: "▼ ด้านล่าง" },
+                ].map(p => {
+                  const active = position === p.id;
+                  return (
+                    <button key={p.id} onClick={() => setPosition(p.id)} style={{
+                      flex: 1, padding: "6px 0", border: active ? "1px solid rgba(168,85,247,0.4)" : "1px solid rgba(100,140,200,0.08)",
+                      borderRadius: 6, cursor: "pointer", fontSize: 11, fontWeight: 600,
+                      background: active ? "rgba(168,85,247,0.15)" : "rgba(255,255,255,0.02)",
+                      color: active ? "#a78bfa" : "#64748b", transition: "all 0.15s",
+                    }}>{p.label}</button>
+                  );
+                })}
               </div>
             </div>
 
+            {/* Preview Strip */}
+            <div style={{
+              borderRadius: 8, overflow: "hidden",
+              border: "1px solid rgba(100,140,200,0.1)",
+              height: 40,
+              background: currentTheme.bg.startsWith("linear") ? currentTheme.bg : currentTheme.bg,
+              backgroundColor: !currentTheme.bg.startsWith("linear") ? currentTheme.bg : undefined,
+              backgroundImage: currentTheme.bg.startsWith("linear") ? currentTheme.bg : undefined,
+              display: "flex", alignItems: "center", position: "relative",
+            }}>
+              <div style={{
+                whiteSpace: "nowrap", animation: `banner-scroll ${speed.duration}s linear infinite`,
+                fontSize: Math.min(fontSize.size, 28), fontWeight: 700,
+                color: currentTheme.text,
+                textShadow: currentTheme.glow !== "none" ? `0 0 12px ${currentTheme.glow}, 0 0 24px ${currentTheme.glow}` : "none",
+                fontFamily: "'Inter','Segoe UI',system-ui,sans-serif",
+              }}>
+                {text || "พิมพ์ข้อความ..."}
+              </div>
+              <div style={{
+                position: "absolute", top: 2, right: 4,
+                fontSize: 8, color: "#64748b", background: "rgba(0,0,0,0.5)",
+                padding: "1px 5px", borderRadius: 3,
+              }}>ตัวอย่าง</div>
+            </div>
+
+            {/* Action Buttons */}
             <div style={{ display: "flex", gap: 8 }}>
               <button
                 onClick={toggleBanner}
+                disabled={!text.trim()}
                 style={{
-                  flex: 1, padding: "10px", fontSize: 14, fontWeight: 700,
-                  border: "none", borderRadius: 8, cursor: text.trim() ? "pointer" : "not-allowed",
-                  background: bannerState.isShowing
-                    ? "linear-gradient(135deg, rgba(239,68,68,0.2), rgba(220,38,38,0.1))"
-                    : "linear-gradient(135deg, rgba(34,197,94,0.2), rgba(22,163,74,0.1))",
-                  color: bannerState.isShowing ? "#fca5a5" : "#86efac",
-                  border: bannerState.isShowing ? "1px solid rgba(239,68,68,0.3)" : "1px solid rgba(34,197,94,0.3)",
-                  transition: "all 0.2s", opacity: text.trim() ? 1 : 0.5,
+                  flex: 1, padding: "9px 0", border: "none", borderRadius: 8, cursor: text.trim() ? "pointer" : "not-allowed",
+                  fontSize: 13, fontWeight: 700, letterSpacing: 0.3,
+                  background: isShowing
+                    ? "linear-gradient(135deg, rgba(239,68,68,0.3), rgba(239,68,68,0.15))"
+                    : "linear-gradient(135deg, rgba(34,197,94,0.3), rgba(34,197,94,0.15))",
+                  color: isShowing ? "#f87171" : "#4ade80",
+                  border: `1px solid ${isShowing ? "rgba(239,68,68,0.3)" : "rgba(34,197,94,0.3)"}`,
+                  transition: "all 0.2s", opacity: text.trim() ? 1 : 0.4,
                 }}
               >
-                {bannerState.isShowing ? "⏹️ หยุดวิ่ง (ซ่อน)" : "▶️ เริ่มวิ่ง (แสดง)"}
+                {isShowing ? "⏹ ปิด Banner" : "▶ แสดง Banner"}
               </button>
-              {bannerState.isShowing && (
+              {isShowing && (
                 <button
                   onClick={() => setIsPaused(v => !v)}
                   style={{
-                    padding: "9px 12px", border: "1px solid rgba(100,140,200,0.2)", borderRadius: 8, cursor: "pointer",
-                    background: isPaused ? "rgba(251,191,36,0.15)" : "rgba(255,255,255,0.03)",
-                    color: isPaused ? "#fbbf24" : "#94a3b8", transition: "all 0.2s", fontSize: 14,
+                    padding: "9px 16px", border: "1px solid rgba(251,191,36,0.2)", borderRadius: 8,
+                    cursor: "pointer", fontSize: 12, fontWeight: 700,
+                    background: "linear-gradient(135deg, rgba(251,191,36,0.15), rgba(251,191,36,0.08))",
+                    color: "#fbbf24", transition: "all 0.2s",
                   }}
-                  title={isPaused ? "เล่นต่อ" : "หยุดชั่วคราว"}
                 >
-                  {isPaused ? "▶️" : "⏸️"}
+                  {isPaused ? "▶" : "⏸"}
                 </button>
               )}
             </div>
@@ -319,10 +337,11 @@ export default function BannerWidget({ bannerState, updateBanner, userRole }) {
         </div>
       )}
 
-      {bannerState.isShowing && (
+      {/* ══════════════════════════════════════════════════════ */}
+      {/* Actual Scrolling Banner (Full-Width Overlay)          */}
+      {/* ══════════════════════════════════════════════════════ */}
+      {isShowing && (
         <div
-          onMouseEnter={() => userRole === "host" && setIsPaused(true)}
-          onMouseLeave={() => userRole === "host" && setIsPaused(false)}
           style={{
             position: "fixed",
             left: 0, right: 0,
@@ -386,17 +405,17 @@ export default function BannerWidget({ bannerState, updateBanner, userRole }) {
         </div>
       )}
 
-      {/* ── Minimized floating control (when settings panel is hidden) - Host Only ── */}
-      {userRole === "host" && !showSettings && (
+      {/* ── Minimized floating control (when settings panel is hidden) ── */}
+      {!showSettings && (
         <button
           onClick={() => setShowSettings(true)}
           style={{
             position: "fixed", right: 20,
-            [position === "top" ? "top" : "bottom"]: bannerState.isShowing ? fontSize.size + 40 : 20,
+            [position === "top" ? "top" : "bottom"]: isShowing ? fontSize.size + 40 : 20,
             zIndex: 9996, padding: "8px 14px", borderRadius: 10,
             background: "linear-gradient(135deg, rgba(15,23,42,0.95), rgba(30,40,60,0.95))",
-            border: bannerState.isShowing ? "1px solid rgba(251,191,36,0.4)" : "1px solid rgba(100,140,200,0.2)",
-            color: bannerState.isShowing ? "#fbbf24" : "#94a3b8", cursor: "pointer",
+            border: isShowing ? "1px solid rgba(251,191,36,0.4)" : "1px solid rgba(100,140,200,0.2)",
+            color: isShowing ? "#fbbf24" : "#94a3b8", cursor: "pointer",
             fontSize: 11, fontWeight: 600,
             boxShadow: "0 4px 24px rgba(0,0,0,0.5)",
             display: "flex", alignItems: "center", gap: 6,
@@ -406,8 +425,8 @@ export default function BannerWidget({ bannerState, updateBanner, userRole }) {
           onMouseEnter={e => { e.target.style.transform = "scale(1.05)"; e.target.style.boxShadow = "0 6px 30px rgba(0,0,0,0.6)"; }}
           onMouseLeave={e => { e.target.style.transform = "scale(1)"; e.target.style.boxShadow = "0 4px 24px rgba(0,0,0,0.5)"; }}
         >
-          📢 {bannerState.isShowing ? "Banner กำลังวิ่ง" : "เปิดตั้งค่า Banner"}
-          {bannerState.isShowing && (
+          📢 {isShowing ? "Banner กำลังวิ่ง" : "เปิดตั้งค่า Banner"}
+          {isShowing && (
             <span style={{
               width: 8, height: 8, borderRadius: "50%",
               background: "#4ade80",

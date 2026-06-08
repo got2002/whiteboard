@@ -26,12 +26,6 @@ module.exports = (io, socket) => {
     });
   });
 
-  socket.on("update-banner", (state) => {
-    if (socket.id !== store.hostSocketId) return;
-    store.bannerState = state;
-    socket.broadcast.emit("banner-updated", state);
-  });
-
   socket.on("disconnect", () => {
     store.connectedUsers--;
     delete store.users[socket.id];
