@@ -17,7 +17,7 @@ function randomColor() {
   return RANDOM_COLORS[Math.floor(Math.random() * RANDOM_COLORS.length)];
 }
 
-export function useUser({ setPages, setHostTool, setHostPenStyle }) {
+export function useUser({ setPages, setHostTool, setHostPenStyle, onInitWidgets }) {
   const [username, setUsername] = useState("");
   const [userRole, setUserRole] = useState("viewer");
   const [userColor, setUserColor] = useState(randomColor());
@@ -53,12 +53,13 @@ export function useUser({ setPages, setHostTool, setHostPenStyle }) {
       setHostExists(exists);
       if (sip) setServerIp(sip);
     };
-    const handleInitState = ({ pages: serverPages, hostTool: ht, hostPenStyle: hps, serverIp: sip, isLocked }) => {
+    const handleInitState = ({ pages: serverPages, hostTool: ht, hostPenStyle: hps, serverIp: sip, isLocked, widgets }) => {
       if (serverPages && serverPages.length > 0) setPages(serverPages);
       if (ht) setHostTool(ht);
       if (hps) setHostPenStyle(hps);
       if (sip) setServerIp(sip);
       if (isLocked !== undefined) setIsLockedInitial(isLocked);
+      if (widgets && onInitWidgets) onInitWidgets(widgets);
     };
     const handleUserCount = (count) => setUserCount(count);
 

@@ -221,6 +221,11 @@ const Canvas = forwardRef(function Canvas(
     ctx.restore();
     bgCtx.restore();
 
+    // Dispatch transform to overlays
+    window.dispatchEvent(new CustomEvent("canvas-transform", {
+      detail: { zoom: zoom.current, panOffset: { ...panOffset.current } }
+    }));
+
     // Split Board dividers
     const isSplitActiveLocally = tool === "pen" && typeof penStyle === "string" && penStyle.startsWith("split_");
     const isSplitActiveByHost = hostTool === "pen" && typeof hostPenStyle === "string" && hostPenStyle.startsWith("split_");
@@ -552,7 +557,8 @@ const Canvas = forwardRef(function Canvas(
     activePointers.current.set(pId, { x: e.clientX, y: e.clientY });
 
     const isViewer = userRole === "viewer";
-    const effectiveTool = isViewer || isSpacePressed ? "pan" : tool;
+    const isTouch = e.pointerType === "touch";
+    const effectiveTool = isViewer || isSpacePressed || isTouch ? "pan" : tool;
     const isExplicitPan = effectiveTool === "pan";
     const isMultiTouchPan = activePointers.current.size >= 2 && effectiveTool === "pan";
 
@@ -786,7 +792,8 @@ const Canvas = forwardRef(function Canvas(
     }
 
     const isViewer = userRole === "viewer";
-    const effectiveTool = isViewer || isSpacePressed ? "pan" : tool;
+    const isTouch = e.pointerType === "touch";
+    const effectiveTool = isViewer || isSpacePressed || isTouch ? "pan" : tool;
     const isExplicitPan = effectiveTool === "pan";
     const isMultiTouchPan = activePointers.current.size >= 2 && effectiveTool === "pan";
 

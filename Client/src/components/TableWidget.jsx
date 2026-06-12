@@ -1,7 +1,7 @@
 // ============================================================
 // TableWidget.jsx — On-Canvas Table (Excel-like)
 // ============================================================
-import { useState, useRef, useCallback, useEffect } from "react";
+import { useState, useRef, useCallback, useEffect, useLayoutEffect } from "react";
 
 const MIN_CW = 40, MAX_CW = 500, MIN_RH = 24, MAX_RH = 400, MAX_SZ = 15, MIN_SZ = 1;
 const COLORS = ["", "#e0e7ff", "#dbeafe", "#dcfce7", "#fef9c3", "#fee2e2", "#fce7f3", "#ede9fe", "#f1f5f9", "#fef3c7", "#1e293b", "#0f172a"];
@@ -70,7 +70,7 @@ function TableSizePicker({ onSelect, onClose }) {
   );
 }
 
-function CanvasTable({ table, onUpdate, onRemove }) {
+function CanvasTable({ table, canEdit = true, onUpdate, onRemove }) {
   const [editCell, setEditCell] = useState(null);
   const [sel, setSel] = useState(null); // {r,c}
   const [isDragging, setIsDragging] = useState(false);
@@ -80,6 +80,30 @@ function CanvasTable({ table, onUpdate, onRemove }) {
   const [styleMenu, setStyleMenu] = useState(false);
   const inputRef = useRef(null);
   const fileInputRef = useRef(null);
+  const containerRef = useRef(null);
+  const currentZoomRef = useRef(1);
+  const currentPanRef = useRef({ x: 0, y: 0 });
+
+  // Sync canvas transform
+  useLayoutEffect(() => {
+    const updateTransform = () => {
+      if (!containerRef.current) return;
+      const z = currentZoomRef.current;
+      const p = currentPanRef.current;
+      containerRef.current.style.left = `${table.x * z + p.x}px`;
+      containerRef.current.style.top = `${table.y * z + p.y}px`;
+      containerRef.current.style.transform = `scale(${z})`;
+      containerRef.current.style.transformOrigin = "top left";
+    };
+    updateTransform();
+    const onCanvasTransform = (e) => {
+      currentZoomRef.current = e.detail.zoom;
+      currentPanRef.current = e.detail.panOffset;
+      updateTransform();
+    };
+    window.addEventListener("canvas-transform", onCanvasTransform);
+    return () => window.removeEventListener("canvas-transform", onCanvasTransform);
+  }, [table.x, table.y]);
 
   const rows = table.data.length, cols = table.data[0]?.length || 0;
   useEffect(() => { if (editCell && inputRef.current) { inputRef.current.focus(); inputRef.current.select(); } }, [editCell]);
@@ -92,8 +116,9 @@ function CanvasTable({ table, onUpdate, onRemove }) {
   const handleMove = (e) => {
     if (e.target.closest(".ct-cell") || e.target.closest(".ct-tb") || e.target.closest(".ct-rz")) return;
     e.preventDefault(); e.stopPropagation(); setIsDragging(true);
-    const sx = e.clientX - table.x, sy = e.clientY - table.y;
-    const mv = (ev) => onUpdate(table.id, { ...table, x: ev.clientX - sx, y: ev.clientY - sy });
+    const z = currentZoomRef.current;
+    const sx = e.clientX, sy = e.clientY, ox = table.x, oy = table.y;
+    const mv = (ev) => onUpdate(table.id, { ...table, x: ox + (ev.clientX - sx) / z, y: oy + (ev.clientY - sy) / z });
     const end = () => { setIsDragging(false); window.removeEventListener("pointermove", mv); window.removeEventListener("pointerup", end); };
     window.addEventListener("pointermove", mv); window.addEventListener("pointerup", end);
   };
@@ -101,15 +126,17 @@ function CanvasTable({ table, onUpdate, onRemove }) {
   // ── Resize col/row ──
   const resizeCol = (e, ci) => {
     e.preventDefault(); e.stopPropagation();
+    const z = currentZoomRef.current;
     const sx = e.clientX, sw = table.colWidths[ci];
-    const mv = (ev) => { const nw = [...table.colWidths]; nw[ci] = Math.max(MIN_CW, Math.min(MAX_CW, sw + ev.clientX - sx)); up({ colWidths: nw }); };
+    const mv = (ev) => { const nw = [...table.colWidths]; nw[ci] = Math.max(MIN_CW, Math.min(MAX_CW, sw + (ev.clientX - sx) / z)); up({ colWidths: nw }); };
     const end = () => { window.removeEventListener("pointermove", mv); window.removeEventListener("pointerup", end); };
     window.addEventListener("pointermove", mv); window.addEventListener("pointerup", end);
   };
   const resizeRow = (e, ri) => {
     e.preventDefault(); e.stopPropagation();
+    const z = currentZoomRef.current;
     const sy = e.clientY, sh = table.rowHeights[ri];
-    const mv = (ev) => { const nh = [...table.rowHeights]; nh[ri] = Math.max(MIN_RH, Math.min(MAX_RH, sh + ev.clientY - sy)); up({ rowHeights: nh }); };
+    const mv = (ev) => { const nh = [...table.rowHeights]; nh[ri] = Math.max(MIN_RH, Math.min(MAX_RH, sh + (ev.clientY - sy) / z)); up({ rowHeights: nh }); };
     const end = () => { window.removeEventListener("pointermove", mv); window.removeEventListener("pointerup", end); };
     window.addEventListener("pointermove", mv); window.addEventListener("pointerup", end);
   };
@@ -117,13 +144,14 @@ function CanvasTable({ table, onUpdate, onRemove }) {
   // ── Corner/Edge resize (all 8 directions) ──
   const handleResize = (e, dir) => {
     e.preventDefault(); e.stopPropagation();
+    const z = currentZoomRef.current;
     const sx = e.clientX, sy = e.clientY;
     const sCW = [...table.colWidths], sRH = [...table.rowHeights];
     const sX = table.x, sY = table.y;
     const totalW = sCW.reduce((a, b) => a + b, 0), totalH = sRH.reduce((a, b) => a + b, 0);
 
     const mv = (ev) => {
-      const dx = ev.clientX - sx, dy = ev.clientY - sy;
+      const dx = (ev.clientX - sx) / z, dy = (ev.clientY - sy) / z;
       let scX = 1, scY = 1, nx = sX, ny = sY;
       if (dir.includes("r")) scX = Math.max(0.3, (totalW + dx) / totalW);
       if (dir.includes("l")) { scX = Math.max(0.3, (totalW - dx) / totalW); nx = sX + totalW * (1 - scX); }
@@ -214,8 +242,8 @@ function CanvasTable({ table, onUpdate, onRemove }) {
   const sr = sel?.r ?? rows - 1, sc = sel?.c ?? cols - 1;
 
   return (
-    <div className={`ct ${isDragging ? "ct-drag" : ""} ${toolbar ? "ct-focus" : ""}`}
-      style={{ position: "absolute", left: table.x, top: table.y, zIndex: isDragging ? 52 : 50 }}
+    <div ref={containerRef} className={`ct ${isDragging ? "ct-drag" : ""} ${toolbar ? "ct-focus" : ""}`}
+      style={{ position: "absolute", zIndex: isDragging ? 52 : 50, pointerEvents: canEdit ? "auto" : "none" }}
       onPointerDown={handleMove}
       onMouseEnter={() => setToolbar(true)}
       onMouseLeave={() => { if (!editCell && !colorMenu && !fontMenu && !styleMenu) setToolbar(false); }}
@@ -405,7 +433,7 @@ function CanvasTable({ table, onUpdate, onRemove }) {
   );
 }
 
-export default function TableManager({ tables, onTablesChange, showPicker, onClosePicker }) {
+export default function TableManager({ tables, canEdit = true, onTableAdd, onTableUpdate, onTableRemove, showPicker, onClosePicker }) {
   const handleSelect = (rows, cols) => {
     const t = {
       id: "tbl_" + Date.now(), x: window.innerWidth / 2 - cols * 45, y: window.innerHeight / 2 - rows * 18,
@@ -413,15 +441,25 @@ export default function TableManager({ tables, onTablesChange, showPicker, onClo
       borderColor: "#cbd5e1", themeId: "", striped: false,
       data: Array.from({ length: rows }, () => Array.from({ length: cols }, () => ({ text: "", bg: "" }))),
     };
-    onTablesChange([...tables, t]); onClosePicker();
+    if (onTableAdd) onTableAdd(t);
+    onClosePicker();
   };
-  const handleUpdate = useCallback((id, u) => { onTablesChange(p => (Array.isArray(p) ? p : []).map(t => t.id === id ? u : t)); }, [onTablesChange]);
-  const handleRemove = useCallback((id) => { onTablesChange(p => (Array.isArray(p) ? p : []).filter(t => t.id !== id)); }, [onTablesChange]);
+  const handleUpdate = useCallback((id, u) => {
+    if (onTableUpdate) {
+      // Find what changed
+      const oldT = tables.find(tb => tb.id === id);
+      if (!oldT) return;
+      onTableUpdate(id, u);
+    }
+  }, [tables, onTableUpdate]);
+  const handleRemove = useCallback((id) => {
+    if (onTableRemove) onTableRemove(id);
+  }, [onTableRemove]);
 
   return (
     <>
       {showPicker && <TableSizePicker onSelect={handleSelect} onClose={onClosePicker} />}
-      {tables.map(t => <CanvasTable key={t.id} table={t} onUpdate={handleUpdate} onRemove={handleRemove} />)}
+      {tables.map(t => <CanvasTable key={t.id} table={t} canEdit={canEdit} onUpdate={handleUpdate} onRemove={handleRemove} />)}
     </>
   );
 }

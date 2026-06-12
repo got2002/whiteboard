@@ -1,7 +1,7 @@
 // ============================================================
 // MathToolWidget.jsx — Draggable/Rotatable Math Overlays
 // ============================================================
-import { useState, useRef, useCallback } from "react";
+import { useState, useRef, useCallback, useEffect, useLayoutEffect } from "react";
 
 // ── SVG Tool Renderers (transparent, no background) ──
 function ProtractorSVG({ w, h }) {
@@ -464,27 +464,75 @@ const TOOL_RENDERER = {
 };
 
 // ============================================================
-export default function MathToolWidget({ toolId, toolType, onClose, onDrawCircle, penColor = "#000", penSize = 3 }) {
+export default function MathToolWidget({ canEdit = true, toolId, toolType, toolData, onUpdate, onClose, onDrawCircle, penColor = "#000", penSize = 3 }) {
   const def = TOOL_DEFAULTS[toolType] || TOOL_DEFAULTS.ruler;
-  const [pos, setPos] = useState({ x: window.innerWidth / 2 - def.w / 2, y: window.innerHeight / 2 - def.h / 2 });
-  const [size, setSize] = useState({ w: def.w, h: def.h });
-  const [rotation, setRotation] = useState(0);
+  const [pos, setPos] = useState(toolData?.pos || { x: window.innerWidth / 2 - def.w / 2, y: window.innerHeight / 2 - def.h / 2 });
+  const [size, setSize] = useState(toolData?.size || { w: def.w, h: def.h });
+  const [rotation, setRotation] = useState(toolData?.rotation || 0);
   const [hovered, setHovered] = useState(false);
   // Interactive state
-  const [diceValue, setDiceValue] = useState(Math.ceil(Math.random() * 6));
-  const [spinnerAngle, setSpinnerAngle] = useState(0);
+  const [diceValue, setDiceValue] = useState(toolData?.diceValue || Math.ceil(Math.random() * 6));
+  const [spinnerAngle, setSpinnerAngle] = useState(toolData?.spinnerAngle || 0);
   const [spinning, setSpinning] = useState(false);
-  const [clockH, setClockH] = useState(10);
-  const [clockM, setClockM] = useState(10);
-  const [fractionDiv, setFractionDiv] = useState(4);
+  const [clockH, setClockH] = useState(toolData?.clockH || 10);
+  const [clockM, setClockM] = useState(toolData?.clockM || 10);
+  const [fractionDiv, setFractionDiv] = useState(toolData?.fractionDiv || 4);
   // Compass state
-  const [compassRadius, setCompassRadius] = useState(80);
-  const [compassArcStart, setCompassArcStart] = useState(0);
-  const [compassArcEnd, setCompassArcEnd] = useState(360);
+  const [compassRadius, setCompassRadius] = useState(toolData?.compassRadius || 80);
+  const [compassArcStart, setCompassArcStart] = useState(toolData?.compassArcStart || 0);
+  const [compassArcEnd, setCompassArcEnd] = useState(toolData?.compassArcEnd || 360);
+
+  // Sync from server
+  useEffect(() => {
+    if (!toolData) return;
+    if (toolData.pos) setPos(toolData.pos);
+    if (toolData.size) setSize(toolData.size);
+    if (toolData.rotation !== undefined) setRotation(toolData.rotation);
+    if (toolData.diceValue !== undefined) setDiceValue(toolData.diceValue);
+    if (toolData.spinnerAngle !== undefined) setSpinnerAngle(toolData.spinnerAngle);
+    if (toolData.clockH !== undefined) setClockH(toolData.clockH);
+    if (toolData.clockM !== undefined) setClockM(toolData.clockM);
+    if (toolData.fractionDiv !== undefined) setFractionDiv(toolData.fractionDiv);
+    if (toolData.compassRadius !== undefined) setCompassRadius(toolData.compassRadius);
+    if (toolData.compassArcStart !== undefined) setCompassArcStart(toolData.compassArcStart);
+    if (toolData.compassArcEnd !== undefined) setCompassArcEnd(toolData.compassArcEnd);
+  }, [toolData]);
+
+  // Sync to server
+  const updateState = useCallback((updates) => {
+    if (!canEdit || !onUpdate) return;
+    onUpdate(toolId, updates);
+  }, [canEdit, onUpdate, toolId]);
 
   const containerRef = useRef(null);
   const dragRef = useRef(null);
   const resizeRef = useRef(null);
+  const currentZoomRef = useRef(1);
+  const currentPanRef = useRef({ x: 0, y: 0 });
+
+  // Sync canvas transform
+  useLayoutEffect(() => {
+    const updateTransform = () => {
+      if (!containerRef.current) return;
+      const z = currentZoomRef.current;
+      const p = currentPanRef.current;
+      containerRef.current.style.left = `${pos.x * z + p.x}px`;
+      containerRef.current.style.top = `${(pos.y - 36) * z + p.y}px`;
+      containerRef.current.style.transform = `scale(${z}) rotate(${rotation}deg)`;
+      containerRef.current.style.transformOrigin = "center calc(50% + 18px)";
+    };
+    
+    // Initial update
+    updateTransform();
+
+    const onCanvasTransform = (e) => {
+      currentZoomRef.current = e.detail.zoom;
+      currentPanRef.current = e.detail.panOffset;
+      updateTransform();
+    };
+    window.addEventListener("canvas-transform", onCanvasTransform);
+    return () => window.removeEventListener("canvas-transform", onCanvasTransform);
+  }, [rotation, pos]);
 
   // Drag
   const startDrag = useCallback((e) => {
@@ -492,9 +540,20 @@ export default function MathToolWidget({ toolId, toolType, onClose, onDrawCircle
     dragRef.current = { sx: e.clientX, sy: e.clientY, ox: pos.x, oy: pos.y };
     const onMove = (ev) => {
       if (!dragRef.current) return;
-      setPos({ x: dragRef.current.ox + ev.clientX - dragRef.current.sx, y: dragRef.current.oy + ev.clientY - dragRef.current.sy });
+      const z = currentZoomRef.current;
+      setPos({ x: dragRef.current.ox + (ev.clientX - dragRef.current.sx) / z, y: dragRef.current.oy + (ev.clientY - dragRef.current.sy) / z });
     };
-    const onUp = () => { dragRef.current = null; window.removeEventListener("pointermove", onMove); window.removeEventListener("pointerup", onUp); };
+    const onUp = (ev) => { 
+      if (dragRef.current) {
+        const z = currentZoomRef.current;
+        const finalX = dragRef.current.ox + (ev.clientX - dragRef.current.sx) / z;
+        const finalY = dragRef.current.oy + (ev.clientY - dragRef.current.sy) / z;
+        updateState({ pos: { x: finalX, y: finalY } });
+      }
+      dragRef.current = null; 
+      window.removeEventListener("pointermove", onMove); 
+      window.removeEventListener("pointerup", onUp); 
+    };
     window.addEventListener("pointermove", onMove);
     window.addEventListener("pointerup", onUp);
   }, [pos]);
@@ -506,10 +565,20 @@ export default function MathToolWidget({ toolId, toolType, onClose, onDrawCircle
     resizeRef.current = { sx: e.clientX, ow: size.w, oh: size.h };
     const onMove = (ev) => {
       if (!resizeRef.current) return;
-      const nw = Math.max(80, resizeRef.current.ow + (ev.clientX - resizeRef.current.sx));
+      const z = currentZoomRef.current;
+      const nw = Math.max(80, resizeRef.current.ow + (ev.clientX - resizeRef.current.sx) / z);
       setSize({ w: nw, h: Math.round(nw / aspect) });
     };
-    const onUp = () => { resizeRef.current = null; window.removeEventListener("pointermove", onMove); window.removeEventListener("pointerup", onUp); };
+    const onUp = (ev) => { 
+      if (resizeRef.current) {
+        const z = currentZoomRef.current;
+        const nw = Math.max(80, resizeRef.current.ow + (ev.clientX - resizeRef.current.sx) / z);
+        updateState({ size: { w: nw, h: Math.round(nw / aspect) } });
+      }
+      resizeRef.current = null; 
+      window.removeEventListener("pointermove", onMove); 
+      window.removeEventListener("pointerup", onUp); 
+    };
     window.addEventListener("pointermove", onMove);
     window.addEventListener("pointerup", onUp);
   }, [size]);
@@ -526,7 +595,12 @@ export default function MathToolWidget({ toolId, toolType, onClose, onDrawCircle
       const angle = Math.atan2(ev.clientY - ccy, ev.clientX - ccx);
       setRotation(startRot + (angle - startAngle) * (180 / Math.PI));
     };
-    const onUp = () => { window.removeEventListener("pointermove", onMove); window.removeEventListener("pointerup", onUp); };
+    const onUp = (ev) => { 
+      const angle = Math.atan2(ev.clientY - ccy, ev.clientX - ccx);
+      updateState({ rotation: startRot + (angle - startAngle) * (180 / Math.PI) });
+      window.removeEventListener("pointermove", onMove); 
+      window.removeEventListener("pointerup", onUp); 
+    };
     window.addEventListener("pointermove", onMove);
     window.addEventListener("pointerup", onUp);
   }, [rotation]);
@@ -550,10 +624,10 @@ export default function MathToolWidget({ toolId, toolType, onClose, onDrawCircle
     const aEnd = compassArcEnd - compassArcStart < 360 ? compassArcEnd : 90;
     onDrawCircle({ cx: needleScreenX, cy: needleScreenY, radius: compassRadius, arcStart: aStart, arcEnd: aEnd });
   };
-  const rollDice = (e) => { e.stopPropagation(); setDiceValue(Math.ceil(Math.random() * 6)); };
-  const spinWheel = (e) => { e.stopPropagation(); if (spinning) return; setSpinning(true); const target = spinnerAngle + 720 + Math.random() * 360; const start = performance.now(); const dur = 2000; const animate = (t) => { const p = Math.min(1, (t - start) / dur); const ease = 1 - Math.pow(1 - p, 3); setSpinnerAngle(spinnerAngle + (target - spinnerAngle) * ease); if (p < 1) requestAnimationFrame(animate); else setSpinning(false); }; requestAnimationFrame(animate); };
-  const adjClock = (e, dh, dm) => { e.stopPropagation(); setClockH(h => (h + dh + 12) % 12 || 12); setClockM(m => (m + dm + 60) % 60); };
-  const adjFraction = (e, d) => { e.stopPropagation(); setFractionDiv(v => Math.max(2, Math.min(12, v + d))); };
+  const rollDice = (e) => { e.stopPropagation(); const val = Math.ceil(Math.random() * 6); setDiceValue(val); updateState({ diceValue: val }); };
+  const spinWheel = (e) => { e.stopPropagation(); if (spinning) return; setSpinning(true); const target = spinnerAngle + 720 + Math.random() * 360; updateState({ spinnerAngle: target }); const start = performance.now(); const dur = 2000; const animate = (t) => { const p = Math.min(1, (t - start) / dur); const ease = 1 - Math.pow(1 - p, 3); setSpinnerAngle(spinnerAngle + (target - spinnerAngle) * ease); if (p < 1) requestAnimationFrame(animate); else setSpinning(false); }; requestAnimationFrame(animate); };
+  const adjClock = (e, dh, dm) => { e.stopPropagation(); setClockH(h => { const nh = (h + dh + 12) % 12 || 12; updateState({ clockH: nh }); return nh; }); setClockM(m => { const nm = (m + dm + 60) % 60; updateState({ clockM: nm }); return nm; }); };
+  const adjFraction = (e, d) => { e.stopPropagation(); setFractionDiv(v => { const nv = Math.max(2, Math.min(12, v + d)); updateState({ fractionDiv: nv }); return nv; }); };
 
   const Renderer = TOOL_RENDERER[toolType];
   if (!Renderer) return null;
@@ -578,10 +652,10 @@ export default function MathToolWidget({ toolId, toolType, onClose, onDrawCircle
     <div ref={containerRef}
       onMouseEnter={() => setHovered(true)} onMouseLeave={() => setHovered(false)}
       style={{
-        position: "fixed", left: pos.x, top: pos.y - 36, width: size.w, zIndex: 50,
+        position: "fixed", width: size.w, zIndex: 50,
         paddingTop: 36,
         transform: `rotate(${rotation}deg)`, transformOrigin: `center calc(50% + 18px)`,
-        pointerEvents: "auto", userSelect: "none", cursor: "grab",
+        pointerEvents: canEdit ? "auto" : "none", userSelect: "none", cursor: "grab",
       }}
       onPointerDown={(e) => { e.stopPropagation(); startDrag(e); }}
     >
@@ -595,13 +669,13 @@ export default function MathToolWidget({ toolId, toolType, onClose, onDrawCircle
         boxShadow: "0 2px 8px rgba(0,0,0,0.3)", zIndex: 3,
       }}>
         <span style={{ fontSize: 10, color: "#94a3b8", padding: "0 4px", userSelect: "none" }}>📐 {def.label}</span>
-        <button onClick={(e) => { e.stopPropagation(); setRotation(r => r + 15); }} style={{ ...btnS, color: "#60a5fa" }} title="หมุน +15°">↻</button>
-        <button onClick={(e) => { e.stopPropagation(); setRotation(r => r - 15); }} style={{ ...btnS, color: "#60a5fa" }} title="หมุน -15°">↺</button>
+        <button onClick={(e) => { e.stopPropagation(); setRotation(r => { const nr = r + 15; updateState({ rotation: nr }); return nr; }); }} style={{ ...btnS, color: "#60a5fa" }} title="หมุน +15°">↻</button>
+        <button onClick={(e) => { e.stopPropagation(); setRotation(r => { const nr = r - 15; updateState({ rotation: nr }); return nr; }); }} style={{ ...btnS, color: "#60a5fa" }} title="หมุน -15°">↺</button>
         {toolType === "compass" && <>
           <button onClick={handleDrawCircle} style={{ ...btnS, color: "#22c55e" }} title="วาดวงกลมเต็มวง">⭕</button>
           <button onClick={handleDrawArc} style={{ ...btnS, color: "#f59e0b" }} title="วาดส่วนโค้ง">◠</button>
-          <button onClick={(e) => { e.stopPropagation(); setCompassRadius(r => Math.max(20, r - 10)); }} style={{ ...btnS, color: "#60a5fa" }} title="ลดรัศมี">−</button>
-          <button onClick={(e) => { e.stopPropagation(); setCompassRadius(r => Math.min(300, r + 10)); }} style={{ ...btnS, color: "#60a5fa" }} title="เพิ่มรัศมี">+</button>
+          <button onClick={(e) => { e.stopPropagation(); setCompassRadius(r => { const nr = Math.max(20, r - 10); updateState({ compassRadius: nr }); return nr; }); }} style={{ ...btnS, color: "#60a5fa" }} title="ลดรัศมี">−</button>
+          <button onClick={(e) => { e.stopPropagation(); setCompassRadius(r => { const nr = Math.min(300, r + 10); updateState({ compassRadius: nr }); return nr; }); }} style={{ ...btnS, color: "#60a5fa" }} title="เพิ่มรัศมี">+</button>
         </>}
         {toolType === "dice" && <button onClick={rollDice} style={{ ...btnS, color: "#f59e0b" }} title="ทอยลูกเต๋า">🎲</button>}
         {toolType === "spinner" && <button onClick={spinWheel} style={{ ...btnS, color: "#a855f7" }} title="หมุนวงล้อ">🎡</button>}
@@ -619,22 +693,19 @@ export default function MathToolWidget({ toolId, toolType, onClose, onDrawCircle
       {/* Tool SVG */}
       <Renderer w={size.w} h={size.h} {...extraProps} />
 
-      {/* Resize handle */}
-      <div onPointerDown={(e) => { e.stopPropagation(); startResize(e); }} style={{
-        position: "absolute", bottom: -5, right: -5, width: 10, height: 10,
-        background: "#fff", border: "2px solid #3b82f6", borderRadius: 2, cursor: "se-resize", zIndex: 2,
-        opacity: hovered ? 1 : 0, transition: "opacity 0.2s",
-      }} />
+      {/* Resize Handle */}
+      {canEdit && (
+        <div style={{ position: "absolute", right: -8, bottom: -8, width: 24, height: 24, cursor: "se-resize", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 4 }} onPointerDown={(e) => { e.stopPropagation(); startResize(e); }}>
+          <div style={{ width: 12, height: 12, borderRight: "3px solid #cbd5e1", borderBottom: "3px solid #cbd5e1" }} />
+        </div>
+      )}
 
-      {/* Rotate handle */}
-      <div onPointerDown={(e) => { e.stopPropagation(); startRotate(e); }} style={{
-        position: "absolute", top: -12, right: -12, width: 14, height: 14,
-        background: "#60a5fa", borderRadius: "50%", cursor: "grab", zIndex: 2,
-        display: "flex", alignItems: "center", justifyContent: "center",
-        opacity: hovered ? 1 : 0, transition: "opacity 0.2s",
-      }}>
-        <span style={{ fontSize: 8, color: "#fff" }}>↻</span>
-      </div>
+      {/* Rotate Handle */}
+      {canEdit && (
+        <div style={{ position: "absolute", right: -28, top: "50%", transform: "translateY(-50%)", width: 24, height: 24, cursor: "grab", background: "#f1f5f9", border: "1px solid #cbd5e1", borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 4, boxShadow: "0 1px 3px rgba(0,0,0,0.1)" }} onPointerDown={(e) => { e.stopPropagation(); startRotate(e); }} title="ลากเพื่อหมุน">
+          ↻
+        </div>
+      )}
     </div>
   );
 }

@@ -12,6 +12,7 @@ const permissionHandler = require("./permission");
 const usersHandler = require("./users");
 const webcamHandler = require("./webcam");
 const lockscreenHandler = require("./lockscreen");
+const widgetHandler = require("./widget");
 
 module.exports = (io, socket) => {
   drawingHandler(io, socket);
@@ -21,5 +22,5 @@ module.exports = (io, socket) => {
   usersHandler(io, socket);
   webcamHandler(io, socket);
   lockscreenHandler(io, socket);
+  widgetHandler(io, socket);
 };
-

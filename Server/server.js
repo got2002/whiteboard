@@ -51,6 +51,7 @@ io.on("connection", (socket) => {
     hostPenStyle: store.hostPenStyle,
     serverIp: getLocalIP(),
     isLocked: store.isLocked,
+    widgets: store.widgets,
   });
 
   io.emit("user-count", store.connectedUsers);
