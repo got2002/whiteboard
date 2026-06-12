@@ -14,6 +14,7 @@ import { usePages } from "../feature/pages/usePages";
 import { useDrawing } from "../feature/drawing/useDrawing";
 import { useCollaboration } from "../feature/collaboration/useCollaboration";
 import { usePermission } from "../feature/permission/usePermission";
+import { useWidgetSync } from "../feature/collaboration/useWidgetSync";
 
 import { useFileOps } from "../hooks/useFileOps";
 import { useRecording } from "../hooks/useRecording";
@@ -73,19 +74,29 @@ export default function MainLayout() {
   const [showCalculator, setShowCalculator] = useState(false);
   const [showSpotlight, setShowSpotlight] = useState(false);
   const [showTablePicker, setShowTablePicker] = useState(false);
-  const [canvasTables, setCanvasTables] = useState([]);
   const [canvasVideos, setCanvasVideos] = useState([]);
-  const [showPresentation, setShowPresentation] = useState(false);
-  const [showGraph, setShowGraph] = useState(false);
-  const [showMathGrapher, setShowMathGrapher] = useState(false);
-  const [showPeriodic, setShowPeriodic] = useState(false);
-  const [showCurtain, setShowCurtain] = useState(false);
   const [showSketchpad, setShowSketchpad] = useState(false);
   const [showLockScreen, setShowLockScreen] = useState(false);
   const [showAiSolution, setShowAiSolution] = useState(false);
-  const [activeMathTools, setActiveMathTools] = useState([]);
-  const [showPhysicsLab, setShowPhysicsLab] = useState(false);
-  const [showBanner, setShowBanner] = useState(false);
+  const [localShowBanner, setLocalShowBanner] = useState(false);
+  
+  // Widget Sync Hook
+  const [canSync, setCanSync] = useState(false);
+  const widgetSyncHook = useWidgetSync({ isActive: true, canSync });
+  const {
+    tables: canvasTables, setTables: setCanvasTables,
+    banner: showBanner, setBanner: setShowBanner,
+    curtain: showCurtain, setCurtain: setShowCurtain,
+    presentation: showPresentation, setPresentation: setShowPresentation,
+    graph: showGraph, setGraph: setShowGraph,
+    mathGrapher: showMathGrapher, setMathGrapher: setShowMathGrapher,
+    periodicTable: showPeriodic, setPeriodicTable: setShowPeriodic,
+    physicsLab: showPhysicsLab, setPhysicsLab: setShowPhysicsLab,
+    mathTools: activeMathTools, setMathTools: setActiveMathTools,
+    syncTableAdd, syncTableUpdate, syncTableRemove,
+    syncBannerUpdate, syncCurtainUpdate, syncPresentationUpdate,
+    syncWidgetToggle, syncMathToolAdd, syncMathToolRemove, syncMathToolUpdate
+  } = widgetSyncHook;
 
   // (ย้าย useEffect ลงไปด้านล่างเพื่อให้รู้จัก remoteScreen และ userRole)
 
@@ -111,6 +122,7 @@ export default function MainLayout() {
     setPages,
     setHostTool: drawingHook.setHostTool,
     setHostPenStyle: drawingHook.setHostPenStyle,
+    onInitWidgets: widgetSyncHook.initFromServer
   });
   const { username, userRole, setUserRole, userColor, userCount, hostExists, showNameDialog, serverIp, waitingForAck, isLockedInitial } = userHook;
   const isActive = !showNameDialog;
@@ -264,6 +276,10 @@ export default function MainLayout() {
   const { permissionLevel } = permHook;
   // host = ทุกอย่าง, full_access contributor = เกือบทุกอย่าง, draw_only = วาดเท่านั้น
   const canUseFullTools = userRole === "host" || permissionLevel === "full_access";
+  
+  useEffect(() => {
+    setCanSync(canUseFullTools);
+  }, [canUseFullTools]);
 
   console.log("[MainLayout] render — showNameDialog:", showNameDialog, "username:", username, "userRole:", userRole, "permLevel:", permissionLevel);
 
@@ -329,7 +345,10 @@ export default function MainLayout() {
       {/* Tables on Canvas */}
       <TableManager
         tables={canvasTables}
-        onTablesChange={setCanvasTables}
+        canEdit={canSync}
+        onTableAdd={syncTableAdd}
+        onTableUpdate={syncTableUpdate}
+        onTableRemove={syncTableRemove}
         showPicker={showTablePicker}
         onClosePicker={() => setShowTablePicker(false)}
       />
@@ -371,26 +390,33 @@ export default function MainLayout() {
           onTogglePermissionPanel={() => setShowPermissionPanel(v => !v)}
           onToggleOnScreen={(val) => setIsOnScreen(val)}
           showCalculator={showCalculator}
-          activeTools={{ calculator: showCalculator, spotlight: showSpotlight, table: canvasTables.length > 0, graph: showGraph, math_grapher: showMathGrapher, periodic: showPeriodic, curtain: showCurtain, sketchpad: showSketchpad, lock_screen: showLockScreen, physics_lab: showPhysicsLab, banner: showBanner }}
+          activeTools={{ calculator: showCalculator, spotlight: showSpotlight, table: canvasTables.length > 0, graph: !!showGraph?.isActive, math_grapher: !!showMathGrapher?.isActive, periodic: showPeriodic, curtain: !!showCurtain?.isActive, sketchpad: showSketchpad, lock_screen: showLockScreen, physics_lab: !!showPhysicsLab?.isActive, banner: !!showBanner?.isShowing }}
           onToolBoxSelect={(toolId) => {
             if (toolId === 'calculator') setShowCalculator(v => !v);
             if (toolId === 'spotlight') setShowSpotlight(v => !v);
             if (toolId === 'table') setShowTablePicker(true);
-            if (toolId === 'graph') setShowGraph(v => !v);
-            if (toolId === 'math_grapher') setShowMathGrapher(v => !v);
-            if (toolId === 'periodic') setShowPeriodic(v => !v);
-            if (toolId === 'curtain') setShowCurtain(v => !v);
+            if (toolId === 'graph') syncWidgetToggle('graph', !showGraph?.isActive);
+            if (toolId === 'math_grapher') syncWidgetToggle('mathGrapher', !showMathGrapher?.isActive);
+            if (toolId === 'periodic') syncWidgetToggle('periodicTable', !showPeriodic);
+            if (toolId === 'curtain') syncCurtainUpdate(showCurtain?.isActive ? null : { isActive: true, direction: "top", offset: 0 });
             if (toolId === 'sketchpad') setShowSketchpad(v => !v);
             if (toolId === 'lock_screen') setShowLockScreen(v => !v);
-            if (toolId === 'physics_lab') setShowPhysicsLab(v => !v);
-            if (toolId === 'banner') setShowBanner(v => !v);
+            if (toolId === 'physics_lab') syncWidgetToggle('physicsLab', !showPhysicsLab?.isActive);
+            if (toolId === 'banner') {
+              if (showBanner?.isShowing) {
+                setLocalShowBanner(false);
+                syncBannerUpdate(null);
+              } else {
+                setLocalShowBanner(true);
+              }
+            }
             // Math tools
             const mathIds = ['protractor','full_protractor','ruler','set_square_45','set_square_60','compass','t_square','number_line','coord_grid','clock_face','fraction_circle','graph_paper','dice','spinner','l_square'];
             if (mathIds.includes(toolId)) {
-              setActiveMathTools(prev => [...prev, { id: `${toolId}-${Date.now()}`, type: toolId }]);
+              syncMathToolAdd({ id: `${toolId}-${Date.now()}`, type: toolId });
             }
           }}
-          onPresent={() => setShowPresentation(true)}
+          onPresent={() => syncPresentationUpdate({ isActive: true, slideIndex: currentPageIndex })}
           showAI={showAiSolution}
           onToggleAI={() => setShowAiSolution(v => !v)}
           canUseFullTools={canUseFullTools}
@@ -563,19 +589,21 @@ export default function MainLayout() {
         />
       )}
 
-      {/* Graph Widget — ทุก Role ใช้ได้ */}
-      {showGraph && (
+      {/* Graph Widget — Only for creators */}
+      {showGraph?.isActive && canSync && (
         <GraphWidget
-          onClose={() => setShowGraph(false)}
+          canEdit={canSync}
+          onClose={() => syncWidgetToggle('graph', false)}
           onInsertToBoard={(stroke) => drawingHook.handleStrokeComplete(stroke, currentPage.id)}
           onToolChange={drawingHook.setTool}
         />
       )}
 
-      {/* Math Function Grapher Widget */}
-      {showMathGrapher && (
+      {/* Math Function Grapher Widget — Only for creators */}
+      {showMathGrapher?.isActive && canSync && (
         <MathFunctionWidget
-          onClose={() => setShowMathGrapher(false)}
+          canEdit={canSync}
+          onClose={() => syncWidgetToggle('mathGrapher', false)}
           onInsertToBoard={(stroke) => drawingHook.handleStrokeComplete(stroke, currentPage.id)}
           onToolChange={drawingHook.setTool}
         />
@@ -585,7 +613,7 @@ export default function MainLayout() {
 
       {/* Periodic Table Widget — ทุก Role ใช้ได้ */}
       {showPeriodic && (
-        <PeriodicTableWidget onClose={() => setShowPeriodic(false)} />
+        <PeriodicTableWidget canEdit={canSync} onClose={() => syncWidgetToggle('periodicTable', false)} />
       )}
 
       {/* Spotlight Overlay */}
@@ -598,8 +626,11 @@ export default function MainLayout() {
 
       {/* Curtain Overlay */}
       <CurtainOverlay
-        isActive={showCurtain}
-        onClose={() => setShowCurtain(false)}
+        isActive={showCurtain?.isActive}
+        curtainConfig={showCurtain}
+        canEdit={canSync}
+        onCurtainSync={syncCurtainUpdate}
+        onClose={() => syncCurtainUpdate(null)}
       />
 
       {/* Lock Screen Overlay */}
@@ -668,7 +699,10 @@ export default function MainLayout() {
           key={mt.id}
           toolId={mt.id}
           toolType={mt.type}
-          onClose={(id) => setActiveMathTools(prev => prev.filter(t => t.id !== id))}
+          toolData={mt}
+          canEdit={canSync}
+          onUpdate={syncMathToolUpdate}
+          onClose={(id) => syncMathToolRemove(id)}
           penColor={drawingHook.color}
           penSize={drawingHook.penSize}
           onDrawCircle={mt.type === 'compass' ? ({ cx, cy, radius, arcStart = 0, arcEnd = 360 }) => {
@@ -689,12 +723,15 @@ export default function MainLayout() {
       ))}
 
       {/* Presentation Mode */}
-      {showPresentation && (
+      {showPresentation?.isActive && (
         <PresentationMode
           pages={pages}
-          currentPageIndex={currentPageIndex}
-          onSelectPage={pageHook.handleSelectPage}
-          onClose={() => setShowPresentation(false)}
+          currentPageIndex={showPresentation.slideIndex ?? currentPageIndex}
+          onSelectPage={(index) => {
+            pageHook.handleSelectPage(index);
+            syncPresentationUpdate({ isActive: true, slideIndex: index });
+          }}
+          onClose={() => syncPresentationUpdate(null)}
         />
       )}
 
@@ -711,10 +748,17 @@ export default function MainLayout() {
       )}
 
       {/* Physics Lab Widget */}
-      {showPhysicsLab && <PhysicsLabWidget onClose={() => setShowPhysicsLab(false)} />}
+      {showPhysicsLab?.isActive && <PhysicsLabWidget onClose={() => syncWidgetToggle('physicsLab', false)} />}
 
       {/* Banner อักษรวิ่ง */}
-      {showBanner && <BannerWidget onClose={() => setShowBanner(false)} />}
+      {(localShowBanner || showBanner?.isShowing) && (
+        <BannerWidget 
+          bannerConfig={showBanner} 
+          canEdit={canSync}
+          onBannerSync={syncBannerUpdate} 
+          onClose={() => { setLocalShowBanner(false); syncBannerUpdate(null); }} 
+        />
+      )}
     </div>
 
   );

@@ -12,17 +12,41 @@ const DIRECTIONS = [
   { id: "right", label: "← Right", icon: "←" },
 ];
 
-export default function CurtainOverlay({ isActive, onClose }) {
-  const [direction, setDirection] = useState("top"); // which edge the curtain starts from
-  const [offset, setOffset] = useState(0); // how far revealed (px)
+export default function CurtainOverlay({ isActive, curtainConfig, canEdit = true, onCurtainSync, onClose }) {
+  const [direction, setDirection] = useState(curtainConfig?.direction || "top");
+  const [offset, setOffset] = useState(curtainConfig?.offset || 0);
   const [dragging, setDragging] = useState(false);
   const dragStartRef = useRef(null);
   const offsetStartRef = useRef(0);
 
-  // Reset offset when direction changes
-  useEffect(() => { setOffset(0); }, [direction]);
+  // Sync state when config from server changes
+  useEffect(() => {
+    if (curtainConfig) {
+      if (curtainConfig.direction !== undefined) setDirection(curtainConfig.direction);
+      if (curtainConfig.offset !== undefined) setOffset(curtainConfig.offset);
+    }
+  }, [curtainConfig]);
+
+  // Emit updates to server
+  const syncChanges = useCallback((updates) => {
+    if (!canEdit || !onCurtainSync) return;
+    onCurtainSync({
+      isActive: true,
+      direction,
+      offset,
+      ...updates
+    });
+  }, [canEdit, direction, offset, onCurtainSync]);
+
+  const changeDirection = (d) => {
+    if (!canEdit) return;
+    setDirection(d);
+    setOffset(0);
+    syncChanges({ direction: d, offset: 0 });
+  };
 
   const handlePointerDown = useCallback((e) => {
+    if (!canEdit) return;
     e.preventDefault();
     setDragging(true);
     dragStartRef.current = { x: e.clientX, y: e.clientY };
@@ -46,7 +70,11 @@ export default function CurtainOverlay({ isActive, onClose }) {
       const maxH = window.innerHeight;
       const maxW = window.innerWidth;
       const max = (direction === "top" || direction === "bottom") ? maxH : maxW;
-      setOffset(Math.max(0, Math.min(max, newOffset)));
+      const finalOffset = Math.max(0, Math.min(max, newOffset));
+      setOffset(finalOffset);
+      
+      // Throttle or emit directly
+      syncChanges({ offset: finalOffset });
     };
 
     const handlePointerUp = () => {
@@ -144,15 +172,19 @@ export default function CurtainOverlay({ isActive, onClose }) {
             <button
               key={d.id}
               className={`curtain-dir-btn ${direction === d.id ? "active" : ""}`}
-              onClick={() => setDirection(d.id)}
+              onClick={() => changeDirection(d.id)}
               title={d.label}
             >
               {d.icon}
             </button>
           ))}
         </div>
-        <button className="curtain-reset-btn" onClick={() => setOffset(0)}>Reset</button>
-        <button className="curtain-close-btn" onClick={onClose}>✕</button>
+        {canEdit && (
+          <>
+            <button className="curtain-reset-btn" onClick={() => { setOffset(0); syncChanges({ offset: 0 }); }}>Reset</button>
+            <button className="curtain-close-btn" onClick={onClose}>✕</button>
+          </>
+        )}
       </div>
     </div>
   );

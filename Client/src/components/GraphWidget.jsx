@@ -300,7 +300,7 @@ function renderPieChart(ctx, data, w, h, isDoughnut) {
 // ============================================================
 // GraphWidget Component
 // ============================================================
-export default function GraphWidget({ onClose, onInsertToBoard, onToolChange }) {
+export default function GraphWidget({ canEdit = true, onClose, onInsertToBoard, onToolChange }) {
   const [chartType, setChartType] = useState("bar");
   const [chartTitle, setChartTitle] = useState("My Chart");
   const [entries, setEntries] = useState([
@@ -430,7 +430,7 @@ export default function GraphWidget({ onClose, onInsertToBoard, onToolChange }) 
     <div
       className={`graph-widget ${isDragging ? "is-dragging" : ""}`}
       data-draggable
-      style={dragStyle}
+      style={{ ...dragStyle, pointerEvents: canEdit ? "auto" : "none" }}
       onPointerDown={(e) => e.stopPropagation()}
     >
       {/* ── Title Bar ── */}

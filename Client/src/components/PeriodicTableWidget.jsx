@@ -4,7 +4,7 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { ELEMENTS, CATEGORIES } from "./periodicData";
 
-export default function PeriodicTableWidget({ onClose }) {
+export default function PeriodicTableWidget({ canEdit = true, onClose }) {
   const [selected, setSelected] = useState(null);
   const [showLegend, setShowLegend] = useState(true);
   const [dragOffset, setDragOffset] = useState(null);
@@ -58,7 +58,7 @@ export default function PeriodicTableWidget({ onClose }) {
     <div
       className="periodic-widget"
       ref={widgetRef}
-      style={{ left: pos.x, top: pos.y }}
+      style={{ left: pos.x, top: pos.y, pointerEvents: canEdit ? "auto" : "none" }}
       onMouseDown={handleMouseDown}
     >
       {/* Titlebar */}

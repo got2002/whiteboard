@@ -34,16 +34,16 @@ const FONT_SIZES = [
   { id: "xl", label: "XL", size: 64 },
 ];
 
-export default function BannerWidget({ onClose }) {
+export default function BannerWidget({ bannerConfig, canEdit = true, onBannerSync, onClose }) {
   // ── Settings State ──
-  const [text, setText] = useState("ยินดีต้อนรับสู่ห้องเรียน 🎓");
-  const [theme, setTheme] = useState(COLOR_THEMES[0]);
-  const [speed, setSpeed] = useState(SPEED_OPTIONS[1]);
-  const [fontSize, setFontSize] = useState(FONT_SIZES[1]);
-  const [position, setPosition] = useState("bottom"); // "top" | "bottom"
-  const [isShowing, setIsShowing] = useState(false);
-  const [isPaused, setIsPaused] = useState(false);
-  const [showSettings, setShowSettings] = useState(true);
+  const [text, setText] = useState(bannerConfig?.text || "ยินดีต้อนรับสู่ห้องเรียน 🎓");
+  const [theme, setTheme] = useState(COLOR_THEMES.find(t => t.id === bannerConfig?.themeId) || COLOR_THEMES[0]);
+  const [speed, setSpeed] = useState(SPEED_OPTIONS.find(s => s.id === bannerConfig?.speedId) || SPEED_OPTIONS[1]);
+  const [fontSize, setFontSize] = useState(FONT_SIZES.find(f => f.id === bannerConfig?.fontSizeId) || FONT_SIZES[1]);
+  const [position, setPosition] = useState(bannerConfig?.position || "bottom"); // "top" | "bottom"
+  const [isShowing, setIsShowing] = useState(bannerConfig?.isShowing ?? false);
+  const [isPaused, setIsPaused] = useState(bannerConfig?.isPaused ?? false);
+  const [showSettings, setShowSettings] = useState(canEdit ? !(bannerConfig?.isShowing ?? false) : false);
 
   const marqueeRef = useRef(null);
 
@@ -52,12 +52,42 @@ export default function BannerWidget({ onClose }) {
     defaultPosition: { x: Math.max(60, window.innerWidth / 2 - 200), y: Math.max(80, window.innerHeight / 2 - 220) },
   });
 
+  // ── Sync from props ──
+  useEffect(() => {
+    if (bannerConfig) {
+      if (bannerConfig.text !== undefined) setText(bannerConfig.text);
+      if (bannerConfig.themeId) setTheme(COLOR_THEMES.find(t => t.id === bannerConfig.themeId) || COLOR_THEMES[0]);
+      if (bannerConfig.speedId) setSpeed(SPEED_OPTIONS.find(s => s.id === bannerConfig.speedId) || SPEED_OPTIONS[1]);
+      if (bannerConfig.fontSizeId) setFontSize(FONT_SIZES.find(f => f.id === bannerConfig.fontSizeId) || FONT_SIZES[1]);
+      if (bannerConfig.position) setPosition(bannerConfig.position);
+      if (bannerConfig.isShowing !== undefined) setIsShowing(bannerConfig.isShowing);
+      if (bannerConfig.isPaused !== undefined) setIsPaused(bannerConfig.isPaused);
+    }
+  }, [bannerConfig]);
+
+  // ── Sync to parent ──
+  const syncChanges = useCallback((updates) => {
+    if (onBannerSync) {
+      onBannerSync({
+        text: updates.text ?? text,
+        themeId: updates.theme?.id ?? theme.id,
+        speedId: updates.speed?.id ?? speed.id,
+        fontSizeId: updates.fontSize?.id ?? fontSize.id,
+        position: updates.position ?? position,
+        isShowing: updates.isShowing ?? isShowing,
+        isPaused: updates.isPaused ?? isPaused
+      });
+    }
+  }, [onBannerSync, text, theme, speed, fontSize, position, isShowing, isPaused]);
+
   // ── Toggle Banner ──
   const toggleBanner = useCallback(() => {
     if (!text.trim()) return;
-    setIsShowing(v => !v);
+    const newShowing = !isShowing;
+    setIsShowing(newShowing);
     setIsPaused(false);
-  }, [text]);
+    syncChanges({ isShowing: newShowing, isPaused: false });
+  }, [text, isShowing, syncChanges]);
 
   // ── Keyboard shortcut: Escape to close banner ──
   useEffect(() => {
@@ -97,7 +127,7 @@ export default function BannerWidget({ onClose }) {
       {/* ══════════════════════════════════════════════════════ */}
       {/* Settings Panel (Draggable)                            */}
       {/* ══════════════════════════════════════════════════════ */}
-      {showSettings && (
+      {showSettings && canEdit && (
         <div
           data-draggable
           style={{
@@ -149,7 +179,7 @@ export default function BannerWidget({ onClose }) {
               >─</button>
               {/* ปุ่มปิด — ปิดทั้งหมด (Banner + แผงตั้งค่า) */}
               <button
-                onClick={() => { setIsShowing(false); onClose(); }}
+                onClick={() => { setIsShowing(false); onClose(); syncChanges({ isShowing: false }); }}
                 title="ปิดทั้งหมด"
                 style={{
                   background: "rgba(239,68,68,0.1)", border: "1px solid rgba(239,68,68,0.2)",
@@ -172,7 +202,7 @@ export default function BannerWidget({ onClose }) {
               </label>
               <textarea
                 value={text}
-                onChange={e => setText(e.target.value)}
+                onChange={e => { setText(e.target.value); syncChanges({ text: e.target.value }); }}
                 placeholder="พิมพ์ข้อความที่ต้องการให้วิ่ง..."
                 rows={2}
                 style={{
@@ -196,7 +226,7 @@ export default function BannerWidget({ onClose }) {
                 {COLOR_THEMES.map(t => {
                   const active = theme.id === t.id;
                   return (
-                    <button key={t.id} onClick={() => setTheme(t)} style={{
+                    <button key={t.id} onClick={() => { setTheme(t); syncChanges({ theme: t }); }} style={{
                       padding: "4px 10px", border: active ? "1px solid rgba(251,191,36,0.5)" : "1px solid rgba(100,140,200,0.1)",
                       borderRadius: 6, cursor: "pointer", fontSize: 10, fontWeight: 600,
                       background: active ? "rgba(251,191,36,0.15)" : "rgba(255,255,255,0.03)",
@@ -220,8 +250,8 @@ export default function BannerWidget({ onClose }) {
                   {SPEED_OPTIONS.map(s => {
                     const active = speed.id === s.id;
                     return (
-                      <button key={s.id} onClick={() => setSpeed(s)} style={{
-                        flex: 1, padding: "5px 0", border: active ? "1px solid rgba(59,130,246,0.4)" : "1px solid rgba(100,140,200,0.08)",
+                      <button key={s.id} onClick={() => { setSpeed(s); syncChanges({ speed: s }); }} style={{
+                      flex: 1, padding: "3px 0", border: active ? "1px solid rgba(251,191,36,0.5)" : "1px solid rgba(100,140,200,0.1)",
                         borderRadius: 6, cursor: "pointer", fontSize: 9, fontWeight: 600,
                         background: active ? "rgba(59,130,246,0.15)" : "rgba(255,255,255,0.02)",
                         color: active ? "#60a5fa" : "#64748b", transition: "all 0.15s",
@@ -240,8 +270,8 @@ export default function BannerWidget({ onClose }) {
                   {FONT_SIZES.map(f => {
                     const active = fontSize.id === f.id;
                     return (
-                      <button key={f.id} onClick={() => setFontSize(f)} style={{
-                        flex: 1, padding: "5px 0", border: active ? "1px solid rgba(34,197,94,0.4)" : "1px solid rgba(100,140,200,0.08)",
+                      <button key={f.id} onClick={() => { setFontSize(f); syncChanges({ fontSize: f }); }} style={{
+                      flex: 1, padding: "3px 0", border: active ? "1px solid rgba(251,191,36,0.5)" : "1px solid rgba(100,140,200,0.1)",
                         borderRadius: 6, cursor: "pointer", fontSize: 10, fontWeight: 700,
                         background: active ? "rgba(34,197,94,0.15)" : "rgba(255,255,255,0.02)",
                         color: active ? "#4ade80" : "#64748b", transition: "all 0.15s",
@@ -264,7 +294,7 @@ export default function BannerWidget({ onClose }) {
                 ].map(p => {
                   const active = position === p.id;
                   return (
-                    <button key={p.id} onClick={() => setPosition(p.id)} style={{
+                    <button key={p.id} onClick={() => { setPosition(p.id); syncChanges({ position: p.id }); }} style={{
                       flex: 1, padding: "6px 0", border: active ? "1px solid rgba(168,85,247,0.4)" : "1px solid rgba(100,140,200,0.08)",
                       borderRadius: 6, cursor: "pointer", fontSize: 11, fontWeight: 600,
                       background: active ? "rgba(168,85,247,0.15)" : "rgba(255,255,255,0.02)",
@@ -321,7 +351,11 @@ export default function BannerWidget({ onClose }) {
               </button>
               {isShowing && (
                 <button
-                  onClick={() => setIsPaused(v => !v)}
+                  onClick={() => {
+                    const np = !isPaused;
+                    setIsPaused(np);
+                    syncChanges({ isPaused: np });
+                  }}
                   style={{
                     padding: "9px 16px", border: "1px solid rgba(251,191,36,0.2)", borderRadius: 8,
                     cursor: "pointer", fontSize: 12, fontWeight: 700,
@@ -360,9 +394,9 @@ export default function BannerWidget({ onClose }) {
             pointerEvents: "none",
           }}
         >
-          {/* LED dot pattern overlay for that LED sign look */}
+          {/* Background grid */}
           <div style={{
-            position: "absolute", inset: 0,
+            position: "absolute", left: 0, top: 0, right: 0, bottom: 0,
             backgroundImage: "radial-gradient(circle, rgba(255,255,255,0.03) 1px, transparent 1px)",
             backgroundSize: "4px 4px",
             pointerEvents: "none",
@@ -395,7 +429,6 @@ export default function BannerWidget({ onClose }) {
                 : "none",
               fontFamily: "'Inter','Segoe UI',system-ui,sans-serif",
               letterSpacing: 2,
-              animation: `banner-scroll ${speed.duration}s linear infinite, banner-glow-pulse 3s ease-in-out infinite`,
               animationPlayState: isPaused ? "paused" : "running",
               paddingLeft: 20,
             }}
@@ -406,7 +439,7 @@ export default function BannerWidget({ onClose }) {
       )}
 
       {/* ── Minimized floating control (when settings panel is hidden) ── */}
-      {!showSettings && (
+      {!showSettings && canEdit && (
         <button
           onClick={() => setShowSettings(true)}
           style={{

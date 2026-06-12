@@ -13,6 +13,13 @@ const USER_COLORS = [
   "#06b6d4", "#ec4899", "#eab308", "#6b7280", "#14b8a6",
 ];
 
+const ROLE_LEVELS = { host: 3, contributor: 2, viewer: 1 };
+function hasPermission(socketId, minRole) {
+  const user = store.users[socketId];
+  if (!user) return false;
+  return (ROLE_LEVELS[user.role] || 0) >= (ROLE_LEVELS[minRole] || 99);
+}
+
 module.exports = (io, socket) => {
 
   // ── ลงทะเบียนผู้ใช้ ──
@@ -110,6 +117,7 @@ module.exports = (io, socket) => {
 
   // ── Stroke update (move/resize) ──
   socket.on("stroke-update", ({ pageId, strokeId, changes }) => {
+    if (!hasPermission(socket.id, "contributor")) return;
     const page = store.pages.find(p => p.id === pageId);
     if (page) {
       const stroke = page.strokes.find(s => s.id === strokeId);

@@ -90,7 +90,7 @@ function compileMath(expr) {
 // ============================================================
 // Main Component
 // ============================================================
-export default function MathFunctionWidget({ onClose, onInsertToBoard, onToolChange }) {
+export default function MathFunctionWidget({ canEdit = true, onClose, onInsertToBoard, onToolChange }) {
   const [equations, setEquations] = useState([
     { id: 1, expr: "x^2", color: GRAPH_COLORS[0], visible: true, func: compileMath("x^2") }
   ]);
@@ -304,7 +304,7 @@ export default function MathFunctionWidget({ onClose, onInsertToBoard, onToolCha
     <div
       className={`math-graph-widget ${isDragging ? "is-dragging" : ""}`}
       data-draggable
-      style={dragStyle}
+      style={{ ...dragStyle, pointerEvents: canEdit ? "auto" : "none" }}
       onPointerDown={(e) => e.stopPropagation()}
     >
       {/* ── Title Bar ── */}
