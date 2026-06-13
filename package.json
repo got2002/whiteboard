@@ -11,23 +11,26 @@
   },
   "build": {
     "appId": "com.proedu1.whiteboard",
-    "productName": "ProEdu1 Whiteboard",
+    "productName": "ProEdu1",
     "asar": false,
     "directories": {
       "output": "release"
     },
     "win": {
-      "target": ["nsis"]
+      "target": ["nsis"],
+      "artifactName": "ProEdu1.exe"
     },
     "files": [
       "electron/**/*",
       "Server/**/*",
       "!Server/node_modules/**/*",
       "Client/dist/**/*",
-      "package.json"
+      "package.json",
+      ".env"
     ]
   },
   "dependencies": {
+    "@google/generative-ai": "^0.24.1",
     "axios": "^1.13.6",
     "cors": "^2.8.6",
     "dotenv": "^17.3.1",

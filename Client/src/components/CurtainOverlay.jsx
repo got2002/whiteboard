@@ -48,10 +48,13 @@ export default function CurtainOverlay({ isActive, curtainConfig, canEdit = true
   const handlePointerDown = useCallback((e) => {
     if (!canEdit) return;
     e.preventDefault();
+    if (e.currentTarget.setPointerCapture) {
+      e.currentTarget.setPointerCapture(e.pointerId);
+    }
     setDragging(true);
     dragStartRef.current = { x: e.clientX, y: e.clientY };
     offsetStartRef.current = offset;
-  }, [offset]);
+  }, [offset, canEdit]);
 
   useEffect(() => {
     if (!dragging) return;

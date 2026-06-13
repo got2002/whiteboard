@@ -3746,103 +3746,132 @@ html.on-screen-mode #root {
 .webcam-widget {
   position: fixed;
   min-width: 160px;
-  background: rgba(15, 15, 26, 0.95);
-  backdrop-filter: blur(20px);
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: transparent;
   border-radius: 16px;
-  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.5);
-  overflow: visible;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.3), 0 0 0 1px rgba(255, 255, 255, 0.1);
+  overflow: hidden;
   z-index: 900;
   display: flex;
   flex-direction: column;
   touch-action: none;
+  transition: transform 0.2s cubic-bezier(0.18, 0.89, 0.32, 1.28), box-shadow 0.2s;
+  cursor: grab;
 }
 
-.webcam-header {
-  padding: 8px 12px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+.webcam-widget:active {
+  cursor: grabbing;
+  transform: scale(0.98);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2), 0 0 0 1px rgba(255, 255, 255, 0.15);
+}
+
+.webcam-name-tag {
+  position: absolute;
+  bottom: 8px;
+  left: 8px;
+  background: rgba(0, 0, 0, 0.4);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  padding: 4px 10px;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.15);
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  cursor: grab;
-  user-select: none;
-  touch-action: none;
-}
-
-.webcam-header:active {
-  cursor: grabbing;
+  gap: 6px;
+  z-index: 2;
+  pointer-events: none;
 }
 
 .webcam-title {
   color: #fff;
-  font-size: 12px;
-  font-weight: 600;
+  font-size: 13px;
+  font-weight: 500;
+  font-family: 'Inter', system-ui, sans-serif;
+  letter-spacing: 0.2px;
+  text-shadow: 0 1px 2px rgba(0,0,0,0.5);
 }
 
-.webcam-drag-handle {
-  color: rgba(255, 255, 255, 0.5);
-  font-size: 14px;
+.webcam-indicator {
+  width: 6px;
+  height: 6px;
+  background: #10b981;
+  border-radius: 50%;
+  box-shadow: 0 0 8px rgba(16, 185, 129, 0.6);
 }
 
 .webcam-video {
   width: 100%;
+  height: 100%;
   object-fit: cover;
-  background: #000;
-  border-bottom-left-radius: 16px;
-  border-bottom-right-radius: 16px;
+  background: #111;
   pointer-events: none;
   display: block;
+  border-radius: 16px;
 }
 
 .webcam-error {
+  width: 100%;
+  height: 100%;
   padding: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   text-align: center;
   color: #ef4444;
   font-size: 13px;
   font-weight: 500;
-  background: rgba(239, 68, 68, 0.1);
-  border-bottom-left-radius: 16px;
-  border-bottom-right-radius: 16px;
+  background: rgba(15, 15, 26, 0.9);
 }
 
 .webcam-loading {
-  padding: 30px 20px;
-  text-align: center;
-  color: rgba(255, 255, 255, 0.5);
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: rgba(255, 255, 255, 0.7);
   font-size: 13px;
   font-weight: 500;
-  background: rgba(0, 0, 0, 0.3);
-  border-bottom-left-radius: 16px;
-  border-bottom-right-radius: 16px;
+  background: rgba(15, 15, 26, 0.9);
   animation: webcamPulse 1.5s ease-in-out infinite;
 }
 
 @keyframes webcamPulse {
-  0%, 100% { opacity: 0.5; }
+  0%, 100% { opacity: 0.6; }
   50% { opacity: 1; }
 }
 
 .webcam-resize-handle {
   position: absolute;
-  bottom: -2px;
-  right: -2px;
-  width: 22px;
-  height: 22px;
+  bottom: 8px;
+  right: 8px;
+  width: 24px;
+  height: 24px;
   cursor: nwse-resize;
   display: flex;
   align-items: center;
   justify-content: center;
-  color: rgba(255, 255, 255, 0.3);
-  background: rgba(15, 15, 26, 0.8);
-  border-radius: 0 0 14px 0;
+  color: rgba(255, 255, 255, 0.5);
+  background: rgba(0, 0, 0, 0.3);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border-radius: 50%;
+  border: 1px solid rgba(255, 255, 255, 0.1);
   touch-action: none;
-  transition: color 0.15s, background 0.15s;
-  z-index: 2;
+  transition: all 0.2s ease;
+  z-index: 3;
 }
 
 .webcam-resize-handle:hover {
-  color: rgba(255, 255, 255, 0.7);
-  background: rgba(99, 102, 241, 0.3);
+  color: rgba(255, 255, 255, 1);
+  background: rgba(99, 102, 241, 0.8);
+  border-color: rgba(255, 255, 255, 0.4);
+  transform: scale(1.1);
+}
+
+.webcam-overlay-drag {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
 }
 
 /* ============================================================
@@ -6917,7 +6946,7 @@ html.on-screen-mode #root {
 .curtain-surface {
   position: absolute;
   background: rgba(10, 12, 18, 0.96);
-  pointer-events: all;
+  pointer-events: auto;
   transition: none;
   overflow: visible;
 }
@@ -6927,6 +6956,7 @@ html.on-screen-mode #root {
   position: absolute;
   display: flex; align-items: center; justify-content: center;
   z-index: 2;
+  touch-action: none;
 }
 .curtain-handle-h { cursor: ns-resize; }
 .curtain-handle-v { cursor: ew-resize; }
@@ -7728,3 +7758,5 @@ html.on-screen-mode #root {
   font-weight: 600;
   white-space: nowrap;
 }
+
+.curtain-controls { pointer-events: auto !important; }

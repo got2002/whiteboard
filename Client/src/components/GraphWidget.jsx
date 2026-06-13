@@ -300,7 +300,8 @@ function renderPieChart(ctx, data, w, h, isDoughnut) {
 // ============================================================
 // GraphWidget Component
 // ============================================================
-export default function GraphWidget({ canEdit = true, onClose, onInsertToBoard, onToolChange }) {
+export default function GraphWidget({ canEdit = true, config, onSyncConfig, onClose, onInsertToBoard, onToolChange }) {
+  const isRemoteUpdateRef = useRef(false);
   const [chartType, setChartType] = useState("bar");
   const [chartTitle, setChartTitle] = useState("My Chart");
   const [entries, setEntries] = useState([
@@ -312,6 +313,28 @@ export default function GraphWidget({ canEdit = true, onClose, onInsertToBoard, 
   const [nextId, setNextId] = useState(5);
   const [newLabel, setNewLabel] = useState("");
   const [newValue, setNewValue] = useState("");
+
+  // 1. Sync from remote (config)
+  useEffect(() => {
+    if (!config) return;
+    isRemoteUpdateRef.current = true;
+    
+    if (config.chartType) setChartType(config.chartType);
+    if (config.chartTitle !== undefined) setChartTitle(config.chartTitle);
+    if (config.entries) {
+      setEntries(config.entries);
+      const maxId = Math.max(...config.entries.map(e => e.id), 0);
+      setNextId(maxId + 1);
+    }
+    
+    setTimeout(() => { isRemoteUpdateRef.current = false; }, 50);
+  }, [config]);
+
+  // 2. Sync to remote (presenter only)
+  useEffect(() => {
+    if (!canEdit || !onSyncConfig || isRemoteUpdateRef.current) return;
+    onSyncConfig({ chartType, chartTitle, entries });
+  }, [chartType, chartTitle, entries, canEdit, onSyncConfig]);
 
   // Canvas
   const canvasRef = useRef(null);

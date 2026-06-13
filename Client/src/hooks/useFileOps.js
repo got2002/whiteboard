@@ -2,6 +2,7 @@
 // useFileOps.js — Hook ไฟล์ Save/Load/Export/Import/AutoSave
 // ============================================================
 import { useState, useEffect, useCallback } from "react";
+import { SERVER_URL } from "../core/socket";
 
 export function useFileOps({ pages, setPages, setCurrentPageIndex, canvasRef, currentPageIndex, handleStrokeComplete }) {
   const [autoSave, setAutoSave] = useState(false);
@@ -240,55 +241,71 @@ export function useFileOps({ pages, setPages, setCurrentPageIndex, canvasRef, cu
   const handleInsertVideo = useCallback(() => {
     const input = document.createElement("input");
     input.type = "file";
-    input.accept = "video/mp4";
+    input.accept = "video/mp4,video/webm,video/ogg";
     input.onchange = (e) => {
       const file = e.target.files[0];
       if (!file) return;
 
-      const reader = new FileReader();
-      reader.onload = (ev) => {
-        const dataURL = ev.target.result;
+      // Check file size (limit 500MB) to prevent freezing
+      if (file.size > 500 * 1024 * 1024) {
+        alert("ไฟล์วิดีโอมีขนาดใหญ่เกินไป (จำกัด 500MB) กรุณาใช้ไฟล์ที่เล็กกว่านี้เพื่อป้องกันแอปพลิเคชันค้างเวลาซิงค์ข้อมูลครับ");
+        return;
+      }
 
-        // Create a temporary video element to detect actual dimensions
-        const tempVideo = document.createElement("video");
-        tempVideo.preload = "metadata";
-        tempVideo.onloadedmetadata = () => {
-          const vw = tempVideo.videoWidth;
-          const vh = tempVideo.videoHeight;
+      const tempVideo = document.createElement("video");
+      tempVideo.preload = "metadata";
+      tempVideo.onloadedmetadata = async () => {
+        const vw = tempVideo.videoWidth;
+        const vh = tempVideo.videoHeight;
 
-          // Scale to fit within maxDisplaySize while keeping aspect ratio
-          let displayW = vw, displayH = vh;
-          const maxDisplaySize = Math.min(500, window.innerWidth * 0.45, window.innerHeight * 0.45);
-          if (displayW > maxDisplaySize || displayH > maxDisplaySize) {
-            const scale = maxDisplaySize / Math.max(displayW, displayH);
-            displayW = Math.round(displayW * scale);
-            displayH = Math.round(displayH * scale);
+        let displayW = vw, displayH = vh;
+        const maxDisplaySize = Math.min(500, window.innerWidth * 0.45, window.innerHeight * 0.45);
+        if (displayW > maxDisplaySize || displayH > maxDisplaySize) {
+          const scale = maxDisplaySize / Math.max(displayW, displayH);
+          displayW = Math.round(displayW * scale);
+          displayH = Math.round(displayH * scale);
+        }
+
+        const centerX = (window.innerWidth / 2) - (displayW / 2);
+        const centerY = (window.innerHeight / 2) - (displayH / 2);
+
+        try {
+          const ext = file.name.split('.').pop();
+          const response = await fetch(`${SERVER_URL}/api/upload?ext=${ext}`, {
+            method: 'POST',
+            body: file,
+            headers: {
+              'Content-Type': file.type || 'application/octet-stream'
+            }
+          });
+          const data = await response.json();
+
+          if (data.url) {
+            const strokeId = `video-${Date.now()}`;
+            const stroke = {
+              id: strokeId,
+              type: "video",
+              url: data.url,
+              x: centerX,
+              y: centerY,
+              width: displayW,
+              height: displayH,
+              isPlaying: false,
+              currentTime: 0,
+            };
+            handleStrokeComplete(stroke);
+            window.dispatchEvent(new CustomEvent('image-inserted', { detail: { strokeId } }));
+          } else {
+            alert("อัปโหลดวิดีโอไม่สำเร็จ");
           }
+        } catch (error) {
+          console.error("Upload error:", error);
+          alert("เกิดข้อผิดพลาดในการอัปโหลดวิดีโอ");
+        }
 
-          const centerX = (window.innerWidth / 2) - (displayW / 2);
-          const centerY = (window.innerHeight / 2) - (displayH / 2);
-          const strokeId = `video-${Date.now()}`;
-          const stroke = {
-            id: strokeId,
-            type: "video",
-            url: dataURL,
-            x: centerX,
-            y: centerY,
-            width: displayW,
-            height: displayH,
-            isPlaying: false,
-            currentTime: 0,
-          };
-          handleStrokeComplete(stroke);
-          // Dispatch event so Canvas auto-selects the video (same as image)
-          window.dispatchEvent(new CustomEvent('image-inserted', { detail: { strokeId } }));
-
-          // Clean up
-          URL.revokeObjectURL(tempVideo.src);
-        };
-        tempVideo.src = URL.createObjectURL(file);
+        URL.revokeObjectURL(tempVideo.src);
       };
-      reader.readAsDataURL(file);
+      tempVideo.src = URL.createObjectURL(file);
     };
     input.click();
   }, [handleStrokeComplete]);

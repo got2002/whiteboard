@@ -1865,11 +1865,11 @@ function renderMicrometer(ctx, w, h, sim, params) {
 // ============================================================
 // Main Component
 // ============================================================
-export default function PhysicsLabWidget({ onClose }) {
-  const [category, setCategory] = useState("motion");
-  const [experiment, setExperiment] = useState("freefall");
-  const [params, setParams] = useState({ ...DEFAULT_PARAMS.freefall });
-  const [running, setRunning] = useState(false);
+export default function PhysicsLabWidget({ canEdit = true, config = {}, onSyncConfig, onClose }) {
+  const [category, setCategory] = useState(config?.category || "motion");
+  const [experiment, setExperiment] = useState(config?.experiment || "freefall");
+  const [params, setParams] = useState(config?.params || { ...DEFAULT_PARAMS.freefall });
+  const [running, setRunning] = useState(config?.running || false);
   const [info, setInfo] = useState({});
 
   const simRef = useRef({ t: 0, trail: [], theta: 0, omega: 0, x: 0, v: 0 });
@@ -1878,10 +1878,42 @@ export default function PhysicsLabWidget({ onClose }) {
   const lastTimeRef = useRef(null);
   const experimentRef = useRef(experiment);
   const paramsRef = useRef(params);
+  const emitTimerRef = useRef(null);
+  const pendingUpdatesRef = useRef(null);
 
   // Keep refs in sync
   useEffect(() => { experimentRef.current = experiment; }, [experiment]);
   useEffect(() => { paramsRef.current = params; }, [params]);
+
+  // Sync incoming config from network
+  useEffect(() => {
+    if (!config || canEdit) return;
+    if (config.category && config.category !== category) setCategory(config.category);
+    if (config.experiment && config.experiment !== experiment) setExperiment(config.experiment);
+    if (config.params) setParams(config.params);
+    if (config.running !== undefined) setRunning(config.running);
+  }, [config, canEdit, category, experiment]);
+
+  const emitSync = useCallback((updates) => {
+    if (!canEdit || !onSyncConfig) return;
+
+    pendingUpdatesRef.current = { ...(pendingUpdatesRef.current || {}), ...updates };
+
+    if (!emitTimerRef.current) {
+      emitTimerRef.current = setTimeout(() => {
+        const merged = pendingUpdatesRef.current;
+        pendingUpdatesRef.current = null;
+        emitTimerRef.current = null;
+
+        onSyncConfig({
+          category: merged.category ?? category,
+          experiment: merged.experiment ?? experiment,
+          params: merged.params ?? params,
+          running: merged.running !== undefined ? merged.running : running,
+        });
+      }, 100); // Throttle to 10fps to prevent MainLayout crash
+    }
+  }, [canEdit, onSyncConfig, category, experiment, params, running]);
 
   const { handleRef, dragStyle, isDragging, resetPosition, handlePointerDown } = useDraggable({
     storageKey: "proedu1-physicslab-pos",
@@ -1890,45 +1922,49 @@ export default function PhysicsLabWidget({ onClose }) {
 
   // ── Render one frame ──
   const renderFrame = useCallback(() => {
-    const canvas = canvasRef.current;
-    if (!canvas || canvas.width === 0) return;
-    const ctx = canvas.getContext("2d");
-    const w = canvas.width, h = canvas.height;
-    ctx.clearRect(0, 0, w, h);
-    drawGrid(ctx, w, h);
+    try {
+      const canvas = canvasRef.current;
+      if (!canvas || canvas.width === 0) return;
+      const ctx = canvas.getContext("2d");
+      const w = canvas.width, h = canvas.height;
+      ctx.clearRect(0, 0, w, h);
+      drawGrid(ctx, w, h);
 
-    const sim = simRef.current;
-    const exp = experimentRef.current;
-    const p = paramsRef.current;
-    let result = {};
+      const sim = simRef.current;
+      const exp = experimentRef.current;
+      const p = paramsRef.current;
+      let result = {};
 
-    switch (exp) {
-      // Motion
-      case "freefall": result = renderFreeFall(ctx, w, h, sim, p); break;
-      case "projectile": result = renderProjectile(ctx, w, h, sim, p); break;
-      case "pendulum": result = renderPendulum(ctx, w, h, sim, p); break;
-      case "spring": result = renderSpring(ctx, w, h, sim, p); break;
-      // Circuits
-      case "series": result = renderSeriesCircuit(ctx, w, h, sim, p); break;
-      case "parallel": result = renderParallelCircuit(ctx, w, h, sim, p); break;
-      // Optics
-      case "lens": result = renderLens(ctx, w, h, sim, p); break;
-      case "prism": result = renderPrism(ctx, w, h, sim, p); break;
-      case "snell": result = renderSnellLaw(ctx, w, h, sim, p); break;
-      // Waves
-      case "transverse": result = renderTransverseWave(ctx, w, h, sim, p); break;
-      case "standing": result = renderStandingWave(ctx, w, h, sim, p); break;
-      case "interference": result = renderInterference(ctx, w, h, sim, p); break;
-      // Force
-      case "inclined_plane": result = renderInclinedPlane(ctx, w, h, sim, p); break;
-      case "pulley": result = renderPulley(ctx, w, h, sim, p); break;
-      case "seesaw": result = renderSeesaw(ctx, w, h, sim, p); break;
-      // Instruments
-      case "vernier": result = renderVernier(ctx, w, h, sim, p); break;
-      case "micrometer": result = renderMicrometer(ctx, w, h, sim, p); break;
-      default: break;
+      switch (exp) {
+        // Motion
+        case "freefall": result = renderFreeFall(ctx, w, h, sim, p); break;
+        case "projectile": result = renderProjectile(ctx, w, h, sim, p); break;
+        case "pendulum": result = renderPendulum(ctx, w, h, sim, p); break;
+        case "spring": result = renderSpring(ctx, w, h, sim, p); break;
+        // Circuits
+        case "series": result = renderSeriesCircuit(ctx, w, h, sim, p); break;
+        case "parallel": result = renderParallelCircuit(ctx, w, h, sim, p); break;
+        // Optics
+        case "lens": result = renderLens(ctx, w, h, sim, p); break;
+        case "prism": result = renderPrism(ctx, w, h, sim, p); break;
+        case "snell": result = renderSnellLaw(ctx, w, h, sim, p); break;
+        // Waves
+        case "transverse": result = renderTransverseWave(ctx, w, h, sim, p); break;
+        case "standing": result = renderStandingWave(ctx, w, h, sim, p); break;
+        case "interference": result = renderInterference(ctx, w, h, sim, p); break;
+        // Force
+        case "inclined_plane": result = renderInclinedPlane(ctx, w, h, sim, p); break;
+        case "pulley": result = renderPulley(ctx, w, h, sim, p); break;
+        case "seesaw": result = renderSeesaw(ctx, w, h, sim, p); break;
+        // Instruments
+        case "vernier": result = renderVernier(ctx, w, h, sim, p); break;
+        case "micrometer": result = renderMicrometer(ctx, w, h, sim, p); break;
+        default: break;
+      }
+      setInfo(result);
+    } catch (err) {
+      console.error("renderFrame error:", err);
     }
-    setInfo(result);
   }, []);
 
   // ── Physics step ──
@@ -2030,11 +2066,12 @@ export default function PhysicsLabWidget({ onClose }) {
 
   // ── Reset simulation ──
   const resetSim = useCallback((expId) => {
+    if (!canEdit && config?.running === false) return; // prevent resetting repeatedly on viewer
     setRunning(false);
     if (animRef.current) { cancelAnimationFrame(animRef.current); animRef.current = null; }
     lastTimeRef.current = null;
-    const p = DEFAULT_PARAMS[expId] || {};
-    setParams({ ...p });
+    const p = canEdit ? (DEFAULT_PARAMS[expId] || {}) : (config?.params || DEFAULT_PARAMS[expId] || {});
+    if (canEdit) setParams({ ...p });
     paramsRef.current = { ...p };
     simRef.current = {
       t: 0, trail: [],
@@ -2049,7 +2086,9 @@ export default function PhysicsLabWidget({ onClose }) {
   }, [renderFrame]);
 
   // Reset when experiment changes
-  useEffect(() => { resetSim(experiment); }, [experiment, resetSim]);
+  useEffect(() => { 
+    if (canEdit || !running) resetSim(experiment); 
+  }, [experiment, resetSim]);
 
   // ── Canvas resize ──
   useEffect(() => {
@@ -2070,19 +2109,36 @@ export default function PhysicsLabWidget({ onClose }) {
   }, [renderFrame]);
 
   const selectExperiment = (expId) => {
+    if (!canEdit) return;
     setExperiment(expId);
     experimentRef.current = expId;
+    
+    const newParams = DEFAULT_PARAMS[expId] || {};
+    setParams(newParams);
+    paramsRef.current = newParams;
+    
+    emitSync({ experiment: expId, params: newParams, running: false });
   };
 
   const selectCategory = (catId) => {
+    if (!canEdit) return;
     setCategory(catId);
     const exps = EXPERIMENTS[catId] || [];
     if (exps.length > 0) {
-      selectExperiment(exps[0].id);
+      const expId = exps[0].id;
+      setExperiment(expId);
+      experimentRef.current = expId;
+      
+      const newParams = DEFAULT_PARAMS[expId] || {};
+      setParams(newParams);
+      paramsRef.current = newParams;
+      
+      emitSync({ category: catId, experiment: expId, params: newParams, running: false });
     }
   };
 
   const setParam = (key, val) => {
+    if (!canEdit) return;
     const newP = { ...params, [key]: val };
     setParams(newP);
     paramsRef.current = newP;
@@ -2091,6 +2147,7 @@ export default function PhysicsLabWidget({ onClose }) {
       if (key === "displacement" && experiment === "spring") simRef.current.x = val;
       requestAnimationFrame(() => renderFrame());
     }
+    emitSync({ params: newP });
   };
 
   const experiments = EXPERIMENTS[category] || [];
@@ -2099,39 +2156,39 @@ export default function PhysicsLabWidget({ onClose }) {
   const infoItems = (() => {
     switch (experiment) {
       case "freefall": return [
-        { label: "เวลา (t)", val: `${simRef.current.t.toFixed(2)} s`, color: "#60a5fa" },
-        { label: "ระยะตก (y)", val: `${(info.y || 0).toFixed(1)} m`, color: "#f87171" },
-        { label: "ความเร็ว (v)", val: `${(info.v || 0).toFixed(1)} m/s`, color: "#fbbf24" },
+        { label: "เวลา (t)", val: `${Number(info.t || 0).toFixed(2)} s`, color: "#60a5fa" },
+        { label: "ระยะตก (y)", val: `${Number(info.y || 0).toFixed(1)} m`, color: "#f87171" },
+        { label: "ความเร็ว (v)", val: `${Number(info.v || 0).toFixed(1)} m/s`, color: "#fbbf24" },
       ];
       case "projectile": return [
-        { label: "เวลา (t)", val: `${simRef.current.t.toFixed(2)} s`, color: "#60a5fa" },
-        { label: "ความสูงสูงสุด (H)", val: `${(info.maxH || 0).toFixed(1)} m`, color: "#fbbf24" },
-        { label: "ระยะทาง (R)", val: `${(info.range || 0).toFixed(1)} m`, color: "#34d399" },
+        { label: "เวลา (t)", val: `${Number(info.t || 0).toFixed(2)} s`, color: "#60a5fa" },
+        { label: "ความสูงสูงสุด (H)", val: `${Number(info.maxH || 0).toFixed(1)} m`, color: "#fbbf24" },
+        { label: "ระยะทาง (R)", val: `${Number(info.range || 0).toFixed(1)} m`, color: "#34d399" },
       ];
       case "pendulum": return [
-        { label: "มุม (θ)", val: `${((info.theta || 0) * 180 / Math.PI).toFixed(1)}°`, color: "#fbbf24" },
-        { label: "ความเร็วเชิงมุม (ω)", val: `${(info.omega || 0).toFixed(3)} rad/s`, color: "#60a5fa" },
-        { label: "คาบ (T)", val: `${(info.period || 0).toFixed(3)} s`, color: "#34d399" },
+        { label: "มุม (θ)", val: `${(Number(info.theta || 0) * 180 / Math.PI).toFixed(1)}°`, color: "#fbbf24" },
+        { label: "ความเร็วเชิงมุม (ω)", val: `${Number(info.omega || 0).toFixed(3)} rad/s`, color: "#60a5fa" },
+        { label: "คาบ (T)", val: `${Number(info.period || 0).toFixed(3)} s`, color: "#34d399" },
       ];
       case "spring": return [
-        { label: "การกระจัด (x)", val: `${(info.x || 0).toFixed(1)}`, color: "#fbbf24" },
-        { label: "ความเร็ว (v)", val: `${(info.v || 0).toFixed(1)}`, color: "#60a5fa" },
-        { label: "แรง (F)", val: `${(info.force || 0).toFixed(2)} N`, color: "#f87171" },
-        { label: "คาบ (T)", val: `${(info.period || 0).toFixed(3)} s`, color: "#34d399" },
+        { label: "การกระจัด (x)", val: `${Number(info.x || 0).toFixed(1)}`, color: "#fbbf24" },
+        { label: "ความเร็ว (v)", val: `${Number(info.v || 0).toFixed(1)}`, color: "#60a5fa" },
+        { label: "แรง (F)", val: `${Number(info.force || 0).toFixed(2)} N`, color: "#f87171" },
+        { label: "คาบ (T)", val: `${Number(info.period || 0).toFixed(3)} s`, color: "#34d399" },
       ];
       case "series": return [
-        { label: "กระแส (I)", val: `${(info.I || 0).toFixed(1)} mA`, color: "#fbbf24" },
-        { label: "V₁", val: `${(info.V1 || 0).toFixed(1)} V`, color: "#f87171" },
-        { label: "V₂", val: `${(info.V2 || 0).toFixed(1)} V`, color: "#60a5fa" },
-        { label: "ความต้านทานรวม (R)", val: `${(info.Rtotal || 0).toFixed(1)} Ω`, color: "#a78bfa" },
-        { label: "กำลังไฟฟ้า (P)", val: `${(info.P || 0).toFixed(2)} W`, color: "#34d399" },
+        { label: "กระแส (I)", val: `${Number(info.I || 0).toFixed(1)} mA`, color: "#fbbf24" },
+        { label: "V₁", val: `${Number(info.V1 || 0).toFixed(1)} V`, color: "#f87171" },
+        { label: "V₂", val: `${Number(info.V2 || 0).toFixed(1)} V`, color: "#60a5fa" },
+        { label: "ความต้านทานรวม (R)", val: `${Number(info.Rtotal || 0).toFixed(1)} Ω`, color: "#a78bfa" },
+        { label: "กำลังไฟฟ้า (P)", val: `${Number(info.P || 0).toFixed(2)} W`, color: "#34d399" },
       ];
       case "parallel": return [
-        { label: "กระแสรวม (I)", val: `${(info.Itotal || 0).toFixed(1)} mA`, color: "#fbbf24" },
-        { label: "I₁", val: `${(info.I1 || 0).toFixed(1)} mA`, color: "#f87171" },
-        { label: "I₂", val: `${(info.I2 || 0).toFixed(1)} mA`, color: "#60a5fa" },
-        { label: "ความต้านทานรวม (R)", val: `${(info.Req || 0).toFixed(1)} Ω`, color: "#a78bfa" },
-        { label: "กำลังไฟฟ้า (P)", val: `${(info.P || 0).toFixed(2)} W`, color: "#34d399" },
+        { label: "กระแสรวม (I)", val: `${Number(info.Itotal || 0).toFixed(1)} mA`, color: "#fbbf24" },
+        { label: "I₁", val: `${Number(info.I1 || 0).toFixed(1)} mA`, color: "#f87171" },
+        { label: "I₂", val: `${Number(info.I2 || 0).toFixed(1)} mA`, color: "#60a5fa" },
+        { label: "ความต้านทานรวม (R)", val: `${Number(info.Req || 0).toFixed(1)} Ω`, color: "#a78bfa" },
+        { label: "กำลังไฟฟ้า (P)", val: `${Number(info.P || 0).toFixed(2)} W`, color: "#34d399" },
       ];
       case "lens": return [
         { label: "ระยะภาพ (v)", val: `${info.v || 0} px`, color: "#a78bfa" },
@@ -2140,61 +2197,61 @@ export default function PhysicsLabWidget({ onClose }) {
         { label: "ความยาวโฟกัส (f)", val: `${info.f || 0} px`, color: "#f87171" },
       ];
       case "prism": return [
-        { label: "มุมเบี่ยงเบน (δ)", val: `${info.deviation || 0}°`, color: "#f87171" },
-        { label: "มุมปริซึม (A)", val: `${info.A || 0}°`, color: "#fbbf24" },
-        { label: "มุมตกกระทบ (i)", val: `${info.i || 0}°`, color: "#60a5fa" },
-        { label: "ดัชนีหักเห (n)", val: `${info.n || 0}`, color: "#a78bfa" },
+        { label: "มุมเบี่ยงเบน (δ)", val: `${Number(info.deviation || 0).toFixed(0)}°`, color: "#f87171" },
+        { label: "มุมปริซึม (A)", val: `${Number(info.A || 0).toFixed(0)}°`, color: "#fbbf24" },
+        { label: "มุมตกกระทบ (i)", val: `${Number(info.i || 0).toFixed(0)}°`, color: "#60a5fa" },
+        { label: "ดัชนีหักเห (n)", val: `${Number(info.n || 0).toFixed(2)}`, color: "#a78bfa" },
       ];
       case "snell": return [
-        { label: "มุมหักเห (θ₂)", val: info.theta2 !== "TIR" ? `${info.theta2}°` : "TIR", color: info.tir ? "#ef4444" : "#a78bfa" },
-        { label: "sin(θ₁)", val: `${info.sinTheta1 || 0}`, color: "#fbbf24" },
-        { label: "sin(θ₂)", val: `${info.sinTheta2 || 0}`, color: "#60a5fa" },
+        { label: "มุมหักเห (θ₂)", val: info.theta2 !== "TIR" ? `${Number(info.theta2 || 0).toFixed(0)}°` : "TIR", color: info.tir ? "#ef4444" : "#a78bfa" },
+        { label: "sin(θ₁)", val: `${Number(info.sinTheta1 || 0).toFixed(2)}`, color: "#fbbf24" },
+        { label: "sin(θ₂)", val: `${Number(info.sinTheta2 || 0).toFixed(2)}`, color: "#60a5fa" },
         { label: "สถานะ", val: info.tir ? "สะท้อนกลับหมด" : "หักเหปกติ", color: info.tir ? "#ef4444" : "#34d399" },
       ];
       case "transverse": return [
-        { label: "ความเร็ว (v)", val: `${info.v || 0} px/s`, color: "#34d399" },
-        { label: "คาบ (T)", val: `${info.T || 0} s`, color: "#60a5fa" },
-        { label: "เลขคลื่น (k)", val: `${info.k || 0} rad/px`, color: "#a78bfa" },
-        { label: "โอเมกา (ω)", val: `${info.omega || 0} rad/s`, color: "#fbbf24" },
+        { label: "ความเร็ว (v)", val: `${Number(info.v || 0).toFixed(0)} px/s`, color: "#34d399" },
+        { label: "คาบ (T)", val: `${Number(info.T || 0).toFixed(2)} s`, color: "#60a5fa" },
+        { label: "เลขคลื่น (k)", val: `${Number(info.k || 0).toFixed(2)} rad/px`, color: "#a78bfa" },
+        { label: "โอเมกา (ω)", val: `${Number(info.omega || 0).toFixed(2)} rad/s`, color: "#fbbf24" },
       ];
       case "standing": return [
-        { label: "ความยาวคลื่น (λ)", val: `${info.lambda || 0} px`, color: "#34d399" },
-        { label: "ความถี่ (f)", val: `${info.f || 0} Hz`, color: "#60a5fa" },
-        { label: "จุดบัพ (Nodes)", val: `${info.nodes || 0}`, color: "#fbbf24" },
-        { label: "จุดปฏิบัพ (Antinodes)", val: `${info.antinodes || 0}`, color: "#a78bfa" },
+        { label: "ความยาวคลื่น (λ)", val: `${Number(info.lambda || 0).toFixed(0)} px`, color: "#34d399" },
+        { label: "ความถี่ (f)", val: `${Number(info.f || 0).toFixed(0)} Hz`, color: "#60a5fa" },
+        { label: "จุดบัพ (Nodes)", val: `${Number(info.nodes || 0).toFixed(0)}`, color: "#fbbf24" },
+        { label: "จุดปฏิบัพ (Antinodes)", val: `${Number(info.antinodes || 0).toFixed(0)}`, color: "#a78bfa" },
       ];
       case "interference": return [
-        { label: "ระยะ (d)", val: `${info.d || 0} px`, color: "#f87171" },
-        { label: "ความยาวคลื่น (λ)", val: `${info.lambda || 0} px`, color: "#60a5fa" },
-        { label: "ความถี่ (f)", val: `${info.f || 0} Hz`, color: "#fbbf24" },
-        { label: "ความเร็ว (v)", val: `${info.v || 0} px/s`, color: "#34d399" },
+        { label: "ระยะ (d)", val: `${Number(info.d || 0).toFixed(0)} px`, color: "#f87171" },
+        { label: "ความยาวคลื่น (λ)", val: `${Number(info.lambda || 0).toFixed(0)} px`, color: "#60a5fa" },
+        { label: "ความถี่ (f)", val: `${Number(info.f || 0).toFixed(0)} Hz`, color: "#fbbf24" },
+        { label: "ความเร็ว (v)", val: `${Number(info.v || 0).toFixed(0)} px/s`, color: "#34d399" },
       ];
       case "inclined_plane": return [
-        { label: "ความเร่ง (a)", val: `${info.a !== undefined ? info.a.toFixed(2) : 0} m/s²`, color: "#f87171" },
-        { label: "ความเร็ว (v)", val: `${info.v !== undefined ? info.v.toFixed(2) : 0} m/s`, color: "#34d399" },
-        { label: "แรงตั้งฉาก (N)", val: `${info.N !== undefined ? info.N.toFixed(1) : 0} N`, color: "#60a5fa" },
-        { label: "แรงเสียดทาน (f)", val: `${info.f !== undefined ? info.f.toFixed(1) : 0} N`, color: "#fbbf24" },
+        { label: "ความเร่ง (a)", val: `${info.a !== undefined ? Number(info.a).toFixed(2) : 0} m/s²`, color: "#f87171" },
+        { label: "ความเร็ว (v)", val: `${info.v !== undefined ? Number(info.v).toFixed(2) : 0} m/s`, color: "#34d399" },
+        { label: "แรงตั้งฉาก (N)", val: `${info.N !== undefined ? Number(info.N).toFixed(1) : 0} N`, color: "#60a5fa" },
+        { label: "แรงเสียดทาน (f)", val: `${info.f !== undefined ? Number(info.f).toFixed(1) : 0} N`, color: "#fbbf24" },
       ];
       case "pulley": return [
-        { label: "ความเร่ง (a)", val: `${info.a !== undefined ? info.a.toFixed(2) : 0} m/s²`, color: "#f87171" },
-        { label: "แรงตึงเชือก (T)", val: `${info.T !== undefined ? info.T.toFixed(1) : 0} N`, color: "#60a5fa" },
-        { label: "ความเร็ว (v)", val: `${info.v !== undefined ? info.v.toFixed(2) : 0} m/s`, color: "#34d399" },
+        { label: "ความเร่ง (a)", val: `${info.a !== undefined ? Number(info.a).toFixed(2) : 0} m/s²`, color: "#f87171" },
+        { label: "แรงตึงเชือก (T)", val: `${info.T !== undefined ? Number(info.T).toFixed(1) : 0} N`, color: "#60a5fa" },
+        { label: "ความเร็ว (v)", val: `${info.v !== undefined ? Number(info.v).toFixed(2) : 0} m/s`, color: "#34d399" },
       ];
       case "seesaw": return [
-        { label: "โมเมนต์ทวน (τ₁)", val: `${info.t1 !== undefined ? info.t1.toFixed(1) : 0} N·m`, color: "#60a5fa" },
-        { label: "โมเมนต์ตาม (τ₂)", val: `${info.t2 !== undefined ? info.t2.toFixed(1) : 0} N·m`, color: "#f87171" },
-        { label: "โมเมนต์ลัพธ์ (Στ)", val: `${info.netTorque !== undefined ? info.netTorque.toFixed(1) : 0} N·m`, color: "#a78bfa" },
+        { label: "โมเมนต์ทวน (τ₁)", val: `${info.t1 !== undefined ? Number(info.t1).toFixed(1) : 0} N·m`, color: "#60a5fa" },
+        { label: "โมเมนต์ตาม (τ₂)", val: `${info.t2 !== undefined ? Number(info.t2).toFixed(1) : 0} N·m`, color: "#f87171" },
+        { label: "โมเมนต์ลัพธ์ (Στ)", val: `${info.netTorque !== undefined ? Number(info.netTorque).toFixed(1) : 0} N·m`, color: "#a78bfa" },
         { label: "สถานะ", val: info.netTorque === 0 ? "สมดุล" : "ไม่สมดุล", color: info.netTorque === 0 ? "#34d399" : "#ef4444" },
       ];
       case "vernier": return [
-        { label: "สเกลหลัก (Main)", val: `${info.main || 0} mm`, color: "#60a5fa" },
-        { label: "สเกลเวอร์เนียร์ (Vernier)", val: `${info.vernier || 0} (×0.1 mm)`, color: "#f87171" },
-        { label: "ค่าที่อ่านได้รวม (Total)", val: `${info.total || 0} mm`, color: "#34d399" },
+        { label: "สเกลหลัก (Main)", val: `${Number(info.main || 0).toFixed(0)} mm`, color: "#60a5fa" },
+        { label: "สเกลเวอร์เนียร์ (Vernier)", val: `${Number(info.vernier || 0).toFixed(0)} (×0.1 mm)`, color: "#f87171" },
+        { label: "ค่าที่อ่านได้รวม (Total)", val: `${Number(info.total || 0).toFixed(2)} mm`, color: "#34d399" },
       ];
       case "micrometer": return [
-        { label: "สเกลหลัก (Main)", val: `${info.main || 0} mm`, color: "#60a5fa" },
-        { label: "สเกลวงกลม (Thimble)", val: `${info.thimble || 0} (×0.01 mm)`, color: "#f87171" },
-        { label: "ค่าที่อ่านได้รวม (Total)", val: `${info.total || 0} mm`, color: "#34d399" },
+        { label: "สเกลหลัก (Main)", val: `${Number(info.main || 0).toFixed(1)} mm`, color: "#60a5fa" },
+        { label: "สเกลวงกลม (Thimble)", val: `${Number(info.thimble || 0).toFixed(0)} (×0.01 mm)`, color: "#f87171" },
+        { label: "ค่าที่อ่านได้รวม (Total)", val: `${Number(info.total || 0).toFixed(2)} mm`, color: "#34d399" },
       ];
       default: return [];
     }
@@ -2323,26 +2380,42 @@ export default function PhysicsLabWidget({ onClose }) {
                 background: "rgba(0,0,0,0.1)",
               }}>
                 {/* Action Buttons */}
-                <div style={{ display: "flex", gap: 8, justifyContent: "center", padding: "2px 0" }}>
+                <div className="phy-controls" style={{ display: "flex", gap: 8, justifyContent: "center", padding: "2px 0" }}>
                   {!["lens", "prism", "snell", "vernier", "micrometer"].includes(experiment) && (
-                    <button
-                      onClick={() => { if (!running) lastTimeRef.current = null; setRunning(r => !r); }}
-                      style={{
+                    running ? (
+                      <button className="phy-btn phy-btn-pause" onClick={() => {
+                        if (!canEdit) return;
+                        setRunning(false);
+                        emitSync({ running: false });
+                      }} style={{
                         padding: "7px 22px", border: "none", borderRadius: 8, cursor: "pointer",
                         fontSize: 12, fontWeight: 700, letterSpacing: 0.3,
-                        background: running
-                          ? "linear-gradient(135deg, rgba(239,68,68,0.25), rgba(239,68,68,0.15))"
-                          : "linear-gradient(135deg, rgba(34,197,94,0.25), rgba(34,197,94,0.15))",
-                        color: running ? "#f87171" : "#4ade80",
-                        border: `1px solid ${running ? "rgba(239,68,68,0.3)" : "rgba(34,197,94,0.3)"}`,
-                        transition: "all 0.2s",
-                      }}
-                    >
-                      {running ? "⏸ หยุด" : "▶ เริ่มจำลอง"}
-                    </button>
+                        background: "linear-gradient(135deg, rgba(239,68,68,0.25), rgba(239,68,68,0.15))",
+                        color: "#f87171", border: "1px solid rgba(239,68,68,0.3)",
+                      }}>
+                        ⏸ หยุด
+                      </button>
+                    ) : (
+                      <button className="phy-btn phy-btn-play" onClick={() => {
+                        if (!canEdit) return;
+                        setRunning(true);
+                        emitSync({ running: true });
+                      }} style={{
+                        padding: "7px 22px", border: "none", borderRadius: 8, cursor: "pointer",
+                        fontSize: 12, fontWeight: 700, letterSpacing: 0.3,
+                        background: "linear-gradient(135deg, rgba(34,197,94,0.25), rgba(34,197,94,0.15))",
+                        color: "#4ade80", border: "1px solid rgba(34,197,94,0.3)",
+                      }}>
+                        ▶ เริ่มจำลอง
+                      </button>
+                    )
                   )}
                   <button
-                    onClick={() => resetSim(experiment)}
+                    onClick={() => {
+                      if (!canEdit) return;
+                      resetSim(experiment);
+                      emitSync({ running: false, params: DEFAULT_PARAMS[experiment] || {} });
+                    }}
                     style={{
                       padding: "7px 22px", border: "1px solid rgba(251,191,36,0.2)", borderRadius: 8,
                       cursor: "pointer", fontSize: 12, fontWeight: 700, letterSpacing: 0.3,

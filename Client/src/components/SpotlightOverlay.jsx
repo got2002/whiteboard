@@ -94,12 +94,10 @@ export default function SpotlightOverlay({
     if (!socket) return;
 
     const handleRemoteSpotlight = (data) => {
-      if (!isHost) {
-        if (data.active) {
-          setRemoteSpotlight(data);
-        } else {
-          setRemoteSpotlight(null);
-        }
+      if (data.active) {
+        setRemoteSpotlight(data);
+      } else {
+        setRemoteSpotlight(null);
       }
     };
 
@@ -108,8 +106,8 @@ export default function SpotlightOverlay({
   }, [socket, isHost]);
 
   // ── Decide what to render ──
-  const activeData = isHost
-    ? (isActive ? { x: mousePos.x, y: mousePos.y, radius, opacity, shape, active: true } : null)
+  const activeData = isActive
+    ? { x: mousePos.x, y: mousePos.y, radius, opacity, shape, active: true }
     : remoteSpotlight;
 
   if (!activeData) return null;
