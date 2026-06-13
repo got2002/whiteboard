@@ -17,9 +17,7 @@ export function useWidgetSync({ isActive, canSync }) {
   const [banner, setBanner] = useState(null);       // {text, themeId, speedId, fontSizeId, position, isShowing, isPaused} | null
   const [curtain, setCurtain] = useState(null);      // {isActive, direction, offset} | null
   const [presentation, setPresentation] = useState(null); // {isActive, slideIndex} | null
-  const [graph, setGraph] = useState(null);          // {isActive, config} | null
-  const [mathGrapher, setMathGrapher] = useState(null);
-  const [periodicTable, setPeriodicTable] = useState(false);
+  const [periodicTable, setPeriodicTable] = useState(null);
   const [physicsLab, setPhysicsLab] = useState(null);
   const [mathTools, setMathTools] = useState([]);
 
@@ -35,10 +33,8 @@ export function useWidgetSync({ isActive, canSync }) {
     if (widgets.banner) setBanner(widgets.banner);
     if (widgets.curtain) setCurtain(widgets.curtain);
     if (widgets.presentation) setPresentation(widgets.presentation);
-    if (widgets.graph) setGraph(widgets.graph);
-    if (widgets.mathGrapher) setMathGrapher(widgets.mathGrapher);
     if (widgets.periodicTable !== undefined) setPeriodicTable(widgets.periodicTable);
-    if (widgets.physicsLab) setPhysicsLab(widgets.physicsLab);
+    if (widgets.physicsLab !== undefined) setPhysicsLab(widgets.physicsLab);
     if (widgets.mathTools) setMathTools(widgets.mathTools);
   }, []);
 
@@ -81,19 +77,11 @@ export function useWidgetSync({ isActive, canSync }) {
 
     // ── Toggle widgets ──
     const handleWidgetToggle = ({ widgetType, isActive: active, config }) => {
-      switch (widgetType) {
-        case "graph":
-          setGraph(active ? { isActive: true, config } : null);
-          break;
-        case "mathGrapher":
-          setMathGrapher(active ? { isActive: true, config } : null);
-          break;
-        case "periodicTable":
-          setPeriodicTable(active);
-          break;
-        case "physicsLab":
-          setPhysicsLab(active ? { isActive: true, config } : null);
-          break;
+      // Other global toggle widgets can be handled here if any
+      if (widgetType === "periodicTable") {
+        setPeriodicTable(active ? { isActive: true, config } : null);
+      } else if (widgetType === "physicsLab") {
+        setPhysicsLab(active ? { isActive: true, config } : null);
       }
     };
 
@@ -186,20 +174,12 @@ export function useWidgetSync({ isActive, canSync }) {
   // ── Toggle widgets ──
   const syncWidgetToggle = useCallback((widgetType, isActiveVal, config = null) => {
     if (!canSync) return;
-    switch (widgetType) {
-      case "graph":
-        setGraph(isActiveVal ? { isActive: true, config } : null);
-        break;
-      case "mathGrapher":
-        setMathGrapher(isActiveVal ? { isActive: true, config } : null);
-        break;
-      case "periodicTable":
-        setPeriodicTable(isActiveVal);
-        break;
-      case "physicsLab":
-        setPhysicsLab(isActiveVal ? { isActive: true, config } : null);
-        break;
+    if (widgetType === "periodicTable") {
+      setPeriodicTable(isActiveVal ? { isActive: true, config } : null);
+    } else if (widgetType === "physicsLab") {
+      setPhysicsLab(isActiveVal ? { isActive: true, config } : null);
     }
+    // These widgets are local now, so only global widgets remain here.
     widgetService.emitWidgetToggle(widgetType, isActiveVal, config);
   }, [canSync]);
 
@@ -232,8 +212,6 @@ export function useWidgetSync({ isActive, canSync }) {
     banner, setBanner,
     curtain, setCurtain,
     presentation, setPresentation,
-    graph, setGraph,
-    mathGrapher, setMathGrapher,
     periodicTable, setPeriodicTable,
     physicsLab, setPhysicsLab,
     mathTools, setMathTools,

@@ -43,15 +43,11 @@ export default function LockScreenOverlay({ isActive, onClose, socket, isHost, i
     if (!socket) return;
 
     const handleToggle = (data) => {
-      if (!isHost) {
-        setRemoteLocked(!!data?.isLocked);
-      }
+      setRemoteLocked(!!data?.isLocked);
     };
     
     const handleInitState = (data) => {
-      if (!isHost) {
-        setRemoteLocked(!!data?.isLocked);
-      }
+      setRemoteLocked(!!data?.isLocked);
     };
 
     socket.on("lockscreen-toggle", handleToggle);
@@ -73,7 +69,7 @@ export default function LockScreenOverlay({ isActive, onClose, socket, isHost, i
   }, [isHost, isActive, handleUnlock]);
 
   // ── Decide visibility ──
-  const shouldShow = isHost ? isActive : remoteLocked;
+  const shouldShow = isActive || remoteLocked;
   if (!shouldShow) return null;
 
   // ── Format time ──

@@ -4,19 +4,40 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { ELEMENTS, CATEGORIES } from "./periodicData";
 
-export default function PeriodicTableWidget({ canEdit = true, onClose }) {
+export default function PeriodicTableWidget({ canEdit = true, config = {}, onSyncConfig, onClose }) {
   const [selected, setSelected] = useState(null);
   const [showLegend, setShowLegend] = useState(true);
   const [dragOffset, setDragOffset] = useState(null);
   const [pos, setPos] = useState({ x: 40, y: 40 });
   const widgetRef = useRef(null);
 
+  // Sync selected element from props
+  useEffect(() => {
+    if (config?.selectedNumber) {
+      const el = ELEMENTS.find(e => e.number === config.selectedNumber);
+      setSelected(el || null);
+    } else {
+      setSelected(null);
+    }
+  }, [config?.selectedNumber]);
+
+  // Handle element click
+  const handleElementClick = (el) => {
+    if (!canEdit) return;
+    const newSelected = selected?.number === el?.number ? null : el;
+    setSelected(newSelected);
+    if (onSyncConfig) {
+      onSyncConfig({ ...config, selectedNumber: newSelected?.number || null });
+    }
+  };
+
   // ── Drag ──
   const handleMouseDown = useCallback((e) => {
+    if (!canEdit) return;
     if (e.target.closest(".periodic-cell") || e.target.closest(".periodic-detail") || e.target.closest("button")) return;
     const rect = widgetRef.current.getBoundingClientRect();
     setDragOffset({ x: e.clientX - rect.left, y: e.clientY - rect.top });
-  }, []);
+  }, [canEdit]);
 
   useEffect(() => {
     if (!dragOffset) return;
@@ -38,7 +59,7 @@ export default function PeriodicTableWidget({ canEdit = true, onClose }) {
           gridColumn: el.col,
           gridRow: el.row,
         }}
-        onClick={() => setSelected(selected?.number === el.number ? null : el)}
+        onClick={() => handleElementClick(el)}
         title={`${el.name} (${el.number})`}
       >
         <span className="periodic-num">{el.number}</span>
@@ -68,7 +89,7 @@ export default function PeriodicTableWidget({ canEdit = true, onClose }) {
           <button className="periodic-legend-btn" onClick={() => setShowLegend(v => !v)}>
             {showLegend ? "Hide" : "Show"} Legend
           </button>
-          <button className="periodic-close" onClick={onClose}>✕</button>
+          {canEdit && <button className="periodic-close" onClick={onClose}>✕</button>}
         </div>
       </div>
 
@@ -105,7 +126,7 @@ export default function PeriodicTableWidget({ canEdit = true, onClose }) {
               key={el.number}
               className={`periodic-cell ${selected?.number === el.number ? "periodic-selected" : ""}`}
               style={{ "--cat-color": CATEGORIES[el.category]?.color || "#555" }}
-              onClick={() => setSelected(selected?.number === el.number ? null : el)}
+              onClick={() => handleElementClick(el)}
               title={`${el.name} (${el.number})`}
             >
               <span className="periodic-num">{el.number}</span>
@@ -122,7 +143,7 @@ export default function PeriodicTableWidget({ canEdit = true, onClose }) {
               key={el.number}
               className={`periodic-cell ${selected?.number === el.number ? "periodic-selected" : ""}`}
               style={{ "--cat-color": CATEGORIES[el.category]?.color || "#555" }}
-              onClick={() => setSelected(selected?.number === el.number ? null : el)}
+              onClick={() => handleElementClick(el)}
               title={`${el.name} (${el.number})`}
             >
               <span className="periodic-num">{el.number}</span>
@@ -136,7 +157,7 @@ export default function PeriodicTableWidget({ canEdit = true, onClose }) {
 
       {/* Detail Popup */}
       {selected && (
-        <div className="periodic-detail" onClick={() => setSelected(null)}>
+        <div className="periodic-detail" onClick={() => handleElementClick(selected)}>
           <div className="periodic-detail-card" onClick={e => e.stopPropagation()} style={{ borderColor: CATEGORIES[selected.category]?.color }}>
             <div className="periodic-detail-header" style={{ background: CATEGORIES[selected.category]?.color + "22" }}>
               <span className="periodic-detail-num">{selected.number}</span>
@@ -151,7 +172,7 @@ export default function PeriodicTableWidget({ canEdit = true, onClose }) {
               <div className="periodic-detail-row"><span>Melting Point</span><span>{selected.melt !== null ? `${selected.melt} °C` : "N/A"}</span></div>
               <div className="periodic-detail-row"><span>Boiling Point</span><span>{selected.boil !== null ? `${selected.boil} °C` : "N/A"}</span></div>
             </div>
-            <button className="periodic-detail-close" onClick={() => setSelected(null)}>Close</button>
+            <button className="periodic-detail-close" onClick={() => handleElementClick(selected)}>Close</button>
           </div>
         </div>
       )}

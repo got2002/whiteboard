@@ -90,13 +90,37 @@ function compileMath(expr) {
 // ============================================================
 // Main Component
 // ============================================================
-export default function MathFunctionWidget({ canEdit = true, onClose, onInsertToBoard, onToolChange }) {
+export default function MathFunctionWidget({ canEdit = true, config, onSyncConfig, onClose, onInsertToBoard, onToolChange }) {
+  const isRemoteUpdateRef = useRef(false);
   const [equations, setEquations] = useState([
     { id: 1, expr: "x^2", color: GRAPH_COLORS[0], visible: true, func: compileMath("x^2") }
   ]);
   const [nextId, setNextId] = useState(2);
   const [viewWindow, setViewWindow] = useState({ xMin: -10, xMax: 10, yMin: -10, yMax: 10 });
   const [isGridEnabled, setIsGridEnabled] = useState(true);
+
+  // 1. Sync from remote (config)
+  useEffect(() => {
+    if (!config) return;
+    isRemoteUpdateRef.current = true;
+    
+    if (config.equations) {
+      setEquations(config.equations.map(eq => ({ ...eq, func: compileMath(eq.expr) })));
+      const maxId = Math.max(...config.equations.map(eq => eq.id), 0);
+      setNextId(maxId + 1);
+    }
+    if (config.viewWindow) setViewWindow(config.viewWindow);
+    if (config.isGridEnabled !== undefined) setIsGridEnabled(config.isGridEnabled);
+    
+    setTimeout(() => { isRemoteUpdateRef.current = false; }, 50);
+  }, [config]);
+
+  // 2. Sync to remote (presenter only)
+  useEffect(() => {
+    if (!canEdit || !onSyncConfig || isRemoteUpdateRef.current) return;
+    const cleanEq = equations.map(({ func, ...rest }) => rest);
+    onSyncConfig({ equations: cleanEq, viewWindow, isGridEnabled });
+  }, [equations, viewWindow, isGridEnabled, canEdit, onSyncConfig]);
 
   // Canvas Ref
   const canvasRef = useRef(null);

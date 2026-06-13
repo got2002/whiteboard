@@ -25,11 +25,14 @@ let widgets = {
   mathTools: [],        // array of {id, type}
 };
 
+let webcams = {};       // map of socket.id -> { isOn: true, name: "User" }
+
 module.exports = {
   pages,
   users,
   pendingRequests,
   widgets,
+  webcams,
   get hostSocketId() { return hostSocketId; },
   set hostSocketId(val) { hostSocketId = val; },
 

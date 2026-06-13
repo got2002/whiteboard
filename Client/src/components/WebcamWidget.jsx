@@ -2,11 +2,11 @@ import React, { useEffect, useRef, useState, useCallback } from "react";
 
 /**
  * WebcamWidget
- * - Host: เปิดกล้องจริง + capture frame ส่งผ่าน socket ไปหา client
- * - Client: รับ frame จาก socket แล้วแสดงเป็น <img>
+ * - Local: เปิดกล้องจริง + capture frame ส่งผ่าน socket ไปหา client
+ * - Remote: รับ frame จาก socket เฉพาะ id ของตัวเอง
  * - ทั้ง 2 ฝั่ง: ลากได้ + ปรับขนาดได้
  */
-function WebcamWidget({ userRole, socket, ownerName }) {
+function WebcamWidget({ isLocal, socket, ownerName, ownerId, initialPosition }) {
   const videoRef = useRef(null);
   const canvasRef = useRef(null);
   const intervalRef = useRef(null);
@@ -14,16 +14,14 @@ function WebcamWidget({ userRole, socket, ownerName }) {
   const [stream, setStream] = useState(null);
   const [remoteFrame, setRemoteFrame] = useState(null);
 
-  const isHost = userRole === "host";
-
   // ── Drag ──
-  const [position, setPosition] = useState({ x: 20, y: 80 });
+  const [position, setPosition] = useState(initialPosition || { x: 20, y: 80 });
   const isDragging = useRef(false);
   const dragOffset = useRef({ x: 0, y: 0 });
 
   // ── Resize ──
   const [size, setSize] = useState(() => 
-    userRole === "host" ? { width: 320, height: 180 } : { width: 220, height: 124 }
+    isLocal ? { width: 320, height: 180 } : { width: 220, height: 124 }
   );
   const isResizing = useRef(false);
   const resizeStart = useRef({ x: 0, y: 0, w: 0, h: 0 });
@@ -32,9 +30,9 @@ function WebcamWidget({ userRole, socket, ownerName }) {
   const MAX_W = 800;
   const MAX_H = 600;
 
-  // ── Host: เปิดกล้อง + ส่ง frame ──
+  // ── Local: เปิดกล้อง + ส่ง frame ──
   useEffect(() => {
-    if (!isHost) return;
+    if (!isLocal) return;
 
     let activeStream = null;
     const startWebcam = async () => {
@@ -58,50 +56,48 @@ function WebcamWidget({ userRole, socket, ownerName }) {
         intervalRef.current = setInterval(() => {
           if (videoRef.current && canvasRef.current && videoRef.current.readyState >= 2) {
             const v = videoRef.current;
-            canvasRef.current.width = 480;
-            canvasRef.current.height = 270;
-            const ctx = canvasRef.current.getContext("2d");
-            ctx.drawImage(v, 0, 0, 480, 270);
-            const dataUrl = canvasRef.current.toDataURL("image/jpeg", 0.5);
-            socket?.emit("webcam-frame", dataUrl);
+            cvs.width = v.videoWidth;
+            cvs.height = v.videoHeight;
+            const ctx = cvs.getContext("2d");
+            ctx.drawImage(v, 0, 0, cvs.width, cvs.height);
+            const dataUrl = cvs.toDataURL("image/jpeg", 0.5); // lower quality for performance
+            socket?.emit("webcam-frame", { id: socket.id, frame: dataUrl });
           }
-        }, 120); // ~8 fps
+        }, 100); // 10 fps
       } catch (err) {
         console.error("Error accessing webcam:", err);
-        setError("ไม่สามารถเปิดกล้องได้");
+        setError("ไม่สามารถเข้าถึงกล้องได้ กรุณาตรวจสอบสิทธิ์การใช้งาน");
       }
     };
 
     startWebcam();
 
     return () => {
-      if (intervalRef.current) {
-        clearInterval(intervalRef.current);
-        intervalRef.current = null;
-      }
+      if (intervalRef.current) clearInterval(intervalRef.current);
       if (activeStream) {
         activeStream.getTracks().forEach((track) => track.stop());
       }
       // Notify clients webcam is off
       socket?.emit("webcam-toggle", { isOn: false, name: ownerName || "" });
-      socket?.emit("webcam-frame", null);
+      socket?.emit("webcam-frame", { id: socket.id, frame: null });
     };
-  }, [isHost, socket]);
+  }, [isLocal, socket, ownerName]);
 
-  // ── Client: รับ frame จาก socket ──
+  // ── Remote: ฟัง frame ──
   useEffect(() => {
-    if (isHost || !socket) return;
+    if (isLocal) return;
 
     const handleFrame = (data) => {
-      setRemoteFrame(data);
+      if (data && data.id === ownerId) {
+        setRemoteFrame(data.frame);
+      }
     };
-
     socket.on("webcam-frame", handleFrame);
 
     return () => {
       socket.off("webcam-frame", handleFrame);
     };
-  }, [isHost, socket]);
+  }, [isLocal, socket, ownerId]);
 
   // ── Drag handlers ──
   const handleDragDown = useCallback((e) => {
@@ -152,7 +148,7 @@ function WebcamWidget({ userRole, socket, ownerName }) {
   }, []);
 
   // ── Render ──
-  const hasContent = isHost ? !!stream : !!remoteFrame;
+  const hasContent = isLocal ? !!stream : !!remoteFrame;
 
   return (
     <div
@@ -163,24 +159,24 @@ function WebcamWidget({ userRole, socket, ownerName }) {
         width: size.width + "px",
       }}
     >
-      {/* Header — drag area */}
       <div
-        className="webcam-header"
+        className="webcam-overlay-drag"
         onPointerDown={handleDragDown}
         onPointerMove={handleDragMove}
         onPointerUp={handleDragUp}
         onPointerCancel={handleDragUp}
-      >
-        <span className="webcam-title">
-          {ownerName || "Webcam"}
-        </span>
-        <span className="webcam-drag-handle">✋</span>
+      />
+
+      {/* Name Tag (Floating Glass) */}
+      <div className="webcam-name-tag">
+        <div className="webcam-indicator"></div>
+        <span className="webcam-title">{ownerName || "Webcam"}</span>
       </div>
 
       {/* Video content */}
       {error ? (
         <div className="webcam-error">{error}</div>
-      ) : isHost ? (
+      ) : isLocal ? (
         <video
           ref={videoRef}
           autoPlay

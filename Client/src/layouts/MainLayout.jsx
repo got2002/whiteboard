@@ -67,8 +67,7 @@ export default function MainLayout() {
   const [showPermissionPanel, setShowPermissionPanel] = useState(false);
   const [showToolbars, setShowToolbars] = useState(true);
   const [showWebcam, setShowWebcam] = useState(false);
-  const [showRemoteWebcam, setShowRemoteWebcam] = useState(false);
-  const [webcamOwnerName, setWebcamOwnerName] = useState("");
+  const [remoteWebcams, setRemoteWebcams] = useState({});
   const [isOnScreen, setIsOnScreen] = useState(false);
   const [showScreenshotOverlay, setShowScreenshotOverlay] = useState(false);
   const [showCalculator, setShowCalculator] = useState(false);
@@ -80,6 +79,10 @@ export default function MainLayout() {
   const [showAiSolution, setShowAiSolution] = useState(false);
   const [localShowBanner, setLocalShowBanner] = useState(false);
   
+  // Local Tool Widgets (Not synced globally anymore)
+  const [showGraph, setShowGraph] = useState(null);
+  const [showMathGrapher, setShowMathGrapher] = useState(null);
+  
   // Widget Sync Hook
   const [canSync, setCanSync] = useState(false);
   const widgetSyncHook = useWidgetSync({ isActive: true, canSync });
@@ -88,8 +91,6 @@ export default function MainLayout() {
     banner: showBanner, setBanner: setShowBanner,
     curtain: showCurtain, setCurtain: setShowCurtain,
     presentation: showPresentation, setPresentation: setShowPresentation,
-    graph: showGraph, setGraph: setShowGraph,
-    mathGrapher: showMathGrapher, setMathGrapher: setShowMathGrapher,
     periodicTable: showPeriodic, setPeriodicTable: setShowPeriodic,
     physicsLab: showPhysicsLab, setPhysicsLab: setShowPhysicsLab,
     mathTools: activeMathTools, setMathTools: setActiveMathTools,
@@ -241,24 +242,36 @@ export default function MainLayout() {
     }
   }, [isOnScreen, userRole, remoteScreen]);
 
-  // ── Client: ฟัง webcam-toggle จาก Host ──
+  // ── Client: ฟัง webcam-toggle จากทุกคน ──
   useEffect(() => {
-    if (userRole === "host") return;
     const handleWebcamToggle = (data) => {
-      console.log("[MainLayout] webcam-toggle received:", data);
-      if (data && typeof data === "object") {
-        setShowRemoteWebcam(!!data.isOn);
-        setWebcamOwnerName(data.name || "");
-      } else {
-        // fallback: old format (boolean)
-        setShowRemoteWebcam(!!data);
+      if (!data || !data.id || data.id === socket.id) return;
+      setRemoteWebcams(prev => {
+        const next = { ...prev };
+        if (data.isOn) {
+          next[data.id] = { name: data.name, isOn: true };
+        } else {
+          delete next[data.id];
+        }
+        return next;
+      });
+    };
+    
+    const handleInitState = (data) => {
+      if (data.webcams) {
+        const others = { ...data.webcams };
+        delete others[socket.id];
+        setRemoteWebcams(others);
       }
     };
+
     socket.on("webcam-toggle", handleWebcamToggle);
+    socket.on("init-state", handleInitState);
     return () => {
       socket.off("webcam-toggle", handleWebcamToggle);
+      socket.off("init-state", handleInitState);
     };
-  }, [userRole]);
+  }, []);
 
   // ════════════════════════════════════════════════════════════
   // Derived: QR Code URL
@@ -395,8 +408,8 @@ export default function MainLayout() {
             if (toolId === 'calculator') setShowCalculator(v => !v);
             if (toolId === 'spotlight') setShowSpotlight(v => !v);
             if (toolId === 'table') setShowTablePicker(true);
-            if (toolId === 'graph') syncWidgetToggle('graph', !showGraph?.isActive);
-            if (toolId === 'math_grapher') syncWidgetToggle('mathGrapher', !showMathGrapher?.isActive);
+            if (toolId === 'graph') setShowGraph(prev => prev?.isActive ? null : { isActive: true, config: null });
+            if (toolId === 'math_grapher') setShowMathGrapher(prev => prev?.isActive ? null : { isActive: true, config: null });
             if (toolId === 'periodic') syncWidgetToggle('periodicTable', !showPeriodic);
             if (toolId === 'curtain') syncCurtainUpdate(showCurtain?.isActive ? null : { isActive: true, direction: "top", offset: 0 });
             if (toolId === 'sketchpad') setShowSketchpad(v => !v);
@@ -572,14 +585,29 @@ export default function MainLayout() {
         />
       )}
 
-      {/* Webcam Widget — Host sees own cam, Client sees remote cam */}
-      {(showWebcam || showRemoteWebcam) && (
+      {/* Webcam Widget — Local User */}
+      {showWebcam && (
         <WebcamWidget
-          userRole={userRole}
+          key={`local-${socket.id}`}
+          isLocal={true}
           socket={socket}
-          ownerName={userRole === "host" ? username : webcamOwnerName}
+          ownerName={username}
+          ownerId={socket.id}
+          initialPosition={{ x: 20, y: 80 }}
         />
       )}
+
+      {/* Webcam Widget — Remote Users */}
+      {Object.entries(remoteWebcams).map(([id, cam], index) => (
+        <WebcamWidget
+          key={`remote-${id}`}
+          isLocal={false}
+          socket={socket}
+          ownerName={cam.name}
+          ownerId={id}
+          initialPosition={{ x: 20 + ((index + 1) * 30), y: 80 + ((index + 1) * 30) }}
+        />
+      ))}
 
       {/* Screenshot Selection Overlay */}
       {/* Calculator Widget — ทุก Role ใช้ได้ */}
@@ -590,20 +618,24 @@ export default function MainLayout() {
       )}
 
       {/* Graph Widget — Only for creators */}
-      {showGraph?.isActive && canSync && (
+      {showGraph?.isActive && (
         <GraphWidget
           canEdit={canSync}
-          onClose={() => syncWidgetToggle('graph', false)}
+          config={showGraph.config}
+          onSyncConfig={(config) => setShowGraph({ isActive: true, config })}
+          onClose={() => setShowGraph(null)}
           onInsertToBoard={(stroke) => drawingHook.handleStrokeComplete(stroke, currentPage.id)}
           onToolChange={drawingHook.setTool}
         />
       )}
 
       {/* Math Function Grapher Widget — Only for creators */}
-      {showMathGrapher?.isActive && canSync && (
+      {showMathGrapher?.isActive && (
         <MathFunctionWidget
           canEdit={canSync}
-          onClose={() => syncWidgetToggle('mathGrapher', false)}
+          config={showMathGrapher.config}
+          onSyncConfig={(config) => setShowMathGrapher({ isActive: true, config })}
+          onClose={() => setShowMathGrapher(null)}
           onInsertToBoard={(stroke) => drawingHook.handleStrokeComplete(stroke, currentPage.id)}
           onToolChange={drawingHook.setTool}
         />
@@ -613,7 +645,12 @@ export default function MainLayout() {
 
       {/* Periodic Table Widget — ทุก Role ใช้ได้ */}
       {showPeriodic && (
-        <PeriodicTableWidget canEdit={canSync} onClose={() => syncWidgetToggle('periodicTable', false)} />
+        <PeriodicTableWidget 
+          canEdit={canSync} 
+          config={showPeriodic.config || {}}
+          onSyncConfig={(config) => syncWidgetToggle('periodicTable', true, config)}
+          onClose={() => syncWidgetToggle('periodicTable', false)} 
+        />
       )}
 
       {/* Spotlight Overlay */}
@@ -621,7 +658,7 @@ export default function MainLayout() {
         isActive={showSpotlight}
         onClose={() => setShowSpotlight(false)}
         socket={socket}
-        isHost={userRole === "host"}
+        isHost={canSync}
       />
 
       {/* Curtain Overlay */}
@@ -638,7 +675,7 @@ export default function MainLayout() {
         isActive={showLockScreen}
         onClose={() => setShowLockScreen(false)}
         socket={socket}
-        isHost={userRole === "host"}
+        isHost={canSync}
         initialLocked={isLockedInitial}
       />
 
@@ -748,7 +785,14 @@ export default function MainLayout() {
       )}
 
       {/* Physics Lab Widget */}
-      {showPhysicsLab?.isActive && <PhysicsLabWidget onClose={() => syncWidgetToggle('physicsLab', false)} />}
+      {showPhysicsLab?.isActive && (
+        <PhysicsLabWidget 
+          canEdit={canSync}
+          config={showPhysicsLab.config || {}}
+          onSyncConfig={(config) => syncWidgetToggle('physicsLab', true, config)}
+          onClose={() => syncWidgetToggle('physicsLab', false)} 
+        />
+      )}
 
       {/* Banner อักษรวิ่ง */}
       {(localShowBanner || showBanner?.isShowing) && (

@@ -11,10 +11,23 @@ const PERMISSION_LEVELS = [
 const getLevelInfo = (id) => PERMISSION_LEVELS.find(l => l.id === id) || PERMISSION_LEVELS[0];
 
 // ── Custom Dropdown Component ──
-function LevelDropdown({ value, onChange }) {
+function LevelDropdown({ value, onChange, showViewOnly = false }) {
     const [open, setOpen] = useState(false);
     const ref = useRef(null);
-    const current = getLevelInfo(value || "draw_only");
+    
+    const options = [...PERMISSION_LEVELS];
+    if (showViewOnly) {
+        options.push({
+            id: "view_only",
+            label: "ดูได้อย่างเดียว",
+            emoji: "👀",
+            color: "#94a3b8",
+            bg: "rgba(148,163,184,0.15)",
+            border: "rgba(148,163,184,0.35)"
+        });
+    }
+    
+    const current = options.find(l => l.id === value) || options[0];
 
     useEffect(() => {
         if (!open) return;
@@ -51,7 +64,7 @@ function LevelDropdown({ value, onChange }) {
                     background: "rgba(15,23,42,0.95)", backdropFilter: "blur(12px)",
                     boxShadow: "0 8px 24px rgba(0,0,0,0.4)",
                 }}>
-                    {PERMISSION_LEVELS.map(lvl => {
+                    {options.map(lvl => {
                         const active = lvl.id === (value || "draw_only");
                         return (
                             <button
@@ -206,7 +219,14 @@ function PermissionPanel({
                             <div style={{ marginLeft: 20 }}>
                                 <LevelDropdown
                                     value={user.permissionLevel}
-                                    onChange={(lvl) => onChangeLevel && onChangeLevel(user.id, lvl)}
+                                    showViewOnly={true}
+                                    onChange={(lvl) => {
+                                        if (lvl === "view_only") {
+                                            onRevoke(user.id);
+                                        } else {
+                                            onChangeLevel && onChangeLevel(user.id, lvl);
+                                        }
+                                    }}
                                 />
                             </div>
                         </div>
