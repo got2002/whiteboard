@@ -49,4 +49,10 @@ module.exports = (io, socket) => {
     if (page) page.strokes = [];
     socket.broadcast.emit("clear-page", { pageId });
   });
+
+  socket.on("host-multidraw-mode-changed", ({ isMultiDrawMode }) => {
+    if (!hasPermission(socket.id, "host")) return;
+    store.isMultiDrawMode = isMultiDrawMode;
+    socket.broadcast.emit("host-multidraw-mode-changed", { isMultiDrawMode });
+  });
 };

@@ -17,7 +17,7 @@ function randomColor() {
   return RANDOM_COLORS[Math.floor(Math.random() * RANDOM_COLORS.length)];
 }
 
-export function useUser({ setPages, setHostTool, setHostPenStyle, onInitWidgets }) {
+export function useUser({ setPages, onInitWidgets }) {
   const [username, setUsername] = useState("");
   const [userRole, setUserRole] = useState("viewer");
   const [userColor, setUserColor] = useState(randomColor());
@@ -53,10 +53,8 @@ export function useUser({ setPages, setHostTool, setHostPenStyle, onInitWidgets 
       setHostExists(exists);
       if (sip) setServerIp(sip);
     };
-    const handleInitState = ({ pages: serverPages, hostTool: ht, hostPenStyle: hps, serverIp: sip, isLocked, widgets }) => {
+    const handleInitState = ({ pages: serverPages, serverIp: sip, isLocked, widgets }) => {
       if (serverPages && serverPages.length > 0) setPages(serverPages);
-      if (ht) setHostTool(ht);
-      if (hps) setHostPenStyle(hps);
       if (sip) setServerIp(sip);
       if (isLocked !== undefined) setIsLockedInitial(isLocked);
       if (widgets && onInitWidgets) onInitWidgets(widgets);
@@ -92,7 +90,7 @@ export function useUser({ setPages, setHostTool, setHostPenStyle, onInitWidgets 
       userService.offUserCount(handleUserCount);
       userService.offSetUserAck(handleSetUserAck);
     };
-  }, [setPages, setHostTool, setHostPenStyle]);
+  }, [setPages]);
 
   // ── Handler: NameDialog submit ──
   const handleNameSubmit = useCallback((name, role) => {

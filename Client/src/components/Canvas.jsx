@@ -23,6 +23,14 @@ import Tesseract from "tesseract.js";
 // สีคงที่สำหรับ Split Board
 const SLOT_COLORS = ["#ef4444", "#3b82f6", "#22c55e", "#f97316", "#a855f7", "#06b6d4", "#ec4899", "#eab308", "#6b7280", "#000000"];
 
+// 20 สีสำหรับ Multi-Touch Drawing (IFPD) — แต่ละนิ้วได้สีเฉพาะ
+const MULTI_TOUCH_COLORS = [
+  "#ef4444", "#3b82f6", "#22c55e", "#f97316", "#a855f7",
+  "#06b6d4", "#ec4899", "#eab308", "#14b8a6", "#8b5cf6",
+  "#f43f5e", "#0ea5e9", "#84cc16", "#d946ef", "#f59e0b",
+  "#10b981", "#6366f1", "#e11d48", "#0891b2", "#65a30d",
+];
+
 const Canvas = forwardRef(function Canvas(
   {
     page, tool, color, penSize, penStyle, mode, onToolChange,
@@ -31,7 +39,7 @@ const Canvas = forwardRef(function Canvas(
     onCursorMove, remoteCursors, laserPointers,
     currentPageIndex,
     onStrokeUpdate, onStrokeResize, onStrokeDelete, userRole,
-    onExitSplitMode,
+    onExitSplitMode, isMultiDrawMode,
   },
   ref
 ) {
@@ -83,6 +91,22 @@ const Canvas = forwardRef(function Canvas(
 
   // Spacebar to pan
   const [isSpacePressed, setIsSpacePressed] = useState(false);
+
+  // Multi-Touch Color Assignment (IFPD support)
+  const pointerColorMap = useRef(new Map()); // pointerId → color
+
+  // Assign a unique color to a new touch pointer
+  const assignPointerColor = useCallback((pointerId) => {
+    const usedColors = new Set(pointerColorMap.current.values());
+    const availableColor = MULTI_TOUCH_COLORS.find(c => !usedColors.has(c)) || MULTI_TOUCH_COLORS[pointerColorMap.current.size % MULTI_TOUCH_COLORS.length];
+    pointerColorMap.current.set(pointerId, availableColor);
+    return availableColor;
+  }, []);
+
+  // Release color when pointer lifts
+  const releasePointerColor = useCallback((pointerId) => {
+    pointerColorMap.current.delete(pointerId);
+  }, []);
 
   useImperativeHandle(ref, () => canvasRef.current);
 
@@ -196,18 +220,22 @@ const Canvas = forwardRef(function Canvas(
   // ============================================================
   // [F] Redraw All
   // ============================================================
+  const redrawRafRef = useRef(null);
+  
   const redrawAll = useCallback(() => {
-    const ctx = ctxRef.current;
-    const bgCtx = bgCtxRef.current;
-    if (!ctx || !bgCtx) return;
-    const dpr = window.devicePixelRatio || 1;
-    
-    ctx.save();
-    bgCtx.save();
-    ctx.setTransform(1, 0, 0, 1, 0, 0);
-    bgCtx.setTransform(1, 0, 0, 1, 0, 0);
-    ctx.clearRect(0, 0, window.innerWidth * dpr, window.innerHeight * dpr);
-    bgCtx.clearRect(0, 0, window.innerWidth * dpr, window.innerHeight * dpr);
+    if (redrawRafRef.current) cancelAnimationFrame(redrawRafRef.current);
+    redrawRafRef.current = requestAnimationFrame(() => {
+      const ctx = ctxRef.current;
+      const bgCtx = bgCtxRef.current;
+      if (!ctx || !bgCtx) return;
+      const dpr = window.devicePixelRatio || 1;
+      
+      ctx.save();
+      bgCtx.save();
+      ctx.setTransform(1, 0, 0, 1, 0, 0);
+      bgCtx.setTransform(1, 0, 0, 1, 0, 0);
+      ctx.clearRect(0, 0, window.innerWidth * dpr, window.innerHeight * dpr);
+      bgCtx.clearRect(0, 0, window.innerWidth * dpr, window.innerHeight * dpr);
     
     ctx.scale(dpr, dpr);
     ctx.translate(panOffset.current.x, panOffset.current.y);
@@ -317,6 +345,7 @@ const Canvas = forwardRef(function Canvas(
       sCtx.drawImage(bgCanvasRef.current, 0, 0);
       sCtx.drawImage(canvasRef.current, 0, 0);
     }
+    });
   }, [page?.strokes, drawStroke, tool, penStyle, hostTool, hostPenStyle, page?.background]);
 
   // ============================================================
@@ -556,13 +585,17 @@ const Canvas = forwardRef(function Canvas(
     const pId = e.pointerId;
     activePointers.current.set(pId, { x: e.clientX, y: e.clientY });
 
-    const isViewer = userRole === "viewer";
-    const isTouch = e.pointerType === "touch";
-    const effectiveTool = isViewer || isSpacePressed || isTouch ? "pan" : tool;
-    const isExplicitPan = effectiveTool === "pan";
-    const isMultiTouchPan = activePointers.current.size >= 2 && effectiveTool === "pan";
+    // Assign color for touch pointers (multi-touch IFPD support)
+    const isTouchPointer = e.pointerType === "touch";
+    if (isTouchPointer && isMultiDrawMode) {
+      assignPointerColor(pId);
+    }
 
-    if (isExplicitPan || isMultiTouchPan) {
+    const isViewer = userRole === "viewer";
+    const effectiveTool = isViewer || isSpacePressed ? "pan" : tool;
+    const isExplicitPan = effectiveTool === "pan" || (!isMultiDrawMode && activePointers.current.size >= 2);
+
+    if (isExplicitPan) {
       // Exit split mode when pan/zoom is attempted
       exitSplitIfNeeded();
       e.target.setPointerCapture(pId);
@@ -761,6 +794,13 @@ const Canvas = forwardRef(function Canvas(
       
       const effectivePenStyle = (effectiveToolForStroke === "highlighter") ? "highlighter" : (effectiveToolForStroke === "eraser" ? "pen" : penStyle);
       let strokeColor = effectiveToolForStroke === "eraser" ? "#000" : color;
+
+      // Multi-Touch: ถ้าเป็น touch pointer → ใช้สีจาก pointerColorMap แทน color picker (เมื่อเปิดโหมด)
+      const isTouchPointer = e.pointerType === "touch";
+      if (isTouchPointer && effectiveToolForStroke !== "eraser" && isMultiDrawMode) {
+        strokeColor = pointerColorMap.current.get(pId) || color;
+      }
+
       let useSplitStyle = null;
       if (effectiveToolForStroke === "pen" && effectivePenStyle.startsWith("split_")) useSplitStyle = effectivePenStyle;
       else if (effectiveToolForStroke === "pen" && hostPenStyle && hostPenStyle.startsWith("split_")) useSplitStyle = hostPenStyle;
@@ -792,13 +832,11 @@ const Canvas = forwardRef(function Canvas(
     }
 
     const isViewer = userRole === "viewer";
-    const isTouch = e.pointerType === "touch";
-    const effectiveTool = isViewer || isSpacePressed || isTouch ? "pan" : tool;
-    const isExplicitPan = effectiveTool === "pan";
-    const isMultiTouchPan = activePointers.current.size >= 2 && effectiveTool === "pan";
+    const effectiveTool = isViewer || isSpacePressed ? "pan" : tool;
+    const isExplicitPan = effectiveTool === "pan" || (!isMultiDrawMode && activePointers.current.size >= 2);
 
     // Pan & Zoom
-    if (isExplicitPan || isMultiTouchPan) {
+    if (isExplicitPan) {
       if (!lastPanPoint.current && activePointers.current.size > 0) {
         let cx = 0, cy = 0;
         activePointers.current.forEach(p => { cx += p.x; cy += p.y; });
@@ -830,7 +868,13 @@ const Canvas = forwardRef(function Canvas(
     if (!rect) return;
     const x = (e.clientX - rect.left - panOffset.current.x) / zoom.current;
     const y = (e.clientY - rect.top - panOffset.current.y) / zoom.current;
-    onCursorMove?.({ x, y });
+    
+    // Throttle cursor emit
+    const now = Date.now();
+    if (!activePointers.current.lastEmit || now - activePointers.current.lastEmit > 30) {
+      onCursorMove?.({ x, y });
+      activePointers.current.lastEmit = now;
+    }
 
     // Hover detection for select tool
     if ((tool === "select" || tool === "lasso") && selectedStrokeIds.length > 0 && !resizeDragRef.current && !selectDragStart.current) {
@@ -1004,6 +1048,9 @@ const Canvas = forwardRef(function Canvas(
   const handlePointerUp = (e) => {
     const pId = e.pointerId;
     activePointers.current.delete(pId);
+
+    // คืนสีกลับ pool เมื่อนิ้วยก (Multi-Touch IFPD)
+    releasePointerColor(pId);
 
     if (activePointers.current.size === 0) {
       lastPanPoint.current = null; lastPinchDistance.current = null;
