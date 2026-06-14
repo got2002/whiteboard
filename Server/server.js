@@ -96,6 +96,7 @@ io.on("connection", (socket) => {
     isLocked: store.isLocked,
     widgets: store.widgets,
     webcams: store.webcams,
+    isMultiDrawMode: store.isMultiDrawMode,
   });
 
   io.emit("user-count", store.connectedUsers);

@@ -13,6 +13,7 @@ export const drawingService = {
   emitStrokeUpdate: (pageId, strokeId, changes) => socket.emit("stroke-update", { pageId, strokeId, changes }),
   emitHostToolChanged: (tool) => socket.emit("host-tool-changed", { tool }),
   emitHostPenStyleChanged: (penStyle) => socket.emit("host-pen-style-changed", { penStyle }),
+  emitHostMultiDrawModeChanged: (isMultiDrawMode) => socket.emit("host-multidraw-mode-changed", { isMultiDrawMode }),
 
   onDraw: (cb) => socket.on("draw", cb),
   onStrokeComplete: (cb) => socket.on("stroke-complete", cb),
@@ -23,6 +24,7 @@ export const drawingService = {
   onStrokeUpdate: (cb) => socket.on("stroke-update", cb),
   onHostToolChanged: (cb) => socket.on("host-tool-changed", cb),
   onHostPenStyleChanged: (cb) => socket.on("host-pen-style-changed", cb),
+  onHostMultiDrawModeChanged: (cb) => socket.on("host-multidraw-mode-changed", cb),
 
   offDraw: (cb) => socket.off("draw", cb),
   offStrokeComplete: (cb) => socket.off("stroke-complete", cb),
@@ -33,4 +35,5 @@ export const drawingService = {
   offStrokeUpdate: (cb) => socket.off("stroke-update", cb),
   offHostToolChanged: (cb) => socket.off("host-tool-changed", cb),
   offHostPenStyleChanged: (cb) => socket.off("host-pen-style-changed", cb),
+  offHostMultiDrawModeChanged: (cb) => socket.off("host-multidraw-mode-changed", cb),
 };

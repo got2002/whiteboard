@@ -72,6 +72,9 @@ function HeaderBar({
     onToggleAI,
     // Permission Level
     canUseFullTools = true,
+    // Multi-Draw
+    isMultiDrawMode,
+    onToggleMultiDrawMode,
 }) {
     const isHost = userRole === "host";
     const [showMainMenu, setShowMainMenu] = useState(false);
@@ -222,6 +225,27 @@ function HeaderBar({
                                 <path d="M8 21h8M12 17v4" />
                             </svg>
                             <span style={{ fontSize: '11px', whiteSpace: 'nowrap', fontWeight: '600' }}>Present</span>
+                        </button>
+                    </>
+                )}
+
+                {/* Multi-Draw Button — host only */}
+                {isHost && (
+                    <>
+                        <div className="header-divider" />
+                        <button
+                            className={`header-btn ${isMultiDrawMode ? "header-btn-active" : ""}`}
+                            onClick={onToggleMultiDrawMode}
+                            title="โหมดหลายคนเขียนพร้อมกัน (Multi-Draw)"
+                            style={{ width: 'auto', padding: '0 10px', gap: '6px' }}
+                        >
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                                <circle cx="9" cy="7" r="4"></circle>
+                                <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+                                <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+                            </svg>
+                            <span style={{ fontSize: '11px', whiteSpace: 'nowrap', fontWeight: '600' }}>Multi-Draw</span>
                         </button>
                     </>
                 )}

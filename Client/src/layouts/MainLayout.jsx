@@ -108,25 +108,23 @@ export default function MainLayout() {
   const { pages, setPages, currentPageIndex, setCurrentPageIndex, currentPage } = pageHook;
 
   // ════════════════════════════════════════════════════════════
-  // Hook: Drawing (ต้องสร้างก่อน useUser เพราะ useUser ต้อง setHostTool)
-  // ════════════════════════════════════════════════════════════
-  const drawingHook = useDrawing({
-    pages, setPages,
-    userRole: "viewer", // จะถูก update ข้างล่าง
-    isActive: true,
-  });
-
-  // ════════════════════════════════════════════════════════════
-  // Hook: User
+  // Hook: User (ย้ายขึ้นมาเพื่อให้ได้ userRole ก่อน useDrawing)
   // ════════════════════════════════════════════════════════════
   const userHook = useUser({
     setPages,
-    setHostTool: drawingHook.setHostTool,
-    setHostPenStyle: drawingHook.setHostPenStyle,
     onInitWidgets: widgetSyncHook.initFromServer
   });
   const { username, userRole, setUserRole, userColor, userCount, hostExists, showNameDialog, serverIp, waitingForAck, isLockedInitial } = userHook;
   const isActive = !showNameDialog;
+
+  // ════════════════════════════════════════════════════════════
+  // Hook: Drawing
+  // ════════════════════════════════════════════════════════════
+  const drawingHook = useDrawing({
+    pages, setPages,
+    userRole: userRole,
+    isActive: isActive,
+  });
 
   // ── อัปเดต userRole ให้กับ hooks ที่ต้องการ (ผ่าน callbacks) ──
   // (Hooks ใช้ userRole ผ่าน closure ของ handlers ที่ถูก recreate)
@@ -263,6 +261,15 @@ export default function MainLayout() {
         delete others[socket.id];
         setRemoteWebcams(others);
       }
+      if (data.isMultiDrawMode !== undefined) {
+        drawingHook.setIsMultiDrawMode(data.isMultiDrawMode);
+      }
+      if (data.hostTool) {
+        drawingHook.setHostTool(data.hostTool);
+      }
+      if (data.hostPenStyle) {
+        drawingHook.setHostPenStyle(data.hostPenStyle);
+      }
     };
 
     socket.on("webcam-toggle", handleWebcamToggle);
@@ -353,6 +360,7 @@ export default function MainLayout() {
         onStrokeDelete={handleDeleteStroke}
         userRole={userRole}
         onExitSplitMode={() => drawingHook.handlePenStyleChange("pen")}
+        isMultiDrawMode={drawingHook.isMultiDrawMode}
       />
 
       {/* Tables on Canvas */}
@@ -433,6 +441,8 @@ export default function MainLayout() {
           showAI={showAiSolution}
           onToggleAI={() => setShowAiSolution(v => !v)}
           canUseFullTools={canUseFullTools}
+          isMultiDrawMode={drawingHook.isMultiDrawMode}
+          onToggleMultiDrawMode={drawingHook.handleToggleMultiDrawMode}
         />
       )}
 

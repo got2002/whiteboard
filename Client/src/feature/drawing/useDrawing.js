@@ -18,6 +18,7 @@ export function useDrawing({ pages, setPages, userRole, isActive }) {
   const [penStyle, setPenStyle] = useState("pen");
   const [mode, setMode] = useState("standard");
   const [activeStamp, setActiveStamp] = useState(null);
+  const [isMultiDrawMode, setIsMultiDrawMode] = useState(false);
 
   // ── Host tool sync ──
   const [hostTool, setHostTool] = useState("pen");
@@ -69,6 +70,7 @@ export function useDrawing({ pages, setPages, userRole, isActive }) {
     };
     const handleHostToolChanged = ({ tool }) => setHostTool(tool);
     const handleHostPenStyleChanged = ({ penStyle }) => setHostPenStyle(penStyle);
+    const handleHostMultiDrawModeChanged = ({ isMultiDrawMode }) => setIsMultiDrawMode(isMultiDrawMode);
 
     drawingService.onDraw(handleDraw);
     drawingService.onStrokeComplete(handleStrokeComplete);
@@ -79,6 +81,7 @@ export function useDrawing({ pages, setPages, userRole, isActive }) {
     drawingService.onDeleteStroke(handleDeleteStroke);
     drawingService.onHostToolChanged(handleHostToolChanged);
     drawingService.onHostPenStyleChanged(handleHostPenStyleChanged);
+    drawingService.onHostMultiDrawModeChanged(handleHostMultiDrawModeChanged);
 
     return () => {
       drawingService.offDraw(handleDraw);
@@ -90,6 +93,7 @@ export function useDrawing({ pages, setPages, userRole, isActive }) {
       drawingService.offDeleteStroke(handleDeleteStroke);
       drawingService.offHostToolChanged(handleHostToolChanged);
       drawingService.offHostPenStyleChanged(handleHostPenStyleChanged);
+      drawingService.offHostMultiDrawModeChanged(handleHostMultiDrawModeChanged);
     };
   }, [isActive, setPages]);
 
@@ -223,6 +227,14 @@ export function useDrawing({ pages, setPages, userRole, isActive }) {
     }
   }, [userRole]);
 
+  const handleToggleMultiDrawMode = useCallback(() => {
+    if (userRole === "host") {
+      const nextMode = !isMultiDrawMode;
+      setIsMultiDrawMode(nextMode);
+      drawingService.emitHostMultiDrawModeChanged(nextMode);
+    }
+  }, [isMultiDrawMode, userRole]);
+
   const handleModeChange = (m) => setMode(m);
 
   const handleStampSelect = (emoji) => {
@@ -239,6 +251,7 @@ export function useDrawing({ pages, setPages, userRole, isActive }) {
     // State
     tool, setTool, color, setColor, penSize, setPenSize,
     penStyle, setPenStyle, mode, activeStamp,
+    isMultiDrawMode, setIsMultiDrawMode,
     hostTool, setHostTool, hostPenStyle, setHostPenStyle,
     undoStack, redoStack, lastDrawRef,
     // Handlers
@@ -246,6 +259,6 @@ export function useDrawing({ pages, setPages, userRole, isActive }) {
     handleStrokeUpdate, handleStrokeResize, handleDeleteStroke,
     handleUndo, handleRedo, handleClear,
     handleToolChange, handlePenStyleChange,
-    handleModeChange, handleStampSelect,
+    handleModeChange, handleStampSelect, handleToggleMultiDrawMode,
   };
 }
