@@ -6,6 +6,12 @@ contextBridge.exposeInMainWorld('electronAPI', {
   // ปิดโปรแกรม
   close: () => ipcRenderer.invoke('close-app'),
 
+  // ย่อหน้าต่าง
+  minimize: () => ipcRenderer.invoke('minimize-app'),
+
+  // ขยาย/คืนค่าหน้าต่าง
+  maximize: () => ipcRenderer.invoke('maximize-app'),
+
   // สลับ Fullscreen
   toggleFullscreen: (enable) => ipcRenderer.invoke('toggle-fullscreen', enable),
 
@@ -17,4 +23,14 @@ contextBridge.exposeInMainWorld('electronAPI', {
 
   // ดึงข้อมูลหน้าจอสำหรับ Screen Share
   getDesktopSources: () => ipcRenderer.invoke('get-desktop-sources'),
+
+  // ดึง source ของหน้าต่างแอปเอง (สำหรับ Recording)
+  getAppWindowSource: () => ipcRenderer.invoke('get-app-window-source'),
+
+  // รับ Event ว่าหน้าต่างถูก Maximize หรือ Unmaximize จาก OS
+  onWindowMaximized: (callback) => {
+    const handler = (event, isMaximized) => callback(isMaximized);
+    ipcRenderer.on('window-maximized', handler);
+    return () => ipcRenderer.removeListener('window-maximized', handler);
+  }
 });
