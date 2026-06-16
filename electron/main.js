@@ -34,6 +34,9 @@ function createWindow() {
   mainWindow.on('closed', () => {
     mainWindow = null;
   });
+
+  // ลบ event listeners ตัวเก่าที่มีปัญหาออก
+  // (transparent + frameless window บน Windows มีปัญหากับ maximize event)
 }
 
 // ── IPC Handlers ──
@@ -43,15 +46,52 @@ ipcMain.handle('close-app', () => {
   app.quit();
 });
 
-// Fullscreen toggle — ใช้ maximize/unmaximize
+// ย่อหน้าต่าง
+ipcMain.handle('minimize-app', () => {
+  if (mainWindow) mainWindow.minimize();
+});
+
+// ขยาย/คืนค่าหน้าต่างแบบ Manual (แก้ปัญหาตายตัวสำหรับ Transparent Window)
+let isWindowMaximized = false;
+let normalBounds = { x: 0, y: 0, width: 800, height: 600 };
+
+ipcMain.handle('maximize-app', () => {
+  if (!mainWindow) return false;
+  
+  if (isWindowMaximized) {
+    // คืนค่าหน้าต่างเดิม
+    mainWindow.setBounds(normalBounds);
+    isWindowMaximized = false;
+  } else {
+    // เก็บค่าหน้าต่างก่อนขยาย
+    normalBounds = mainWindow.getBounds();
+    // คำนวณหาหน้าจอที่หน้าต่างอยู่ปัจจุบัน
+    const currentDisplay = screen.getDisplayNearestPoint({ x: normalBounds.x, y: normalBounds.y });
+    // ขยายให้เต็มพื้นที่ทำงานของหน้าจอนั้น (ไม่ทับ Taskbar)
+    mainWindow.setBounds(currentDisplay.workArea);
+    isWindowMaximized = true;
+  }
+  
+  // แจ้งให้หน้าเว็บรู้ด้วยว่าเปลี่ยนสถานะแล้ว
+  mainWindow.webContents.send('window-maximized', isWindowMaximized);
+  
+  return isWindowMaximized;
+});
+
+// Fullscreen toggle — ใช้ maximize/unmaximize แบบ manual
 ipcMain.handle('toggle-fullscreen', (event, enable) => {
   if (!mainWindow) return false;
-  if (enable) {
-    mainWindow.maximize();
-  } else {
-    mainWindow.unmaximize();
+  if (enable && !isWindowMaximized) {
+    normalBounds = mainWindow.getBounds();
+    const currentDisplay = screen.getDisplayNearestPoint({ x: normalBounds.x, y: normalBounds.y });
+    mainWindow.setBounds(currentDisplay.workArea);
+    isWindowMaximized = true;
+  } else if (!enable && isWindowMaximized) {
+    mainWindow.setBounds(normalBounds);
+    isWindowMaximized = false;
   }
-  return mainWindow.isMaximized();
+  mainWindow.webContents.send('window-maximized', isWindowMaximized);
+  return isWindowMaximized;
 });
 
 // On-Screen mode (transparent + always on top) — ทำงานแยกจาก Fullscreen
@@ -83,6 +123,29 @@ ipcMain.handle('get-desktop-sources', async () => {
     id: s.id,
     name: s.name
   }));
+});
+
+// ดึง source ของหน้าต่างแอปเราเอง (สำหรับ Recording)
+ipcMain.handle('get-app-window-source', async () => {
+  const sources = await desktopCapturer.getSources({
+    types: ['window'],
+    thumbnailSize: { width: 0, height: 0 }
+  });
+  // หาหน้าต่างของแอปเราจาก webContents id
+  const appTitle = mainWindow ? mainWindow.getTitle() : '';
+  const appSource = sources.find(s =>
+    s.name === appTitle || s.name.includes('ProEdu1') || s.name.includes('localhost')
+  );
+  // ถ้าหาไม่เจอ ใช้ตัวแรกที่ตรงกับ window id
+  if (appSource) {
+    return { id: appSource.id, name: appSource.name };
+  }
+  // Fallback: ใช้ media source id จาก BrowserWindow
+  if (mainWindow) {
+    const mediaSourceId = mainWindow.getMediaSourceId();
+    return { id: mediaSourceId, name: 'ProEdu1Whiteboard' };
+  }
+  return null;
 });
 
 // ── App Lifecycle ──

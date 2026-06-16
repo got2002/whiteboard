@@ -52,6 +52,7 @@ import LockScreenOverlay from "../components/LockScreenOverlay";
 import AiSolutionWidget from "../components/AiSolutionWidget";
 import PhysicsLabWidget from "../components/PhysicsLabWidget";
 import BannerWidget from "../components/BannerWidget";
+import AudioWaveform from "../components/AudioWaveform";
 
 // ============================================================
 // MainLayout Component
@@ -78,6 +79,7 @@ export default function MainLayout() {
   const [showLockScreen, setShowLockScreen] = useState(false);
   const [showAiSolution, setShowAiSolution] = useState(false);
   const [localShowBanner, setLocalShowBanner] = useState(false);
+  const [isWindowMaximized, setIsWindowMaximized] = useState(false);
   
   // Local Tool Widgets (Not synced globally anymore)
   const [showGraph, setShowGraph] = useState(null);
@@ -114,7 +116,7 @@ export default function MainLayout() {
     setPages,
     onInitWidgets: widgetSyncHook.initFromServer
   });
-  const { username, userRole, setUserRole, userColor, userCount, hostExists, showNameDialog, serverIp, waitingForAck, isLockedInitial } = userHook;
+  const { username, userRole, setUserRole, userColor, userCount, hostExists, showNameDialog, serverIp, waitingForAck, isLockedInitial, handleLogout } = userHook;
   const isActive = !showNameDialog;
 
   // ════════════════════════════════════════════════════════════
@@ -208,7 +210,7 @@ export default function MainLayout() {
   // ════════════════════════════════════════════════════════════
   // Hook: Recording
   // ════════════════════════════════════════════════════════════
-  const recHook = useRecording(canvasRef);
+  const recHook = useRecording();
 
   // ════════════════════════════════════════════════════════════
   // Hook: Keyboard Shortcuts
@@ -301,6 +303,30 @@ export default function MainLayout() {
     setCanSync(canUseFullTools);
   }, [canUseFullTools]);
 
+  // Listen for window maximized state to remove border-radius
+  useEffect(() => {
+    const isElectron = typeof window !== "undefined" && window.electronAPI?.isElectron;
+    let unsubscribe;
+    
+    // Electron listener
+    if (isElectron && window.electronAPI.onWindowMaximized) {
+      unsubscribe = window.electronAPI.onWindowMaximized((status) => {
+        setIsWindowMaximized(status);
+      });
+    }
+
+    // Browser fullscreen listener
+    const handleFullscreen = () => {
+      setIsWindowMaximized(!!document.fullscreenElement);
+    };
+    document.addEventListener("fullscreenchange", handleFullscreen);
+
+    return () => {
+      if (unsubscribe) unsubscribe();
+      document.removeEventListener("fullscreenchange", handleFullscreen);
+    };
+  }, []);
+
   console.log("[MainLayout] render — showNameDialog:", showNameDialog, "username:", username, "userRole:", userRole, "permLevel:", permissionLevel);
 
   if (showNameDialog) {
@@ -314,7 +340,7 @@ export default function MainLayout() {
 
   return (
     <div
-      className={`app bg-${currentPage.background} ${isOnScreen || isViewerSeeingScreen ? "on-screen" : ""}`}
+      className={`app bg-${currentPage.background} ${isOnScreen || isViewerSeeingScreen ? "on-screen" : ""} ${isWindowMaximized ? "is-maximized" : ""}`}
       style={{ width: "100vw", height: "100vh", overflow: "hidden", position: "relative" }}
     >
       {/* Remote Screen Background (สำหรับ Viewer) */}
@@ -410,6 +436,7 @@ export default function MainLayout() {
           pendingRequests={permHook.pendingRequests.length}
           onTogglePermissionPanel={() => setShowPermissionPanel(v => !v)}
           onToggleOnScreen={(val) => setIsOnScreen(val)}
+          isWindowMaximized={isWindowMaximized}
           showCalculator={showCalculator}
           activeTools={{ calculator: showCalculator, spotlight: showSpotlight, table: canvasTables.length > 0, graph: !!showGraph?.isActive, math_grapher: !!showMathGrapher?.isActive, periodic: showPeriodic, curtain: !!showCurtain?.isActive, sketchpad: showSketchpad, lock_screen: showLockScreen, physics_lab: !!showPhysicsLab?.isActive, banner: !!showBanner?.isShowing }}
           onToolBoxSelect={(toolId) => {
@@ -438,11 +465,13 @@ export default function MainLayout() {
             }
           }}
           onPresent={() => syncPresentationUpdate({ isActive: true, slideIndex: currentPageIndex })}
+          isPresenting={showPresentation?.isActive}
           showAI={showAiSolution}
           onToggleAI={() => setShowAiSolution(v => !v)}
           canUseFullTools={canUseFullTools}
           isMultiDrawMode={drawingHook.isMultiDrawMode}
           onToggleMultiDrawMode={drawingHook.handleToggleMultiDrawMode}
+          onLogout={handleLogout}
         />
       )}
 
@@ -584,6 +613,15 @@ export default function MainLayout() {
       {/* QR Code Panel */}
       {showQR && (
         <QRCodePanel joinUrl={joinUrl} onClose={() => setShowQR(false)} />
+      )}
+
+      {/* Audio Waveform Visualizer — shown during recording */}
+      {recHook.isRecording && (
+        <AudioWaveform
+          analyserRef={recHook.audioAnalyser}
+          dataArrayRef={recHook.audioDataArray}
+          startTimeRef={recHook.recordingStartTime}
+        />
       )}
 
       {/* Video Player Modal */}

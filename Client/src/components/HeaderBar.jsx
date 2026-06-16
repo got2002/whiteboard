@@ -67,6 +67,7 @@ function HeaderBar({
     onToolBoxSelect,
     // Presentation
     onPresent,
+    isPresenting,
     // AI Solution
     showAI,
     onToggleAI,
@@ -75,11 +76,17 @@ function HeaderBar({
     // Multi-Draw
     isMultiDrawMode,
     onToggleMultiDrawMode,
+    // Logout
+    onLogout,
+    // Maximize State
+    isWindowMaximized = false,
 }) {
     const isHost = userRole === "host";
     const [showMainMenu, setShowMainMenu] = useState(false);
     const [showScreenshotMenu, setShowScreenshotMenu] = useState(false);
+    const [showMediaMenu, setShowMediaMenu] = useState(false);
     const screenshotMenuRef = useRef(null);
+    const mediaMenuRef = useRef(null);
     const [isOnScreen, setIsOnScreen] = useState(false);
     const [isFullScreen, setIsFullScreen] = useState(false);
 
@@ -145,6 +152,11 @@ function HeaderBar({
                                             <span className="hdi-icon">{m.label}</span><span>{m.title}</span>
                                         </button>
                                     ))}
+                                    {/* Logout */}
+                                    <div className="header-dropdown-divider" />
+                                    <button className="header-dropdown-item logout-item" onClick={() => { if (onLogout) onLogout(); setShowMainMenu(false); }}>
+                                        <span className="hdi-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" /><polyline points="16 17 21 12 16 7" /><line x1="21" y1="12" x2="9" y2="12" /></svg></span><span>ออกจากระบบ</span>
+                                    </button>
                                 </div>
                             </>
                         )}
@@ -214,7 +226,7 @@ function HeaderBar({
                     <>
                         <div className="header-divider" />
                         <button
-                            className="header-btn header-present-btn"
+                            className={`header-btn header-present-btn ${isPresenting ? "is-active" : ""}`}
                             onClick={onPresent}
                             title="โหมดพรีเซ้น (Presentation)"
                             style={{ width: 'auto', padding: '0 10px', gap: '6px' }}
@@ -306,73 +318,141 @@ function HeaderBar({
                     <div className="header-divider" />
                 </>
 
-                {/* Screenshot with dropdown */}
-                <div className="header-menu-wrap" ref={screenshotMenuRef}>
-                    <button
-                        className={`header-btn ${showScreenshotMenu ? "header-btn-active" : ""}`}
-                        style={{ width: "auto", padding: "0 6px", gap: "2px" }}
-                        onClick={() => setShowScreenshotMenu(v => !v)}
-                        title="แคปหน้าจอ (Screenshot)"
-                    >
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                            <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path>
-                            <circle cx="12" cy="13" r="4"></circle>
-                        </svg>
-                        <svg width="8" height="8" viewBox="0 0 12 12" fill="currentColor" style={{ opacity: 0.5, flexShrink: 0 }}>
-                            <path d="M2 4l4 4 4-4z" />
-                        </svg>
-                    </button>
-                    {showScreenshotMenu && (
-                        <>
-                            <div className="header-menu-backdrop" onClick={() => setShowScreenshotMenu(false)} />
-                            <div className="header-dropdown" style={{ right: 0, left: 'auto' }}>
-                                <button className="header-dropdown-item" onClick={() => { onSelectionScreenshot(); setShowScreenshotMenu(false); }}>
-                                    <span className="hdi-icon">
-                                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                            <path d="M6 2L2 6" /><path d="M2 2l4 4" />
-                                            <path d="M18 2l4 4" /><path d="M22 2l-4 4" />
-                                            <path d="M6 22l-4-4" /><path d="M2 22l4-4" />
-                                            <path d="M18 22l4-4" /><path d="M22 22l-4-4" />
-                                        </svg>
-                                    </span>
-                                    <span>Selection</span>
-                                </button>
-                                <button className="header-dropdown-item" onClick={() => { onExport(); setShowScreenshotMenu(false); }}>
-                                    <span className="hdi-icon">
-                                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                            <rect x="2" y="3" width="20" height="14" rx="2" /><path d="M8 21h8" /><path d="M12 17v4" />
-                                        </svg>
-                                    </span>
-                                    <span>Full Window</span>
-                                </button>
-                            </div>
-                        </>
-                    )}
-                </div>
+                {isWindowMaximized ? (
+                    <>
+                        {/* Screenshot with dropdown */}
+                        <div className="header-menu-wrap" ref={screenshotMenuRef}>
+                            <button
+                                className={`header-btn ${showScreenshotMenu ? "header-btn-active" : ""}`}
+                                style={{ width: "auto", padding: "0 6px", gap: "2px" }}
+                                onClick={() => setShowScreenshotMenu(v => !v)}
+                                title="แคปหน้าจอ (Screenshot)"
+                            >
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                    <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path>
+                                    <circle cx="12" cy="13" r="4"></circle>
+                                </svg>
+                                <svg width="8" height="8" viewBox="0 0 12 12" fill="currentColor" style={{ opacity: 0.5, flexShrink: 0 }}>
+                                    <path d="M2 4l4 4 4-4z" />
+                                </svg>
+                            </button>
+                            {showScreenshotMenu && (
+                                <>
+                                    <div className="header-menu-backdrop" onClick={() => setShowScreenshotMenu(false)} />
+                                    <div className="header-dropdown" style={{ right: 0, left: 'auto' }}>
+                                        <button className="header-dropdown-item" onClick={() => { onSelectionScreenshot(); setShowScreenshotMenu(false); }}>
+                                            <span className="hdi-icon">
+                                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                                    <path d="M6 2L2 6" /><path d="M2 2l4 4" />
+                                                    <path d="M18 2l4 4" /><path d="M22 2l-4 4" />
+                                                    <path d="M6 22l-4-4" /><path d="M2 22l4-4" />
+                                                    <path d="M18 22l4-4" /><path d="M22 22l-4-4" />
+                                                </svg>
+                                            </span>
+                                            <span>Selection</span>
+                                        </button>
+                                        <button className="header-dropdown-item" onClick={() => { onExport(); setShowScreenshotMenu(false); }}>
+                                            <span className="hdi-icon">
+                                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                                    <rect x="2" y="3" width="20" height="14" rx="2" /><path d="M8 21h8" /><path d="M12 17v4" />
+                                                </svg>
+                                            </span>
+                                            <span>Full Window</span>
+                                        </button>
+                                    </div>
+                                </>
+                            )}
+                        </div>
 
-                {/* Recording */}
-                <button
-                    className={`header-btn ${isRecording ? "header-btn-recording" : ""}`}
-                    onClick={isRecording ? onStopRecord : onStartRecord}
-                    title={isRecording ? "หยุดบันทึก" : "บันทึกวิดีโอหน้าจอ"}
-                >
-                    {isRecording ? (
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="6" width="12" height="12" rx="2" /></svg>
-                    ) : (
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="8" /><circle cx="12" cy="12" r="3" fill="currentColor" /></svg>
-                    )}
-                </button>
+                        {/* Recording */}
+                        <button
+                            className={`header-btn ${isRecording ? "header-btn-recording" : ""}`}
+                            onClick={isRecording ? onStopRecord : onStartRecord}
+                            title={isRecording ? "หยุดบันทึก" : "บันทึกวิดีโอหน้าจอ"}
+                        >
+                            {isRecording ? (
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="6" width="12" height="12" rx="2" /></svg>
+                            ) : (
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="8" /><circle cx="12" cy="12" r="3" fill="currentColor" /></svg>
+                            )}
+                        </button>
 
-                {/* Webcam */}
-                <button
-                    className={`header-btn ${showWebcam ? "header-btn-active" : ""}`}
-                    onClick={onToggleWebcam}
-                    title="เปิด/ปิดกล้อง"
-                >
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                        <path d="M23 7l-7 5 7 5V7z" /><rect x="1" y="5" width="15" height="14" rx="2" />
-                    </svg>
-                </button>
+                        {/* Webcam */}
+                        <button
+                            className={`header-btn ${showWebcam ? "header-btn-active" : ""}`}
+                            onClick={onToggleWebcam}
+                            title="เปิด/ปิดกล้อง"
+                        >
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                <path d="M23 7l-7 5 7 5V7z" /><rect x="1" y="5" width="15" height="14" rx="2" />
+                            </svg>
+                        </button>
+                    </>
+                ) : (
+                    /* Dropdown for Media Tools when not Maximized */
+                    <div className="header-menu-wrap" ref={mediaMenuRef}>
+                        <button
+                            className={`header-btn ${showMediaMenu || isRecording || showWebcam ? "header-btn-active" : ""} ${isRecording ? "header-btn-recording" : ""}`}
+                            onClick={() => setShowMediaMenu(v => !v)}
+                            title="เครื่องมือสื่อ (Media Tools)"
+                            style={{ width: "auto", padding: "0 6px", gap: "4px" }}
+                        >
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path>
+                                <circle cx="12" cy="13" r="4"></circle>
+                            </svg>
+                            <svg width="8" height="8" viewBox="0 0 12 12" fill="currentColor" style={{ opacity: 0.5, flexShrink: 0 }}>
+                                <path d="M2 4l4 4 4-4z" />
+                            </svg>
+                        </button>
+
+                        {showMediaMenu && (
+                            <>
+                                <div className="header-menu-backdrop" onClick={() => setShowMediaMenu(false)} />
+                                <div className="header-dropdown" style={{ right: 0, left: 'auto' }}>
+                                    <button className="header-dropdown-item" onClick={() => { onSelectionScreenshot(); setShowMediaMenu(false); }}>
+                                        <span className="hdi-icon">
+                                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                                <path d="M6 2L2 6" /><path d="M2 2l4 4" />
+                                                <path d="M18 2l4 4" /><path d="M22 2l-4 4" />
+                                                <path d="M6 22l-4-4" /><path d="M2 22l4-4" />
+                                                <path d="M18 22l4-4" /><path d="M22 22l-4-4" />
+                                            </svg>
+                                        </span>
+                                        <span>Screenshot Selection</span>
+                                    </button>
+                                    <button className="header-dropdown-item" onClick={() => { onExport(); setShowMediaMenu(false); }}>
+                                        <span className="hdi-icon">
+                                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                                <rect x="2" y="3" width="20" height="14" rx="2" /><path d="M8 21h8" /><path d="M12 17v4" />
+                                            </svg>
+                                        </span>
+                                        <span>Screenshot Full</span>
+                                    </button>
+                                    <div className="header-dropdown-divider" />
+                                    <button className="header-dropdown-item" onClick={() => { if(isRecording) onStopRecord(); else onStartRecord(); setShowMediaMenu(false); }}>
+                                        <span className="hdi-icon" style={{ color: isRecording ? "#ef4444" : "inherit" }}>
+                                            {isRecording ? (
+                                                <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="6" width="12" height="12" rx="2" /></svg>
+                                            ) : (
+                                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="8" /><circle cx="12" cy="12" r="3" fill="currentColor" /></svg>
+                                            )}
+                                        </span>
+                                        <span>{isRecording ? "Stop Recording" : "Start Recording"}</span>
+                                    </button>
+                                    <button className="header-dropdown-item" onClick={() => { onToggleWebcam(); setShowMediaMenu(false); }}>
+                                        <span className="hdi-icon">
+                                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                                <path d="M23 7l-7 5 7 5V7z" /><rect x="1" y="5" width="15" height="14" rx="2" />
+                                            </svg>
+                                        </span>
+                                        <span>{showWebcam ? "Close Webcam" : "Open Webcam"}</span>
+                                    </button>
+                                </div>
+                            </>
+                        )}
+                    </div>
+                )}
 
                 <div className="header-divider" />
 
@@ -413,6 +493,26 @@ function HeaderBar({
                         <rect x="2" y="2" width="8" height="8" rx="1" /><rect x="14" y="2" width="8" height="8" rx="1" /><rect x="2" y="14" width="8" height="8" rx="1" /><rect x="14" y="14" width="4" height="4" /><path d="M22 14h-4v4" /><path d="M22 22h-4" /><path d="M18 18h4v4" />
                     </svg>
                 </button>
+
+                {/* Logout Button (standalone for non-host users) */}
+                {!isHost && onLogout && (
+                    <>
+                        <div className="header-divider" />
+                        <button
+                            className="header-btn"
+                            style={{ color: "#f59e0b", width: "auto", padding: "0 10px", gap: "6px" }}
+                            onClick={onLogout}
+                            title="ออกจากระบบ"
+                        >
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+                                <polyline points="16 17 21 12 16 7" />
+                                <line x1="21" y1="12" x2="9" y2="12" />
+                            </svg>
+                            <span style={{ fontSize: "11px", whiteSpace: "nowrap", fontWeight: "600" }}>ออก</span>
+                        </button>
+                    </>
+                )}
 
                 {/* Exit App Button */}
                 <>

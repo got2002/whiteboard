@@ -117,6 +117,33 @@ export function useUser({ setPages, onInitWidgets }) {
     }, 3000);
   }, [waitingForAck]);
 
+  // ── Handler: Logout ──
+  const handleLogout = useCallback(() => {
+    console.log("[useUser] handleLogout — disconnecting and resetting state");
+
+    // ล้าง timeout ถ้ามี
+    if (timeoutRef.current) {
+      clearTimeout(timeoutRef.current);
+      timeoutRef.current = null;
+    }
+
+    // รีเซ็ต state ทั้งหมด
+    setUsername("");
+    setUserRole("viewer");
+    setUserColor(randomColor());
+    setWaitingForAck(false);
+    hasSubmittedRef.current = false;
+    pendingNameRef.current = "";
+    pendingRoleRef.current = "viewer";
+
+    // Disconnect แล้ว reconnect เพื่อเริ่มใหม่
+    socket.disconnect();
+    setTimeout(() => {
+      socket.connect();
+      setShowNameDialog(true);
+    }, 100);
+  }, []);
+
   // cleanup timeout on unmount
   useEffect(() => {
     return () => {
@@ -128,6 +155,6 @@ export function useUser({ setPages, onInitWidgets }) {
     username, userRole, setUserRole, userColor, userCount,
     hostExists, showNameDialog, serverIp,
     waitingForAck, isLockedInitial,
-    handleNameSubmit,
+    handleNameSubmit, handleLogout,
   };
 }
