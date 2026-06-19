@@ -32,7 +32,7 @@ export default function SpotlightOverlay({
     }
   }, [socket, isHost]);
 
-  // ── Mouse move ──
+  // ── Mouse / Touch move ──
   useEffect(() => {
     if (!isActive) return;
 
@@ -47,12 +47,29 @@ export default function SpotlightOverlay({
       controlsTimerRef.current = setTimeout(() => setShowControls(false), 3000);
     };
 
+    const handleTouchMove = (e) => {
+      if (e.touches.length > 0) {
+        // Prevent scrolling/panning behavior while dragging the spotlight
+        if (e.cancelable) e.preventDefault();
+        
+        const pos = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+        setMousePos(pos);
+        emitSpotlight({ x: pos.x, y: pos.y, radius, opacity, shape, active: true });
+
+        setShowControls(true);
+        if (controlsTimerRef.current) clearTimeout(controlsTimerRef.current);
+        controlsTimerRef.current = setTimeout(() => setShowControls(false), 3000);
+      }
+    };
+
     window.addEventListener("mousemove", handleMouseMove);
     window.addEventListener("pointermove", handleMouseMove);
+    window.addEventListener("touchmove", handleTouchMove, { passive: false });
 
     return () => {
       window.removeEventListener("mousemove", handleMouseMove);
       window.removeEventListener("pointermove", handleMouseMove);
+      window.removeEventListener("touchmove", handleTouchMove);
       if (controlsTimerRef.current) clearTimeout(controlsTimerRef.current);
     };
   }, [isActive, radius, opacity, shape, emitSpotlight]);
@@ -143,6 +160,7 @@ export default function SpotlightOverlay({
           inset: 0,
           zIndex: 200,
           pointerEvents: isHost ? "auto" : "none",
+          touchAction: "none", // Prevent scroll/pan on touch displays like IFPD
         }}
         onMouseMove={(e) => {
           if (isHost) {

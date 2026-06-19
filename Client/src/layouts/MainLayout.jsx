@@ -51,7 +51,7 @@ import MathFunctionWidget from "../components/MathFunctionWidget";
 import LockScreenOverlay from "../components/LockScreenOverlay";
 import AiSolutionWidget from "../components/AiSolutionWidget";
 import PhysicsLabWidget from "../components/PhysicsLabWidget";
-import BannerWidget from "../components/BannerWidget";
+import BannerWidget, { FONT_SIZES } from "../components/BannerWidget";
 import AudioWaveform from "../components/AudioWaveform";
 
 // ============================================================
@@ -338,11 +338,19 @@ export default function MainLayout() {
   // ════════════════════════════════════════════════════════════
   const isViewerSeeingScreen = userRole !== "host" && remoteScreen;
 
+  const bannerHeight = showBanner?.isShowing ? (FONT_SIZES.find(f => f.id === showBanner?.fontSizeId)?.size || 32) + 28 : 0;
+  const bannerPos = showBanner?.position || "bottom";
+
   return (
-    <div
-      className={`app bg-${currentPage.background} ${isOnScreen || isViewerSeeingScreen ? "on-screen" : ""} ${isWindowMaximized ? "is-maximized" : ""}`}
-      style={{ width: "100vw", height: "100vh", overflow: "hidden", position: "relative" }}
-    >
+    <div style={{ display: 'flex', flexDirection: 'column', width: '100%', height: '100%', overflow: 'hidden' }}>
+      
+      {/* Spacer for Top Banner */}
+      {bannerPos === "top" && bannerHeight > 0 && <div style={{ height: bannerHeight, flexShrink: 0 }} />}
+
+      <div
+        className={`app bg-${currentPage.background} ${isOnScreen || isViewerSeeingScreen ? "on-screen" : ""} ${isWindowMaximized ? "is-maximized" : ""}`}
+        style={{ flex: 1, minHeight: 0, height: 0, width: "100%", overflow: "hidden", position: "relative", transform: "translateZ(0)" }}
+      >
       {/* Remote Screen Background (สำหรับ Viewer) */}
       {isViewerSeeingScreen && (
         <img
@@ -842,6 +850,11 @@ export default function MainLayout() {
         />
       )}
 
+      </div>
+
+      {/* Spacer for Bottom Banner */}
+      {bannerPos === "bottom" && bannerHeight > 0 && <div style={{ height: bannerHeight, flexShrink: 0 }} />}
+
       {/* Banner อักษรวิ่ง */}
       {(localShowBanner || showBanner?.isShowing) && (
         <BannerWidget 
@@ -852,6 +865,5 @@ export default function MainLayout() {
         />
       )}
     </div>
-
   );
 }

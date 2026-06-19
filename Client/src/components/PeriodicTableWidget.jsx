@@ -29,6 +29,14 @@ export default function PeriodicTableWidget({ canEdit = true, config = {}, onSyn
     if (onSyncConfig) {
       onSyncConfig({ ...config, selectedNumber: newSelected?.number || null });
     }
+
+    // พูดชื่อธาตุเมื่อถูกเลือก
+    if (newSelected && window.speechSynthesis) {
+      window.speechSynthesis.cancel(); // ยกเลิกเสียงที่กำลังพูดอยู่ (ถ้ามี)
+      const utterance = new SpeechSynthesisUtterance(newSelected.name);
+      utterance.lang = 'en-US'; // ใช้สำเนียงภาษาอังกฤษสำหรับชื่อธาตุ
+      window.speechSynthesis.speak(utterance);
+    }
   };
 
   // ── Drag ──

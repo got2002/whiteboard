@@ -179,9 +179,7 @@ function ToolPalette({
     const eraserPopupRef = useRef(null);
 
     // ── Draggable ──
-    const { handleRef: dragHandleRef, dragStyle, isDragging, resetPosition, handlePointerDown } = useDraggable({
-        storageKey: "proedu1-tool-palette-pos",
-    });
+    const { handleRef: dragHandleRef, dragStyle, isDragging, resetPosition, handlePointerDown } = useDraggable();
 
     // Close popups on outside click
     useEffect(() => {
