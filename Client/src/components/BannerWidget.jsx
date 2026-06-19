@@ -27,7 +27,7 @@ const SPEED_OPTIONS = [
   { id: "very_fast", label: "เร็วมาก", duration: 4 },
 ];
 
-const FONT_SIZES = [
+export const FONT_SIZES = [
   { id: "sm", label: "S", size: 20 },
   { id: "md", label: "M", size: 32 },
   { id: "lg", label: "L", size: 48 },
@@ -391,7 +391,11 @@ export default function BannerWidget({ bannerConfig, canEdit = true, onBannerSyn
               : "0 4px 30px rgba(0,0,0,0.4)",
             overflow: "hidden",
             display: "flex", alignItems: "center",
-            pointerEvents: "none",
+            pointerEvents: canEdit ? "auto" : "none",
+            cursor: canEdit ? "pointer" : "default",
+          }}
+          onClick={() => {
+            if (canEdit) setShowSettings(true);
           }}
         >
           {/* Background grid */}
@@ -438,37 +442,6 @@ export default function BannerWidget({ bannerConfig, canEdit = true, onBannerSyn
         </div>
       )}
 
-      {/* ── Minimized floating control (when settings panel is hidden) ── */}
-      {!showSettings && canEdit && (
-        <button
-          onClick={() => setShowSettings(true)}
-          style={{
-            position: "fixed", right: 20,
-            [position === "top" ? "top" : "bottom"]: isShowing ? fontSize.size + 40 : 20,
-            zIndex: 9996, padding: "8px 14px", borderRadius: 10,
-            background: "linear-gradient(135deg, rgba(15,23,42,0.95), rgba(30,40,60,0.95))",
-            border: isShowing ? "1px solid rgba(251,191,36,0.4)" : "1px solid rgba(100,140,200,0.2)",
-            color: isShowing ? "#fbbf24" : "#94a3b8", cursor: "pointer",
-            fontSize: 11, fontWeight: 600,
-            boxShadow: "0 4px 24px rgba(0,0,0,0.5)",
-            display: "flex", alignItems: "center", gap: 6,
-            backdropFilter: "blur(12px)",
-            transition: "all 0.3s",
-          }}
-          onMouseEnter={e => { e.target.style.transform = "scale(1.05)"; e.target.style.boxShadow = "0 6px 30px rgba(0,0,0,0.6)"; }}
-          onMouseLeave={e => { e.target.style.transform = "scale(1)"; e.target.style.boxShadow = "0 4px 24px rgba(0,0,0,0.5)"; }}
-        >
-          📢 {isShowing ? "Banner กำลังวิ่ง" : "เปิดตั้งค่า Banner"}
-          {isShowing && (
-            <span style={{
-              width: 8, height: 8, borderRadius: "50%",
-              background: "#4ade80",
-              boxShadow: "0 0 6px rgba(74,222,128,0.6)",
-              animation: "banner-glow-pulse 1.5s ease-in-out infinite",
-            }} />
-          )}
-        </button>
-      )}
     </>
   );
 }
