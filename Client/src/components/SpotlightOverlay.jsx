@@ -32,44 +32,67 @@ export default function SpotlightOverlay({
     }
   }, [socket, isHost]);
 
-  // ── Mouse / Touch move ──
+  // ── Mouse / Touch / Pointer move ──
+  const lastEmitTime = useRef(0);
+
   useEffect(() => {
     if (!isActive) return;
 
-    const handleMouseMove = (e) => {
-      const pos = { x: e.clientX, y: e.clientY };
-      setMousePos(pos);
-      emitSpotlight({ x: pos.x, y: pos.y, radius, opacity, shape, active: true });
+    let rAF = null;
 
-      // Auto-hide controls after 3s of movement
-      setShowControls(true);
-      if (controlsTimerRef.current) clearTimeout(controlsTimerRef.current);
-      controlsTimerRef.current = setTimeout(() => setShowControls(false), 3000);
+    const handlePointerMove = (e) => {
+      const pos = { x: e.clientX, y: e.clientY };
+      
+      if (rAF) cancelAnimationFrame(rAF);
+      rAF = requestAnimationFrame(() => {
+        setMousePos(pos);
+        
+        // Throttle Socket Emit to ~30fps to avoid network/rendering lag on IFPDs
+        const now = performance.now();
+        if (now - lastEmitTime.current > 33) {
+          emitSpotlight({ x: pos.x, y: pos.y, radius, opacity, shape, active: true });
+          lastEmitTime.current = now;
+        }
+
+        // Auto-hide controls after 3s of movement
+        setShowControls(true);
+        if (controlsTimerRef.current) clearTimeout(controlsTimerRef.current);
+        controlsTimerRef.current = setTimeout(() => setShowControls(false), 3000);
+      });
     };
 
     const handleTouchMove = (e) => {
       if (e.touches.length > 0) {
-        // Prevent scrolling/panning behavior while dragging the spotlight
+        // IFPDs sometimes interpret drag as scroll if preventDefault is not explicitly called on touchmove
         if (e.cancelable) e.preventDefault();
         
         const pos = { x: e.touches[0].clientX, y: e.touches[0].clientY };
-        setMousePos(pos);
-        emitSpotlight({ x: pos.x, y: pos.y, radius, opacity, shape, active: true });
+        
+        if (rAF) cancelAnimationFrame(rAF);
+        rAF = requestAnimationFrame(() => {
+          setMousePos(pos);
+          
+          const now = performance.now();
+          if (now - lastEmitTime.current > 33) {
+            emitSpotlight({ x: pos.x, y: pos.y, radius, opacity, shape, active: true });
+            lastEmitTime.current = now;
+          }
 
-        setShowControls(true);
-        if (controlsTimerRef.current) clearTimeout(controlsTimerRef.current);
-        controlsTimerRef.current = setTimeout(() => setShowControls(false), 3000);
+          setShowControls(true);
+          if (controlsTimerRef.current) clearTimeout(controlsTimerRef.current);
+          controlsTimerRef.current = setTimeout(() => setShowControls(false), 3000);
+        });
       }
     };
 
-    window.addEventListener("mousemove", handleMouseMove);
-    window.addEventListener("pointermove", handleMouseMove);
+    // Remove `mousemove` to avoid duplicate firing with `pointermove`
+    window.addEventListener("pointermove", handlePointerMove);
     window.addEventListener("touchmove", handleTouchMove, { passive: false });
 
     return () => {
-      window.removeEventListener("mousemove", handleMouseMove);
-      window.removeEventListener("pointermove", handleMouseMove);
+      window.removeEventListener("pointermove", handlePointerMove);
       window.removeEventListener("touchmove", handleTouchMove);
+      if (rAF) cancelAnimationFrame(rAF);
       if (controlsTimerRef.current) clearTimeout(controlsTimerRef.current);
     };
   }, [isActive, radius, opacity, shape, emitSpotlight]);
@@ -150,7 +173,7 @@ export default function SpotlightOverlay({
   const maskId = "spotlight-mask";
 
   return (
-    <div className="spotlight-overlay" style={{ cursor: "none" }}>
+    <div className="spotlight-overlay" style={{ cursor: "none", touchAction: "none" }}>
       <svg
         className="spotlight-svg"
         width="100%"

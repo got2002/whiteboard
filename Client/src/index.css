@@ -8162,35 +8162,33 @@ html.on-screen-mode #root {
 
 .audio-waveform-container {
   position: fixed;
-  top: 52px;
-  left: 16px;
+  top: 48px;
+  right: 175px;
+  left: auto;
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 6px 14px 6px 10px;
-  background: linear-gradient(135deg, rgba(15, 10, 30, 0.92) 0%, rgba(40, 10, 20, 0.88) 100%);
-  backdrop-filter: blur(24px) saturate(1.6);
-  -webkit-backdrop-filter: blur(24px) saturate(1.6);
-  border: 1px solid rgba(239, 68, 68, 0.2);
-  border-radius: 12px;
-  box-shadow:
-    0 4px 20px rgba(239, 68, 68, 0.15),
-    0 2px 8px rgba(0, 0, 0, 0.3),
-    inset 0 1px 0 rgba(255, 255, 255, 0.05);
+  gap: 6px;
+  padding: 4px 10px 4px 8px;
+  background: rgba(20, 15, 30, 0.95);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(239, 68, 68, 0.4);
+  border-radius: 20px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
   z-index: 150;
-  animation: awfSlideIn 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  animation: awfSlideDown 0.3s cubic-bezier(0.16, 1, 0.3, 1);
   pointer-events: none;
 }
 
-@keyframes awfSlideIn {
-  from { opacity: 0; transform: translateY(-8px) scale(0.95); }
-  to { opacity: 1; transform: translateY(0) scale(1); }
+@keyframes awfSlideDown {
+  from { opacity: 0; transform: translateY(-10px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 
 /* Recording dot — pulsing red circle */
 .awf-rec-dot {
-  width: 10px;
-  height: 10px;
+  width: 8px;
+  height: 8px;
   border-radius: 50%;
   background: #ef4444;
   box-shadow: 0 0 8px rgba(239, 68, 68, 0.6), 0 0 20px rgba(239, 68, 68, 0.3);
@@ -8205,7 +8203,7 @@ html.on-screen-mode #root {
 
 /* REC label */
 .awf-label {
-  font-size: 11px;
+  font-size: 9px;
   font-weight: 700;
   letter-spacing: 1.5px;
   color: #ef4444;
@@ -8215,19 +8213,19 @@ html.on-screen-mode #root {
 
 /* Waveform canvas */
 .awf-canvas {
-  width: 120px;
-  height: 28px;
+  width: 60px;
+  height: 16px;
   flex-shrink: 0;
 }
 
 /* Elapsed time */
 .awf-time {
-  font-size: 12px;
+  font-size: 10px;
   font-weight: 600;
   font-variant-numeric: tabular-nums;
   color: rgba(255, 255, 255, 0.7);
   letter-spacing: 0.5px;
   flex-shrink: 0;
-  min-width: 38px;
+  min-width: 32px;
   text-align: right;
 }

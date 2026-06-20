@@ -33,16 +33,6 @@ export function useDraggable({ storageKey, defaultPosition = null } = {}) {
     const dragStartRef = useRef(null);
     const handleRef = useRef(null);
 
-    const clampPosition = useCallback((x, y) => {
-        const maxX = window.innerWidth - 60;
-        const maxY = window.innerHeight - 60;
-        const minY = 55; // Prevent dragging behind top bar (height 48px)
-        return {
-            x: Math.max(0, Math.min(x, maxX)),
-            y: Math.max(minY, Math.min(y, maxY)),
-        };
-    }, []);
-
     const handlePointerDown = useCallback((e) => {
         // Only handle left mouse button or touch
         if (e.type === "mousedown" && e.button !== 0) return;
@@ -50,7 +40,7 @@ export function useDraggable({ storageKey, defaultPosition = null } = {}) {
         const clientX = e.touches ? e.touches[0].clientX : e.clientX;
         const clientY = e.touches ? e.touches[0].clientY : e.clientY;
 
-        // Get the parent container's current position
+        // Get the parent container's current position and dimensions
         const container = handleRef.current?.closest("[data-draggable]");
         if (!container) return;
 
@@ -61,6 +51,8 @@ export function useDraggable({ storageKey, defaultPosition = null } = {}) {
             mouseY: clientY,
             elemX: rect.left,
             elemY: rect.top,
+            elemW: rect.width,
+            elemH: rect.height,
         };
 
         setIsDragging(true);
@@ -80,12 +72,20 @@ export function useDraggable({ storageKey, defaultPosition = null } = {}) {
             const deltaX = clientX - dragStartRef.current.mouseX;
             const deltaY = clientY - dragStartRef.current.mouseY;
 
-            const newPos = clampPosition(
-                dragStartRef.current.elemX + deltaX,
-                dragStartRef.current.elemY + deltaY
-            );
+            // Clamp position using actual element dimensions
+            const elemW = dragStartRef.current.elemW;
+            const elemH = dragStartRef.current.elemH;
+            
+            // Allow 10px padding from the right and bottom edges
+            const maxX = Math.max(0, window.innerWidth - elemW - 10);
+            const maxY = Math.max(0, window.innerHeight - elemH - 10);
+            const minY = 55; // Prevent dragging behind top bar (height ~48px)
+            const minX = 10; // Left padding
 
-            setPosition(newPos);
+            const newX = Math.max(minX, Math.min(dragStartRef.current.elemX + deltaX, maxX));
+            const newY = Math.max(minY, Math.min(dragStartRef.current.elemY + deltaY, maxY));
+
+            setPosition({ x: newX, y: newY });
         };
 
         const handlePointerUp = () => {
@@ -116,7 +116,64 @@ export function useDraggable({ storageKey, defaultPosition = null } = {}) {
             document.removeEventListener("touchmove", handlePointerMove);
             document.removeEventListener("touchend", handlePointerUp);
         };
-    }, [isDragging, clampPosition, storageKey]);
+    }, [isDragging, storageKey]);
+
+    // Ensure element stays in bounds on mount, resize, and dimension changes
+    useEffect(() => {
+        // We delay slightly to ensure the DOM node is attached and sized
+        const timer = setTimeout(() => {
+            const container = handleRef.current?.closest("[data-draggable]");
+            if (!container) return;
+
+            const checkBounds = () => {
+                const rect = container.getBoundingClientRect();
+                const elemW = rect.width;
+                const elemH = rect.height;
+
+                if (elemW === 0 || elemH === 0) return;
+
+                const maxX = Math.max(0, window.innerWidth - elemW - 10);
+                const maxY = Math.max(0, window.innerHeight - elemH - 10);
+                const minY = 55;
+                const minX = 10;
+
+                setPosition((prevPos) => {
+                    if (!prevPos) return prevPos;
+
+                    const newX = Math.max(minX, Math.min(prevPos.x, maxX));
+                    const newY = Math.max(minY, Math.min(prevPos.y, maxY));
+
+                    if (newX !== prevPos.x || newY !== prevPos.y) {
+                        if (storageKey) {
+                            try { localStorage.setItem(storageKey, JSON.stringify({ x: newX, y: newY })); } catch {}
+                        }
+                        return { x: newX, y: newY };
+                    }
+                    return prevPos;
+                });
+            };
+
+            checkBounds(); // Initial check
+
+            const ro = new ResizeObserver(() => checkBounds());
+            ro.observe(container);
+
+            window.addEventListener("resize", checkBounds);
+
+            // Store cleanup function on the ref so we can call it on unmount
+            handleRef.current._cleanupBounds = () => {
+                ro.disconnect();
+                window.removeEventListener("resize", checkBounds);
+            };
+        }, 50);
+
+        return () => {
+            clearTimeout(timer);
+            if (handleRef.current?._cleanupBounds) {
+                handleRef.current._cleanupBounds();
+            }
+        };
+    }, [storageKey]);
 
     // Reset position (double-click to reset)
     const resetPosition = useCallback(() => {
