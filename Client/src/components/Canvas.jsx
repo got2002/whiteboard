@@ -518,19 +518,28 @@ const Canvas = forwardRef(function Canvas(
     try {
       // Create offscreen canvas to draw just these strokes
       const tempCanvas = document.createElement("canvas");
-      // Add padding
-      const padding = 20;
-      tempCanvas.width = bounds.width + padding * 2;
-      tempCanvas.height = bounds.height + padding * 2;
+      
+      // Scaling up the image dramatically improves Tesseract OCR accuracy for handwriting
+      const scale = 3;
+      // Add more padding so Tesseract can easily detect the baseline
+      const padding = 40; 
+      
+      tempCanvas.width = (bounds.width + padding * 2) * scale;
+      tempCanvas.height = (bounds.height + padding * 2) * scale;
       const tCtx = tempCanvas.getContext("2d");
       
       // White background for better OCR
       tCtx.fillStyle = "white";
       tCtx.fillRect(0, 0, tempCanvas.width, tempCanvas.height);
       
-      // Draw strokes offset by bounds.x, bounds.y
+      // Scale and Translate
+      tCtx.scale(scale, scale);
       tCtx.translate(-bounds.x + padding, -bounds.y + padding);
       
+      // Calculate optimal line width based on text height (usually ~5-8% of height)
+      // This ensures small handwriting doesn't get too thin, and large handwriting isn't too thick
+      const optimalLineWidth = Math.max(4, bounds.height * 0.06);
+
       strokesToProcess.forEach(s => {
         if (s.points && s.points.length > 1) {
           tCtx.beginPath();
@@ -539,7 +548,7 @@ const Canvas = forwardRef(function Canvas(
             tCtx.lineTo(s.points[i].x, s.points[i].y);
           }
           tCtx.strokeStyle = "black"; // force black for OCR
-          tCtx.lineWidth = 3;
+          tCtx.lineWidth = optimalLineWidth;
           tCtx.lineCap = "round";
           tCtx.lineJoin = "round";
           tCtx.stroke();
