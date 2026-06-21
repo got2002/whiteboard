@@ -17,13 +17,19 @@ import { drawShapeOnCtx } from "../utils/shapeRenderer";
 
 // ── Transition types ──
 const TRANSITIONS = [
-  { id: "none", label: "ไม่มี", icon: "⊘" },
-  { id: "fade", label: "Fade", icon: "🌅" },
-  { id: "slide-left", label: "Slide Left", icon: "⬅️" },
-  { id: "slide-right", label: "Slide Right", icon: "➡️" },
-  { id: "zoom", label: "Zoom", icon: "🔍" },
-  { id: "flip", label: "Flip", icon: "🔄" },
-  { id: "push", label: "Push", icon: "📤" },
+  { id: "none", label: "ไม่มี", icon: <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="4.93" y1="4.93" x2="19.07" y2="19.07"></line></svg> },
+  { id: "fade", label: "Fade", icon: <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><path d="M12 8v8M8 12h8" strokeOpacity="0.4"></path></svg> },
+  { id: "slide-left", label: "Slide Left", icon: <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg> },
+  { id: "slide-right", label: "Slide Right", icon: <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg> },
+  { id: "slide-up", label: "Slide Up", icon: <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="19" x2="12" y2="5"></line><polyline points="5 12 12 5 19 12"></polyline></svg> },
+  { id: "slide-down", label: "Slide Down", icon: <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><polyline points="19 12 12 19 5 12"></polyline></svg> },
+  { id: "push-left", label: "Push Left", icon: <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M19 12H5"></path><path d="M12 19l-7-7 7-7"></path><path d="M22 19V5" strokeOpacity="0.4"></path></svg> },
+  { id: "push-right", label: "Push Right", icon: <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14"></path><path d="M12 5l7 7-7 7"></path><path d="M2 5v14" strokeOpacity="0.4"></path></svg> },
+  { id: "zoom-in", label: "Zoom In", icon: <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line><line x1="11" y1="8" x2="11" y2="14"></line><line x1="8" y1="11" x2="14" y2="11"></line></svg> },
+  { id: "zoom-out", label: "Zoom Out", icon: <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line><line x1="8" y1="11" x2="14" y2="11"></line></svg> },
+  { id: "flip-x", label: "Flip X", icon: <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M3 12h18"></path><path d="M12 3v18" strokeDasharray="2 4"></path><path d="M8 8l4-4 4 4"></path><path d="M8 16l4 4 4-4"></path></svg> },
+  { id: "flip-y", label: "Flip Y", icon: <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M12 3v18"></path><path d="M3 12h18" strokeDasharray="2 4"></path><path d="M8 8l-4 4 4 4"></path><path d="M16 8l4 4-4 4"></path></svg> },
+  { id: "cube", label: "Cube", icon: <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path><polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline><line x1="12" y1="22.08" x2="12" y2="12"></line></svg> },
 ];
 
 // ── Image cache ──
@@ -229,7 +235,11 @@ export default function PresentationMode({
     if (newIndex === slideIndexRef.current) return;
 
     const targetPage = pages[newIndex];
-    const transition = targetPage.transition || "fade";
+    // The transition configuration conceptually sits BEFORE the target page.
+    // If going forward, we read it from the target page (the one we are entering).
+    // If going backward, we read it from the current page (the one we are leaving).
+    const transitionSourcePage = direction === "next" ? targetPage : pages[slideIndexRef.current];
+    const transition = transitionSourcePage?.transition || "fade";
 
     setPrevSlideIndex(slideIndexRef.current);
     setSlideIndex(newIndex);
@@ -239,10 +249,19 @@ export default function PresentationMode({
 
     // Determine transition direction class
     let cls = `pres-transition-${transition}`;
-    if (transition === "slide-left" || transition === "slide-right" || transition === "push") {
+    if (transition.startsWith("slide-") || transition.startsWith("push-") || transition === "cube") {
       cls += direction === "next" ? "-forward" : "-backward";
     }
     setTransitionClass(cls);
+
+    const parseDuration = (val) => {
+      if (typeof val === "number") return val;
+      if (val === "slow") return 1.2;
+      if (val === "fast") return 0.3;
+      return 0.6;
+    };
+    
+    let timeoutMs = parseDuration(transitionSourcePage?.transitionDuration) * 1000;
 
     // Clear transition after animation
     setTimeout(() => {
@@ -251,7 +270,7 @@ export default function PresentationMode({
       setTransitionClass("");
       setPrevSlideIndex(null);
       onSelectPage(newIndex);
-    }, 600);
+    }, timeoutMs);
   }, [pages, onSelectPage]);
 
   const goNext = useCallback(() => {
@@ -311,7 +330,7 @@ export default function PresentationMode({
         if (current < pages.length - 1) {
           goToPage(current + 1, "next");
         } else {
-          setAutoPlay(false);
+          goToPage(0, "next");
         }
       }, autoPlayInterval * 1000);
     }
@@ -320,8 +339,50 @@ export default function PresentationMode({
     };
   }, [autoPlay, autoPlayInterval, pages.length, goToPage]);
 
+  // Auto-play progress bar
+  const [progress, setProgress] = useState(0);
+  useEffect(() => {
+    let frameId;
+    let startTime;
+    
+    if (autoPlay && !isTransitioning) {
+      startTime = Date.now();
+      const intervalMs = autoPlayInterval * 1000;
+      
+      const updateProgress = () => {
+        const elapsed = Date.now() - startTime;
+        const p = Math.min((elapsed / intervalMs) * 100, 100);
+        setProgress(p);
+        
+        if (p < 100) {
+          frameId = requestAnimationFrame(updateProgress);
+        }
+      };
+      
+      frameId = requestAnimationFrame(updateProgress);
+    } else {
+      setProgress(0);
+    }
+    
+    return () => {
+      if (frameId) cancelAnimationFrame(frameId);
+    };
+  }, [autoPlay, autoPlayInterval, slideIndex, isTransitioning]);
+
   const currentPage = pages[slideIndex];
   const prevPage = prevSlideIndex !== null ? pages[prevSlideIndex] : null;
+
+  const parseDuration = (val) => {
+    if (typeof val === "number") return val;
+    if (val === "slow") return 1.2;
+    if (val === "fast") return 0.3;
+    return 0.6;
+  };
+  
+  const isNext = slideIndex >= (prevSlideIndex !== null ? prevSlideIndex : slideIndex);
+  const transitionSourcePageRender = isNext ? pages[slideIndex] : (prevSlideIndex !== null ? pages[prevSlideIndex] : pages[slideIndex]);
+  const numDuration = parseDuration(transitionSourcePageRender?.transitionDuration);
+  const animDuration = isTransitioning ? `${numDuration}s` : undefined;
 
   return (
     <div className="pres-overlay" ref={containerRef}>
@@ -330,7 +391,10 @@ export default function PresentationMode({
 
       {/* ── Previous page (for transitions) ── */}
       {isTransitioning && prevPage && (
-        <div className={`pres-slide pres-slide-prev ${transitionClass}`}>
+        <div 
+          className={`pres-slide pres-slide-prev ${transitionClass}`}
+          style={{ animationDuration: animDuration }}
+        >
           <FullPageCanvas
             page={prevPage}
             width={dimensions.width}
@@ -340,7 +404,10 @@ export default function PresentationMode({
       )}
 
       {/* ── Current page ── */}
-      <div className={`pres-slide pres-slide-current ${isTransitioning ? transitionClass : ""}`}>
+      <div 
+        className={`pres-slide pres-slide-current ${isTransitioning ? transitionClass : ""}`}
+        style={isTransitioning ? { animationDuration: animDuration } : {}}
+      >
         <FullPageCanvas
           page={currentPage}
           width={dimensions.width}
@@ -350,6 +417,14 @@ export default function PresentationMode({
 
       {/* ── Controls Overlay ── */}
       <div className={`pres-controls ${showControls ? "visible" : "hidden"}`}>
+        
+        {/* Auto-play progress bar */}
+        {autoPlay && (
+          <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: '4px', background: 'rgba(255,255,255,0.1)', zIndex: 10 }}>
+            <div style={{ height: '100%', background: '#818cf8', width: `${progress}%`, transition: progress === 0 ? 'none' : 'width 0.1s linear' }} />
+          </div>
+        )}
+
         {/* Top bar */}
         <div className="pres-top-bar">
           <div className="pres-top-left">

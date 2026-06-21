@@ -536,7 +536,8 @@ export default function MainLayout() {
         onDeletePage={pageHook.handleDeletePage}
         onReorderPages={pageHook.handleReorderPages}
         onTransitionChange={pageHook.handleTransitionChange}
-        onPresent={() => setShowPresentation(true)}
+        onTransitionDurationChange={pageHook.handleTransitionDurationChange}
+        onPresent={() => syncPresentationUpdate({ isActive: true, slideIndex: currentPageIndex })}
       />
 
       {/* User Panel */}
