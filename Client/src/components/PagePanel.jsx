@@ -242,6 +242,7 @@ function PagePanel({
     onDeletePage,
     onReorderPages,
     onTransitionChange,
+    onTransitionDurationChange,
     onPresent,
 }) {
     // State ควบคุม Drag and Drop
@@ -397,6 +398,26 @@ function PagePanel({
                                                                 <span className="trans-picker-item-label">{t.label}</span>
                                                             </button>
                                                         ))}
+                                                    </div>
+
+                                                    <div className="trans-duration-selector" style={{ flexDirection: 'column', alignItems: 'stretch' }}>
+                                                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
+                                                            <span className="trans-duration-label">ความเร็ว (วินาที):</span>
+                                                            <span className="trans-duration-value" style={{ fontSize: '11px', color: '#818cf8', fontWeight: 'bold' }}>
+                                                                {typeof nextPage.transitionDuration === 'number' ? nextPage.transitionDuration : 0.6}s
+                                                            </span>
+                                                        </div>
+                                                        <input 
+                                                            type="range" 
+                                                            min="0.1" 
+                                                            max="3.0" 
+                                                            step="0.1" 
+                                                            value={typeof nextPage.transitionDuration === 'number' ? nextPage.transitionDuration : 0.6}
+                                                            onChange={(e) => {
+                                                                onTransitionDurationChange(nextPage.id, parseFloat(e.target.value));
+                                                            }}
+                                                            className="trans-duration-slider"
+                                                        />
                                                     </div>
                                                 </div>
                                             </>

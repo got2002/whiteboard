@@ -105,10 +105,17 @@ export function usePages({ isActive, userRole }) {
     ));
   };
 
+  const handleTransitionDurationChange = (pageId, duration) => {
+    setPages(prev => prev.map(p =>
+      p.id === pageId ? { ...p, transitionDuration: duration } : p
+    ));
+  };
+
   return {
     pages, setPages, currentPageIndex, setCurrentPageIndex, currentPage,
     handleAddPage, handleDeletePage, handleSelectPage,
     handlePrevPage, handleNextPage,
     handleReorderPages, handleBackgroundChange, handleTransitionChange,
+    handleTransitionDurationChange,
   };
 }
