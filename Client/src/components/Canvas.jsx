@@ -1690,6 +1690,44 @@ const Canvas = forwardRef(function Canvas(
           tool={tool}
           onUpdate={(id, changes) => onStrokeUpdate(id, changes)}
           onDelete={(id) => onStrokeDelete?.(id)}
+          onCaptureFrame={(frameData) => {
+            const strokeId = `img-capture-${Date.now()}`;
+            
+            // Calculate display size (max 600px)
+            let displayW = frameData.origW;
+            let displayH = frameData.origH;
+            const maxDisplaySize = Math.min(600, window.innerWidth * 0.6, window.innerHeight * 0.6);
+            if (displayW > maxDisplaySize || displayH > maxDisplaySize) {
+              const scale = maxDisplaySize / Math.max(displayW, displayH);
+              displayW = Math.round(displayW * scale);
+              displayH = Math.round(displayH * scale);
+            }
+            
+            // Center position in the viewport considering zoom and panOffset
+            const centerX = (window.innerWidth / 2 - panOffset.current.x) / zoom.current - displayW / 2;
+            const centerY = (window.innerHeight / 2 - panOffset.current.y) / zoom.current - displayH / 2;
+
+            const stroke = {
+              id: strokeId,
+              type: "image",
+              dataURL: frameData.dataURL,
+              x: centerX,
+              y: centerY,
+              width: displayW,
+              height: displayH,
+            };
+            onStrokeComplete?.(stroke);
+            
+            // Switch tool to 'select' and auto-select the new captured image
+            if (onToolChange) {
+              onToolChange("select");
+            }
+            
+            setTimeout(() => {
+              setSelectedStrokeIds([strokeId]);
+              window.dispatchEvent(new CustomEvent('image-inserted', { detail: { strokeId } }));
+            }, 100);
+          }}
         />
       ))}
 
