@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { SERVER_URL } from "../core/socket";
 
-export default function VideoWidget({ video, onUpdate, onDelete, zoom = 1, panOffset = { x: 0, y: 0 }, userRole }) {
+export default function VideoWidget({ video, onUpdate, onDelete, onCaptureFrame, zoom = 1, panOffset = { x: 0, y: 0 }, userRole }) {
   const canEdit = userRole !== "viewer";
   const videoRef = useRef(null);
   const containerRef = useRef(null);
@@ -129,9 +129,36 @@ export default function VideoWidget({ video, onUpdate, onDelete, zoom = 1, panOf
     // No longer syncing state to server so users can watch independently
     // if (canEdit) onUpdate(video.id, { currentTime: t });
   };
-  const handleFullscreen = (e) => { e.stopPropagation(); videoRef.current?.requestFullscreen?.(); };
   const handleMute = (e) => { e.stopPropagation(); setIsMuted(m => !m); };
   const handleVol = (e) => { e.stopPropagation(); setVolume(parseFloat(e.target.value)); if (parseFloat(e.target.value) > 0) setIsMuted(false); };
+
+  // ── CAPTURE FRAME ── แคปหน้าจอวิดีโอเป็นรูปภาพแปะลงกระดาน
+  const handleCaptureFrame = (e) => {
+    e.stopPropagation();
+    const el = videoRef.current;
+    if (!el || !onCaptureFrame) return;
+    try {
+      const tempCanvas = document.createElement("canvas");
+      const vw = el.videoWidth || el.clientWidth;
+      const vh = el.videoHeight || el.clientHeight;
+      tempCanvas.width = vw;
+      tempCanvas.height = vh;
+      const ctx = tempCanvas.getContext("2d");
+      // Use max quality native resolution
+      ctx.drawImage(el, 0, 0, vw, vh);
+      // Use PNG for highest sharpness
+      const dataURL = tempCanvas.toDataURL("image/png");
+      
+      onCaptureFrame({
+        dataURL,
+        origW: vw,
+        origH: vh
+      });
+    } catch (err) {
+      console.error("Capture frame failed:", err);
+    }
+  };
+
   const handleDelete = async (e) => {
     e.stopPropagation();
     if (onDelete) onDelete(video.id);
@@ -173,7 +200,14 @@ export default function VideoWidget({ video, onUpdate, onDelete, zoom = 1, panOf
           display: "flex", alignItems: "center", padding: "0 8px", cursor: "grab", gap: 6,
           opacity: showUI ? 1 : 0, pointerEvents: showUI ? "auto" : "none", transition: "opacity 0.2s", zIndex: 2 }}>
         <span style={{ fontSize: 12, color: "#94a3b8", flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", userSelect: "none" }}>🎬 Video</span>
-        {canEdit && <button onClick={handleDelete} style={{ background: "none", border: "none", color: "#ef4444", fontSize: 14, cursor: "pointer", padding: "0 2px", lineHeight: 1 }} title="ลบวิดีโอ">✕</button>}
+        {onCaptureFrame && (
+          <button onClick={handleCaptureFrame} title="แคปหน้าจอวิดีโอแปะลงกระดาน" style={{ background: "none", border: "none", color: "#fbbf24", fontSize: 15, cursor: "pointer", padding: "0 2px", transition: "transform 0.15s, color 0.15s" }}
+            onPointerDown={e => e.stopPropagation()}
+            onMouseEnter={e => { e.currentTarget.style.transform = "scale(1.2)"; e.currentTarget.style.color = "#fde68a"; }}
+            onMouseLeave={e => { e.currentTarget.style.transform = "scale(1)"; e.currentTarget.style.color = "#fbbf24"; }}
+          >📷</button>
+        )}
+        {canEdit && <button onClick={handleDelete} onPointerDown={e => e.stopPropagation()} style={{ background: "none", border: "none", color: "#ef4444", fontSize: 14, cursor: "pointer", padding: "0 2px", lineHeight: 1 }} title="ลบวิดีโอ">✕</button>}
       </div>
 
       {/* Video */}
@@ -200,7 +234,6 @@ export default function VideoWidget({ video, onUpdate, onDelete, zoom = 1, panOf
             <button onClick={handleMute} style={{ background: "none", border: "none", color: "#fff", fontSize: 13, cursor: "pointer", padding: "1px 2px" }}>{isMuted || volume === 0 ? "🔇" : "🔊"}</button>
             <input type="range" min="0" max="1" step="0.05" value={isMuted ? 0 : volume} onChange={handleVol} onPointerDown={e => e.stopPropagation()} style={{ width: 50, height: 3, accentColor: "#3b82f6", cursor: "pointer" }} />
           </>}
-          <button onClick={handleFullscreen} style={{ background: "none", border: "none", color: "#fff", fontSize: 13, cursor: "pointer", padding: "1px 3px" }}>⛶</button>
         </div>
       </div>
 
@@ -223,8 +256,8 @@ export default function VideoWidget({ video, onUpdate, onDelete, zoom = 1, panOf
         </div>
       )}
 
-      {/* Resize handles (only when editing) */}
-      {editing && canEdit && ["nw","ne","sw","se"].map(c => (
+      {/* Resize handles (only when editing or hovering) */}
+      {showUI && canEdit && ["nw","ne","sw","se"].map(c => (
         <div key={c} onPointerDown={(e) => startResize(c, e)}
           style={{ position: "absolute", width: hs, height: hs, background: "#fff", border: "2px solid #3b82f6", borderRadius: 2, cursor: `${c}-resize`, zIndex: 3,
             ...(c.includes("n") ? { top: -hs/2 } : { bottom: -hs/2 }),
