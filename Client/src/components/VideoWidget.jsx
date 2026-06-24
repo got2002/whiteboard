@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { SERVER_URL } from "../core/socket";
 
-export default function VideoWidget({ video, onUpdate, onDelete, onCaptureFrame, zoom = 1, panOffset = { x: 0, y: 0 }, userRole }) {
+export default function VideoWidget({ video, onUpdate, onDelete, onCaptureFrame, tool, zoom = 1, panOffset = { x: 0, y: 0 }, userRole }) {
   const canEdit = userRole !== "viewer";
   const videoRef = useRef(null);
   const containerRef = useRef(null);
@@ -189,9 +189,13 @@ export default function VideoWidget({ video, onUpdate, onDelete, onCaptureFrame,
 
   return (
     <div ref={containerRef}
-      style={{ position: "absolute", left: sx, top: sy, width: sw, height: sh, zIndex: 15, pointerEvents: "auto" }}
+      style={{ position: "absolute", left: sx, top: sy, width: sw, height: sh, zIndex: 0, pointerEvents: "auto" }}
       onMouseEnter={onEnter} onMouseLeave={onLeave}
-      onPointerDown={(e) => { e.stopPropagation(); }}
+      onPointerDown={(e) => { 
+        if (tool === "select" || tool === "lasso") {
+          e.stopPropagation(); 
+        }
+      }}
       onDoubleClick={() => setEditing(true)}
     >
       {/* Header bar — draggable (visible when editing or hovering) */}
@@ -241,7 +245,8 @@ export default function VideoWidget({ video, onUpdate, onDelete, onCaptureFrame,
       {!isPlaying && !showControls && (
         <div onClick={handlePlayPause} style={{ position: "absolute", top: "50%", left: "50%", transform: "translate(-50%,-50%)", width: 52, height: 52, borderRadius: "50%",
           background: "rgba(0,0,0,0.5)", backdropFilter: "blur(6px)", display: "flex", alignItems: "center", justifyContent: "center",
-          cursor: "pointer", border: "2px solid rgba(255,255,255,0.3)" }}>
+          cursor: "pointer", border: "2px solid rgba(255,255,255,0.3)",
+          pointerEvents: (tool === "select" || tool === "lasso") ? "auto" : "none" }}>
           <span style={{ fontSize: 22, color: "#fff", marginLeft: 3 }}>▶</span>
         </div>
       )}

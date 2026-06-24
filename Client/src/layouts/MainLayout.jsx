@@ -378,6 +378,7 @@ export default function MainLayout() {
         color={drawingHook.color}
         penSize={drawingHook.penSize}
         penStyle={drawingHook.penStyle}
+        mathTools={activeMathTools}
         mode={drawingHook.mode}
         hostTool={drawingHook.hostTool}
         hostPenStyle={drawingHook.hostPenStyle}
@@ -467,7 +468,7 @@ export default function MainLayout() {
               }
             }
             // Math tools
-            const mathIds = ['protractor','full_protractor','ruler','set_square_45','set_square_60','compass','t_square','number_line','coord_grid','clock_face','fraction_circle','graph_paper','dice','spinner','l_square'];
+            const mathIds = ['protractor','full_protractor','ruler','set_square_45','set_square_60','compass','t_square','number_line','coord_grid','clock_face','graph_paper','spinner','l_square','classroom_timer','shapes_3d','venn_diagram'];
             if (mathIds.includes(toolId)) {
               syncMathToolAdd({ id: `${toolId}-${Date.now()}`, type: toolId });
             }
@@ -794,6 +795,7 @@ export default function MainLayout() {
           toolId={mt.id}
           toolType={mt.type}
           toolData={mt}
+          tool={drawingHook.tool}
           canEdit={canSync}
           onUpdate={syncMathToolUpdate}
           onClose={(id) => syncMathToolRemove(id)}

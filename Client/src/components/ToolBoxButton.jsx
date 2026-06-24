@@ -304,15 +304,15 @@ const TOOLBOX_ITEMS = [
         category: "math",
     },
     {
-        id: "fraction_circle",
-        label: "Fraction Circle",
+        id: "spinner",
+        label: "Spinner Wheel",
         icon: (
             <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
                 <circle cx="12" cy="12" r="9" />
-                <path d="M12 3v18" />
-                <path d="M3 12h18" />
-                <path d="M12 12L5.6 5.6" opacity="0.4" />
-                <path fill="rgba(239,68,68,0.15)" d="M12 12L12 3A9 9 0 0 1 21 12Z" stroke="none" />
+                <path d="M12 3v9l6.36 3.64" />
+                <path d="M12 12L5.64 15.64" />
+                <path fill="rgba(34,197,94,0.15)" d="M12 12L12 3A9 9 0 0 1 18.36 15.64Z" stroke="none" />
+                <circle cx="12" cy="12" r="2" fill="currentColor" />
             </svg>
         ),
         category: "math",
@@ -330,30 +330,36 @@ const TOOLBOX_ITEMS = [
         category: "math",
     },
     {
-        id: "dice",
-        label: "Dice",
+        id: "classroom_timer",
+        label: "Classroom Timer",
         icon: (
             <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-                <rect x="3" y="3" width="18" height="18" rx="3" fill="rgba(255,255,255,0.05)" />
-                <circle cx="8" cy="8" r="1.2" fill="currentColor" stroke="none" />
-                <circle cx="16" cy="8" r="1.2" fill="currentColor" stroke="none" />
-                <circle cx="12" cy="12" r="1.2" fill="currentColor" stroke="none" />
-                <circle cx="8" cy="16" r="1.2" fill="currentColor" stroke="none" />
-                <circle cx="16" cy="16" r="1.2" fill="currentColor" stroke="none" />
+                <circle cx="12" cy="12" r="9" />
+                <path d="M12 7v5l3 3" />
+                <path d="M12 3v-2M15 2h-6" opacity="0.7" />
             </svg>
         ),
         category: "math",
     },
     {
-        id: "spinner",
-        label: "Spinner Wheel",
+        id: "shapes_3d",
+        label: "3D Shapes",
         icon: (
             <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-                <circle cx="12" cy="12" r="9" />
-                <path d="M12 3v9l6.36 3.64" />
-                <path d="M12 12L5.64 15.64" />
-                <path fill="rgba(34,197,94,0.15)" d="M12 12L12 3A9 9 0 0 1 18.36 15.64Z" stroke="none" />
-                <circle cx="12" cy="12" r="2" fill="currentColor" />
+                <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z" />
+                <polyline points="3.27 6.96 12 12.01 20.73 6.96" />
+                <line x1="12" y1="22.08" x2="12" y2="12" />
+            </svg>
+        ),
+        category: "math",
+    },
+    {
+        id: "venn_diagram",
+        label: "Venn Diagram",
+        icon: (
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="9" cy="12" r="6" fill="rgba(239,68,68,0.15)" stroke="#ef4444" />
+                <circle cx="15" cy="12" r="6" fill="rgba(59,130,246,0.15)" stroke="#3b82f6" />
             </svg>
         ),
         category: "math",
