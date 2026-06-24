@@ -16,6 +16,7 @@ import {
 import { drawSegment, drawPenStroke, drawTextOnCtx, drawStampOnCtx, drawImageOnCtx } from "../utils/strokeRenderer";
 import { SHAPE_TOOLS, drawShapeOnCtx } from "../utils/shapeRenderer";
 import { getStrokeBounds, hitTestHandle, findStrokeAt, HANDLE_SIZE, getCombinedBounds, getStrokesInLasso, isPointInPolygon } from "../utils/hitTestUtils";
+import { snapPointToMathTools } from "../utils/mathToolSnapping";
 import ColorPickerModal from "./ColorPickerModal";
 import VideoWidget from "./VideoWidget";
 import Tesseract from "tesseract.js";
@@ -33,7 +34,11 @@ const MULTI_TOUCH_COLORS = [
 
 const Canvas = forwardRef(function Canvas(
   {
-    page, tool, color, penSize, penStyle, mode, onToolChange,
+    page, tool, color = "#000",
+    penSize = 3,
+    penStyle = "pen",
+    mathTools = [],
+    mode = "draw", onToolChange,
     hostTool, hostPenStyle,
     onStrokeComplete, onDraw, onTextRequest, socket,
     onCursorMove, remoteCursors, laserPointers,
@@ -745,15 +750,22 @@ const Canvas = forwardRef(function Canvas(
         }
       }
 
-      if (tool === "lasso") {
+      const found = findStrokeAt(page?.strokes, x, y);
+
+      if (tool === "lasso" && !found) {
           e.target.setPointerCapture(pId);
           activeDrawings.current.set(pId, { isDrawing: true, lassoPoints: [{x,y}] });
           setSelectedStrokeIds([]);
           setActiveLassoPath(null);
+          
+          const preview = previewCanvasRef.current;
+          const pCtx = preview.getContext("2d");
+          pCtx.clearRect(0, 0, preview.width, preview.height);
+          pCtx.drawImage(canvasRef.current, 0, 0);
+          
           return;
       }
 
-      const found = findStrokeAt(page?.strokes, x, y);
       if (found) {
         let newSelection = selectedStrokeIds;
         let idsToSelect = [found.id];
@@ -785,8 +797,17 @@ const Canvas = forwardRef(function Canvas(
 
     e.target.setPointerCapture(pId);
     const rect = canvasRef.current.getBoundingClientRect();
-    const x = (e.clientX - rect.left - panOffset.current.x) / zoom.current;
-    const y = (e.clientY - rect.top - panOffset.current.y) / zoom.current;
+    let x = (e.clientX - rect.left - panOffset.current.x) / zoom.current;
+    let y = (e.clientY - rect.top - panOffset.current.y) / zoom.current;
+
+    // Magnetic snapping for initial point
+    if (mathTools.length > 0) {
+      const snapResult = snapPointToMathTools(x, y, mathTools, zoom.current);
+      if (snapResult.snapped) {
+        x = snapResult.x;
+        y = snapResult.y;
+      }
+    }
 
     const drawState = { isDrawing: true, currentStroke: null, prevX: x, prevY: y, shapeStart: null };
     activeDrawings.current.set(pId, drawState);
@@ -875,8 +896,8 @@ const Canvas = forwardRef(function Canvas(
 
     const rect = canvasRef.current?.getBoundingClientRect();
     if (!rect) return;
-    const x = (e.clientX - rect.left - panOffset.current.x) / zoom.current;
-    const y = (e.clientY - rect.top - panOffset.current.y) / zoom.current;
+    let x = (e.clientX - rect.left - panOffset.current.x) / zoom.current;
+    let y = (e.clientY - rect.top - panOffset.current.y) / zoom.current;
     
     // Throttle cursor emit
     const now = Date.now();
@@ -908,11 +929,12 @@ const Canvas = forwardRef(function Canvas(
 
     if (tool === "lasso" && drawState.lassoPoints) {
       drawState.lassoPoints.push({x, y});
-      redrawAll();
       const ctx = ctxRef.current;
       const dpr = window.devicePixelRatio || 1;
       ctx.save();
       ctx.setTransform(1, 0, 0, 1, 0, 0);
+      ctx.clearRect(0, 0, canvasRef.current.width, canvasRef.current.height);
+      if (previewCanvasRef.current) ctx.drawImage(previewCanvasRef.current, 0, 0);
       ctx.scale(dpr, dpr);
       ctx.translate(panOffset.current.x, panOffset.current.y);
       ctx.scale(zoom.current, zoom.current);
@@ -1047,6 +1069,21 @@ const Canvas = forwardRef(function Canvas(
       const strokeSize = drawState.currentStroke ? drawState.currentStroke.size : penSize;
       const strokeColor = drawState.currentStroke ? drawState.currentStroke.color : (strokeTool === "eraser" ? "#000" : color);
       const effectiveStyle = (strokeTool === "highlighter") ? "highlighter" : (strokeTool === "eraser" ? "pen" : penStyle);
+      
+      const dx = x - drawState.prevX;
+      const dy = y - drawState.prevY;
+      const dist = Math.sqrt(dx * dx + dy * dy);
+      if (dist < 2 / zoom.current) return;
+
+      // Magnetic snapping to Math Tools
+      if (mathTools.length > 0) {
+        const snapResult = snapPointToMathTools(x, y, mathTools, zoom.current);
+        if (snapResult.snapped) {
+          x = snapResult.x;
+          y = snapResult.y;
+        }
+      }
+
       drawSegmentLocal(drawState.prevX, drawState.prevY, x, y, strokeColor, strokeSize, strokeTool, effectiveStyle);
       onDraw({ prevX: drawState.prevX, prevY: drawState.prevY, x, y, color: strokeColor, size: strokeSize, tool: strokeTool, penStyle: effectiveStyle });
       drawState.currentStroke?.points.push({ x, y });
@@ -1337,17 +1374,10 @@ const Canvas = forwardRef(function Canvas(
   };
 
   return (
-    <div className={`canvas-bg ${bgClass}`} style={bgStyle}>
-      <canvas
-        ref={bgCanvasRef}
-        className="drawing-canvas bg-canvas"
-        style={{ position: "absolute", top: 0, left: 0, width: "100%", height: "100%", pointerEvents: "none", zIndex: 1, transform: "translateZ(0)", willChange: "transform" }}
-      />
-      <canvas
-        ref={canvasRef}
+    <div className={`canvas-bg ${bgClass}`} style={bgStyle}
         onPointerDown={(e) => {
-          // ถ้ากดนอกกล่อง inline text → submit แล้วจัดการ pointer ตามปกติ
-          if (inlineText && e.target === canvasRef.current) {
+          // ถ้ากดที่พื้นหลัง (ไม่ใช่บนเครื่องมืออื่นๆ) → submit ข้อความแล้ววาด
+          if (inlineText && e.target === e.currentTarget) {
             handleInlineTextSubmit();
           }
           handlePointerDown(e);
@@ -1356,8 +1386,16 @@ const Canvas = forwardRef(function Canvas(
         onPointerUp={handlePointerUp}
         onPointerLeave={handlePointerUp}
         onDoubleClick={handleCanvasDoubleClick}
+    >
+      <canvas
+        ref={bgCanvasRef}
+        className="drawing-canvas bg-canvas"
+        style={{ position: "absolute", top: 0, left: 0, width: "100%", height: "100%", pointerEvents: "none", zIndex: 1, transform: "translateZ(0)", willChange: "transform" }}
+      />
+      <canvas
+        ref={canvasRef}
         className="drawing-canvas"
-        style={{ cursor: cursorStyle, touchAction: 'none', position: "absolute", top: 0, left: 0, zIndex: 2, transform: "translateZ(0)", willChange: "transform" }}
+        style={{ cursor: cursorStyle, pointerEvents: "none", touchAction: 'none', position: "absolute", top: 0, left: 0, zIndex: 2, transform: "translateZ(0)", willChange: "transform" }}
       />
 
       {/* Inline Text Input */}

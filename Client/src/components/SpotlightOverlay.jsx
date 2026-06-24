@@ -34,6 +34,8 @@ export default function SpotlightOverlay({
 
   // ── Mouse / Touch / Pointer move ──
   const lastEmitTime = useRef(0);
+  const initialPinchDistRef = useRef(null);
+  const initialPinchRadiusRef = useRef(null);
 
   useEffect(() => {
     if (!isActive) return;
@@ -66,7 +68,24 @@ export default function SpotlightOverlay({
         // IFPDs sometimes interpret drag as scroll if preventDefault is not explicitly called on touchmove
         if (e.cancelable) e.preventDefault();
         
-        const pos = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+        let pos;
+        if (e.touches.length === 2) {
+          const dx = e.touches[0].clientX - e.touches[1].clientX;
+          const dy = e.touches[0].clientY - e.touches[1].clientY;
+          const dist = Math.sqrt(dx * dx + dy * dy);
+
+          if (!initialPinchDistRef.current) {
+            initialPinchDistRef.current = dist;
+            initialPinchRadiusRef.current = radius;
+          } else {
+            const scale = dist / initialPinchDistRef.current;
+            setRadius(Math.min(MAX_RADIUS, Math.max(MIN_RADIUS, initialPinchRadiusRef.current * scale)));
+          }
+          pos = { x: (e.touches[0].clientX + e.touches[1].clientX) / 2, y: (e.touches[0].clientY + e.touches[1].clientY) / 2 };
+        } else {
+          initialPinchDistRef.current = null;
+          pos = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+        }
         
         if (rAF) cancelAnimationFrame(rAF);
         rAF = requestAnimationFrame(() => {
@@ -85,13 +104,23 @@ export default function SpotlightOverlay({
       }
     };
 
+    const handleTouchEnd = (e) => {
+      if (e.touches.length < 2) {
+        initialPinchDistRef.current = null;
+      }
+    };
+
     // Remove `mousemove` to avoid duplicate firing with `pointermove`
     window.addEventListener("pointermove", handlePointerMove);
     window.addEventListener("touchmove", handleTouchMove, { passive: false });
+    window.addEventListener("touchend", handleTouchEnd);
+    window.addEventListener("touchcancel", handleTouchEnd);
 
     return () => {
       window.removeEventListener("pointermove", handlePointerMove);
       window.removeEventListener("touchmove", handleTouchMove);
+      window.removeEventListener("touchend", handleTouchEnd);
+      window.removeEventListener("touchcancel", handleTouchEnd);
       if (rAF) cancelAnimationFrame(rAF);
       if (controlsTimerRef.current) clearTimeout(controlsTimerRef.current);
     };

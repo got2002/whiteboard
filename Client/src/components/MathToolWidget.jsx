@@ -367,43 +367,28 @@ function FractionCircleSVG({ w, h, divisions = 4 }) {
 }
 
 function GraphPaperSVG({ w, h }) {
-  const step = 20;
-  const lines = [];
-  for (let x = 0; x <= w; x += step) lines.push(<line key={`v${x}`} x1={x} y1={0} x2={x} y2={h} stroke="rgba(59,130,246,0.25)" strokeWidth="0.5" />);
-  for (let y = 0; y <= h; y += step) lines.push(<line key={`h${y}`} x1={0} y1={y} x2={w} y2={y} stroke="rgba(59,130,246,0.25)" strokeWidth="0.5" />);
   return (
-    <svg width={w} height={h} style={{ display: "block" }}>
-      <rect x={0} y={0} width={w} height={h} rx={4} fill="rgba(59,130,246,0.04)" stroke="rgba(59,130,246,0.3)" strokeWidth="1.5" />
-      {lines}
+    <svg width={w} height={h} style={{ display: "block", background: "rgba(59,130,246,0.05)", borderRadius: 4 }}>
+      <defs>
+        <pattern id="smallGrid" width="10" height="10" patternUnits="userSpaceOnUse">
+          <path d="M 10 0 L 0 0 0 10" fill="none" stroke="rgba(59,130,246,0.2)" strokeWidth="0.5" />
+        </pattern>
+        <pattern id="grid" width="50" height="50" patternUnits="userSpaceOnUse">
+          <rect width="50" height="50" fill="url(#smallGrid)" />
+          <path d="M 50 0 L 0 0 0 50" fill="none" stroke="rgba(59,130,246,0.4)" strokeWidth="1" />
+        </pattern>
+      </defs>
+      <rect width="100%" height="100%" fill="url(#grid)" />
     </svg>
   );
 }
 
-function DiceSVG({ w, h, value = 5 }) {
-  const s = Math.min(w, h);
-  const cx = w / 2, cy = h / 2, r = s * 0.08;
-  const layouts = {
-    1: [[cx, cy]],
-    2: [[cx - s * 0.2, cy - s * 0.2], [cx + s * 0.2, cy + s * 0.2]],
-    3: [[cx - s * 0.2, cy - s * 0.2], [cx, cy], [cx + s * 0.2, cy + s * 0.2]],
-    4: [[cx - s * 0.2, cy - s * 0.2], [cx + s * 0.2, cy - s * 0.2], [cx - s * 0.2, cy + s * 0.2], [cx + s * 0.2, cy + s * 0.2]],
-    5: [[cx - s * 0.2, cy - s * 0.2], [cx + s * 0.2, cy - s * 0.2], [cx, cy], [cx - s * 0.2, cy + s * 0.2], [cx + s * 0.2, cy + s * 0.2]],
-    6: [[cx - s * 0.2, cy - s * 0.25], [cx + s * 0.2, cy - s * 0.25], [cx - s * 0.2, cy], [cx + s * 0.2, cy], [cx - s * 0.2, cy + s * 0.25], [cx + s * 0.2, cy + s * 0.25]],
-  };
-  const dots = layouts[value] || layouts[1];
-  return (
-    <svg width={w} height={h} style={{ display: "block" }}>
-      <rect x={cx - s * 0.4} y={cy - s * 0.4} width={s * 0.8} height={s * 0.8} rx={s * 0.1} fill="rgba(255,255,255,0.9)" stroke="rgba(30,41,59,0.6)" strokeWidth="2" />
-      {dots.map(([dx, dy], i) => <circle key={i} cx={dx} cy={dy} r={r} fill="#1e293b" />)}
-    </svg>
-  );
-}
-
-function SpinnerSVG({ w, h, sections = 6, angle = 0 }) {
+function SpinnerSVG({ w, h, labels = ["1", "2", "3", "4", "5", "6"], angle = 0 }) {
   const r = Math.min(w, h) / 2 - 8;
   const cx = w / 2, cy = h / 2;
   const colors = ["#ef4444","#3b82f6","#22c55e","#f59e0b","#a855f7","#ec4899","#06b6d4","#f97316"];
   const slices = [];
+  const sections = Math.max(1, labels.length);
   for (let i = 0; i < sections; i++) {
     const a1 = (Math.PI * 2 * i) / sections - Math.PI / 2;
     const a2 = (Math.PI * 2 * (i + 1)) / sections - Math.PI / 2;
@@ -412,7 +397,10 @@ function SpinnerSVG({ w, h, sections = 6, angle = 0 }) {
     const large = (a2 - a1) > Math.PI ? 1 : 0;
     slices.push(<path key={i} d={`M${cx},${cy} L${x1},${y1} A${r},${r} 0 ${large},1 ${x2},${y2} Z`} fill={colors[i % colors.length] + "40"} stroke={colors[i % colors.length]} strokeWidth="1.5" />);
     const mid = (a1 + a2) / 2;
-    slices.push(<text key={`t${i}`} x={cx + (r * 0.6) * Math.cos(mid)} y={cy + (r * 0.6) * Math.sin(mid) + 4} textAnchor="middle" fill="#334155" fontSize="12" fontWeight="700">{i + 1}</text>);
+    const label = labels[i] || "";
+    // Truncate long labels
+    const displayLabel = label.length > 8 ? label.substring(0, 7) + "..." : label;
+    slices.push(<text key={`t${i}`} x={cx + (r * 0.6) * Math.cos(mid)} y={cy + (r * 0.6) * Math.sin(mid) + 4} textAnchor="middle" fill="#334155" fontSize={displayLabel.length > 5 ? "10" : "12"} fontWeight="700">{displayLabel}</text>);
   }
   // Pointer
   const pAngle = (angle * Math.PI) / 180 - Math.PI / 2;
@@ -423,6 +411,77 @@ function SpinnerSVG({ w, h, sections = 6, angle = 0 }) {
       <line x1={cx} y1={cy} x2={px} y2={py} stroke="#1e293b" strokeWidth="3" strokeLinecap="round" />
       <circle cx={cx} cy={cy} r={6} fill="#1e293b" />
       <polygon points={`${cx},${cy - r - 4} ${cx - 6},${cy - r + 6} ${cx + 6},${cy - r + 6}`} fill="#ef4444" />
+    </svg>
+  );
+}
+
+function ClassroomTimer({ w, h, remaining = 180, isRunning = false, onToggle, onReset }) {
+  const mins = Math.floor(remaining / 60);
+  const secs = remaining % 60;
+  
+  // Calculate responsive sizes
+  const timeSize = Math.min(w * 0.35, h * 0.45);
+  const btnFontSize = Math.min(w * 0.06, h * 0.12, 16);
+  const paddingY = Math.max(4, h * 0.04);
+  const paddingX = Math.max(8, w * 0.05);
+  const gap = Math.max(4, w * 0.04);
+
+  return (
+    <div style={{ width: w, height: h, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', background: 'rgba(30, 41, 59, 0.95)', borderRadius: Math.min(16, w*0.1), border: '2px solid rgba(148, 163, 184, 0.2)', boxShadow: '0 8px 32px rgba(0,0,0,0.3)', color: 'white', fontFamily: 'monospace', boxSizing: 'border-box', overflow: 'hidden' }}>
+      <div style={{ fontSize: timeSize, fontWeight: 'bold', lineHeight: 1, textShadow: '0 2px 10px rgba(0,0,0,0.5)' }}>
+        {mins.toString().padStart(2, '0')}:{secs.toString().padStart(2, '0')}
+      </div>
+      <div style={{ display: 'flex', gap: gap, marginTop: h * 0.1, width: '100%', justifyContent: 'center', padding: '0 10px', boxSizing: 'border-box' }}>
+        <button onClick={onToggle} style={{ flex: 1, maxWidth: '45%', padding: `${paddingY}px 0`, fontSize: btnFontSize, borderRadius: 20, border: 'none', background: isRunning ? '#ef4444' : '#22c55e', color: 'white', fontWeight: 'bold', cursor: 'pointer', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+          {isRunning ? 'PAUSE' : 'START'}
+        </button>
+        <button onClick={onReset} style={{ flex: 1, maxWidth: '45%', padding: `${paddingY}px 0`, fontSize: btnFontSize, borderRadius: 20, border: 'none', background: '#64748b', color: 'white', fontWeight: 'bold', cursor: 'pointer', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+          RESET
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function Interactive3DShape({ w, h, shapeType = 'cube', angleX = 30, angleY = 45 }) {
+  // Simple CSS 3D representation
+  return (
+    <div style={{ width: w, height: h, perspective: '800px', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(15, 23, 42, 0.8)', borderRadius: 12, border: '1px solid rgba(255,255,255,0.1)' }}>
+      <div style={{
+        width: w * 0.5, height: w * 0.5, position: 'relative', transformStyle: 'preserve-3d',
+        transform: `rotateX(${angleX}deg) rotateY(${angleY}deg)`, transition: 'transform 0.1s linear'
+      }}>
+        {shapeType === 'cube' && (
+          <>
+            <div style={{ position: 'absolute', width: '100%', height: '100%', background: 'rgba(56, 189, 248, 0.3)', border: '2px solid #38bdf8', transform: `translateZ(${w*0.25}px)` }} />
+            <div style={{ position: 'absolute', width: '100%', height: '100%', background: 'rgba(56, 189, 248, 0.3)', border: '2px solid #38bdf8', transform: `rotateY(180deg) translateZ(${w*0.25}px)` }} />
+            <div style={{ position: 'absolute', width: '100%', height: '100%', background: 'rgba(56, 189, 248, 0.3)', border: '2px solid #38bdf8', transform: `rotateY(90deg) translateZ(${w*0.25}px)` }} />
+            <div style={{ position: 'absolute', width: '100%', height: '100%', background: 'rgba(56, 189, 248, 0.3)', border: '2px solid #38bdf8', transform: `rotateY(-90deg) translateZ(${w*0.25}px)` }} />
+            <div style={{ position: 'absolute', width: '100%', height: '100%', background: 'rgba(56, 189, 248, 0.3)', border: '2px solid #38bdf8', transform: `rotateX(90deg) translateZ(${w*0.25}px)` }} />
+            <div style={{ position: 'absolute', width: '100%', height: '100%', background: 'rgba(56, 189, 248, 0.3)', border: '2px solid #38bdf8', transform: `rotateX(-90deg) translateZ(${w*0.25}px)` }} />
+          </>
+        )}
+        {shapeType === 'cylinder' && (
+          <div style={{ width: '100%', height: '100%', position: 'relative', transformStyle: 'preserve-3d' }}>
+             <div style={{ position: 'absolute', width: '100%', height: '100%', borderLeft: '2px solid #a855f7', borderRight: '2px solid #a855f7', borderRadius: '50%', background: 'rgba(168, 85, 247, 0.2)' }}></div>
+             <div style={{ position: 'absolute', width: '100%', height: '40%', top: '-20%', border: '2px solid #a855f7', borderRadius: '50%', background: 'rgba(168, 85, 247, 0.4)', transform: 'rotateX(90deg)' }}></div>
+             <div style={{ position: 'absolute', width: '100%', height: '40%', bottom: '-20%', border: '2px solid #a855f7', borderRadius: '50%', background: 'rgba(168, 85, 247, 0.4)', transform: 'rotateX(90deg)' }}></div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function VennDiagram({ w, h }) {
+  const r = Math.min(w, h) * 0.35;
+  const cx = w / 2, cy = h / 2;
+  return (
+    <svg width={w} height={h} style={{ display: "block" }}>
+      <circle cx={cx - r * 0.5} cy={cy} r={r} fill="rgba(239, 68, 68, 0.15)" stroke="#ef4444" strokeWidth="2" />
+      <circle cx={cx + r * 0.5} cy={cy} r={r} fill="rgba(59, 130, 246, 0.15)" stroke="#3b82f6" strokeWidth="2" />
+      <text x={cx - r * 0.9} y={cy - r * 0.7} fill="#ef4444" fontSize="16" fontWeight="bold">A</text>
+      <text x={cx + r * 0.9} y={cy - r * 0.7} fill="#3b82f6" fontSize="16" fontWeight="bold">B</text>
     </svg>
   );
 }
@@ -438,10 +497,10 @@ const TOOL_DEFAULTS = {
   number_line:     { w: 500, h: 60,  label: "Number Line" },
   coord_grid:      { w: 300, h: 300, label: "Coordinate Grid" },
   clock_face:      { w: 240, h: 240, label: "Clock" },
-  fraction_circle: { w: 200, h: 200, label: "Fraction Circle" },
-  graph_paper:     { w: 300, h: 300, label: "Graph Paper" },
-  dice:            { w: 120, h: 120, label: "Dice" },
   spinner:         { w: 240, h: 240, label: "Spinner Wheel" },
+  classroom_timer: { w: 280, h: 160, label: "Classroom Timer" },
+  venn_diagram:    { w: 320, h: 220, label: "Venn Diagram" },
+  shapes_3d:       { w: 260, h: 260, label: "3D Shapes" },
   l_square:        { w: 240, h: 240, label: "L-Square" },
 };
 
@@ -456,15 +515,16 @@ const TOOL_RENDERER = {
   number_line:     NumberLineSVG,
   coord_grid:      CoordGridSVG,
   clock_face:      ClockFaceSVG,
-  fraction_circle: FractionCircleSVG,
-  graph_paper:     GraphPaperSVG,
-  dice:            DiceSVG,
   spinner:         SpinnerSVG,
+  graph_paper:     GraphPaperSVG,
+  classroom_timer: ClassroomTimer,
+  venn_diagram:    VennDiagram,
+  shapes_3d:       Interactive3DShape,
   l_square:        LSquareSVG,
 };
 
 // ============================================================
-export default function MathToolWidget({ canEdit = true, toolId, toolType, toolData, onUpdate, onClose, onDrawCircle, penColor = "#000", penSize = 3 }) {
+export default function MathToolWidget({ canEdit = true, toolId, toolType, toolData, tool, onUpdate, onClose, onDrawCircle, penColor = "#000", penSize = 3 }) {
   const def = TOOL_DEFAULTS[toolType] || TOOL_DEFAULTS.ruler;
   const [pos, setPos] = useState(toolData?.pos || { x: window.innerWidth / 2 - def.w / 2, y: window.innerHeight / 2 - def.h / 2 });
   const [size, setSize] = useState(toolData?.size || { w: def.w, h: def.h });
@@ -473,14 +533,25 @@ export default function MathToolWidget({ canEdit = true, toolId, toolType, toolD
   // Interactive state
   const [diceValue, setDiceValue] = useState(toolData?.diceValue || Math.ceil(Math.random() * 6));
   const [spinnerAngle, setSpinnerAngle] = useState(toolData?.spinnerAngle || 0);
+  const [spinnerLabels, setSpinnerLabels] = useState(toolData?.spinnerLabels || ["1", "2", "3", "4", "5", "6"]);
+  const [showSpinnerEdit, setShowSpinnerEdit] = useState(false);
   const [spinning, setSpinning] = useState(false);
   const [clockH, setClockH] = useState(toolData?.clockH || 10);
   const [clockM, setClockM] = useState(toolData?.clockM || 10);
   const [fractionDiv, setFractionDiv] = useState(toolData?.fractionDiv || 4);
   // Compass state
-  const [compassRadius, setCompassRadius] = useState(toolData?.compassRadius || 80);
-  const [compassArcStart, setCompassArcStart] = useState(toolData?.compassArcStart || 0);
-  const [compassArcEnd, setCompassArcEnd] = useState(toolData?.compassArcEnd || 360);
+  const [compassRadius, setCompassRadius] = useState(toolData?.compassRadius || 100);
+  const [compassArcStart, setCompassArcStart] = useState(toolData?.arcStart || 0);
+  const [compassArcEnd, setCompassArcEnd] = useState(toolData?.arcEnd || 360);
+
+  // Sync initial state up so parent (and Canvas snapping) has the correct coordinates immediately
+  useEffect(() => {
+    if (!toolData?.pos || !toolData?.size) {
+      if (canEdit && onUpdate) {
+        onUpdate(toolId, { pos, size, rotation });
+      }
+    }
+  }, []);
 
   // Sync from server
   useEffect(() => {
@@ -490,6 +561,7 @@ export default function MathToolWidget({ canEdit = true, toolId, toolType, toolD
     if (toolData.rotation !== undefined) setRotation(toolData.rotation);
     if (toolData.diceValue !== undefined) setDiceValue(toolData.diceValue);
     if (toolData.spinnerAngle !== undefined) setSpinnerAngle(toolData.spinnerAngle);
+    if (toolData.spinnerLabels !== undefined) setSpinnerLabels(toolData.spinnerLabels);
     if (toolData.clockH !== undefined) setClockH(toolData.clockH);
     if (toolData.clockM !== undefined) setClockM(toolData.clockM);
     if (toolData.fractionDiv !== undefined) setFractionDiv(toolData.fractionDiv);
@@ -624,20 +696,66 @@ export default function MathToolWidget({ canEdit = true, toolId, toolType, toolD
     const aEnd = compassArcEnd - compassArcStart < 360 ? compassArcEnd : 90;
     onDrawCircle({ cx: needleScreenX, cy: needleScreenY, radius: compassRadius, arcStart: aStart, arcEnd: aEnd });
   };
-  const rollDice = (e) => { e.stopPropagation(); const val = Math.ceil(Math.random() * 6); setDiceValue(val); updateState({ diceValue: val }); };
   const spinWheel = (e) => { e.stopPropagation(); if (spinning) return; setSpinning(true); const target = spinnerAngle + 720 + Math.random() * 360; updateState({ spinnerAngle: target }); const start = performance.now(); const dur = 2000; const animate = (t) => { const p = Math.min(1, (t - start) / dur); const ease = 1 - Math.pow(1 - p, 3); setSpinnerAngle(spinnerAngle + (target - spinnerAngle) * ease); if (p < 1) requestAnimationFrame(animate); else setSpinning(false); }; requestAnimationFrame(animate); };
-  const adjClock = (e, dh, dm) => { e.stopPropagation(); setClockH(h => { const nh = (h + dh + 12) % 12 || 12; updateState({ clockH: nh }); return nh; }); setClockM(m => { const nm = (m + dm + 60) % 60; updateState({ clockM: nm }); return nm; }); };
-  const adjFraction = (e, d) => { e.stopPropagation(); setFractionDiv(v => { const nv = Math.max(2, Math.min(12, v + d)); updateState({ fractionDiv: nv }); return nv; }); };
+  const adjClock = (e, dh, dm) => { e.stopPropagation(); setClockH(h => (h + dh + 12) % 12 || 12); setClockM(m => (m + dm + 60) % 60); };
+  // Timer state
+  const [timerRemaining, setTimerRemaining] = useState(toolData?.timerRemaining || 180);
+  const [timerRunning, setTimerRunning] = useState(toolData?.timerRunning || false);
+  const [shape3D, setShape3D] = useState(toolData?.shape3D || 'cube');
+
+  useEffect(() => {
+    if (timerRunning) {
+      const id = setInterval(() => {
+        setTimerRemaining(prev => {
+          if (prev <= 0) {
+            setTimerRunning(false);
+            if (canEdit && onUpdate) onUpdate(toolId, { timerRunning: false, timerRemaining: 0 });
+            return 0;
+          }
+          return prev - 1;
+        });
+      }, 1000);
+      return () => clearInterval(id);
+    }
+  }, [timerRunning, canEdit, onUpdate, toolId]);
+
+  const toggleTimer = (e) => {
+    e.stopPropagation();
+    const nextState = !timerRunning;
+    setTimerRunning(nextState);
+    if (canEdit && onUpdate) onUpdate(toolId, { timerRunning: nextState, timerRemaining });
+  };
+  const resetTimer = (e) => {
+    e.stopPropagation();
+    setTimerRunning(false);
+    setTimerRemaining(180);
+    if (canEdit && onUpdate) onUpdate(toolId, { timerRunning: false, timerRemaining: 180 });
+  };
+
+  const adjTimer = (e, ds) => {
+    e.stopPropagation();
+    setTimerRemaining(t => {
+      const nt = Math.max(0, t + ds);
+      if (canEdit && onUpdate) onUpdate(toolId, { timerRemaining: nt });
+      return nt;
+    });
+  };
+  const toggleShape3D = (e) => {
+    e.stopPropagation();
+    const nextShape = shape3D === 'cube' ? 'cylinder' : 'cube';
+    setShape3D(nextShape);
+    if (canEdit && onUpdate) onUpdate(toolId, { shape3D: nextShape });
+  };
 
   const Renderer = TOOL_RENDERER[toolType];
   if (!Renderer) return null;
 
   // Extra props for interactive tools
   const extraProps = {};
-  if (toolType === "dice") extraProps.value = diceValue;
-  if (toolType === "spinner") { extraProps.angle = spinnerAngle; extraProps.sections = 6; }
   if (toolType === "clock_face") { extraProps.hours = clockH; extraProps.minutes = clockM; }
-  if (toolType === "fraction_circle") extraProps.divisions = fractionDiv;
+  if (toolType === "spinner") { extraProps.angle = spinnerAngle; extraProps.labels = spinnerLabels; }
+  if (toolType === "classroom_timer") { extraProps.remaining = timerRemaining; extraProps.isRunning = timerRunning; extraProps.onToggle = toggleTimer; extraProps.onReset = resetTimer; }
+  if (toolType === "shapes_3d") { extraProps.shapeType = shape3D; }
   if (toolType === "compass") {
     extraProps.radius = compassRadius;
     extraProps.onRadiusChange = setCompassRadius;
@@ -655,7 +773,8 @@ export default function MathToolWidget({ canEdit = true, toolId, toolType, toolD
         position: "fixed", width: size.w, zIndex: 50,
         paddingTop: 36,
         transform: `rotate(${rotation}deg)`, transformOrigin: `center calc(50% + 18px)`,
-        pointerEvents: canEdit ? "auto" : "none", userSelect: "none", cursor: "grab",
+        pointerEvents: (canEdit && (tool === "select" || tool === "lasso" || tool === "pan")) ? "auto" : "none", 
+        userSelect: "none", cursor: "grab",
       }}
       onPointerDown={(e) => { e.stopPropagation(); startDrag(e); }}
     >
@@ -677,21 +796,48 @@ export default function MathToolWidget({ canEdit = true, toolId, toolType, toolD
           <button onClick={(e) => { e.stopPropagation(); setCompassRadius(r => { const nr = Math.max(20, r - 10); updateState({ compassRadius: nr }); return nr; }); }} style={{ ...btnS, color: "#60a5fa" }} title="ลดรัศมี">−</button>
           <button onClick={(e) => { e.stopPropagation(); setCompassRadius(r => { const nr = Math.min(300, r + 10); updateState({ compassRadius: nr }); return nr; }); }} style={{ ...btnS, color: "#60a5fa" }} title="เพิ่มรัศมี">+</button>
         </>}
-        {toolType === "dice" && <button onClick={rollDice} style={{ ...btnS, color: "#f59e0b" }} title="ทอยลูกเต๋า">🎲</button>}
-        {toolType === "spinner" && <button onClick={spinWheel} style={{ ...btnS, color: "#a855f7" }} title="หมุนวงล้อ">🎡</button>}
+        {toolType === "shapes_3d" && <button onClick={toggleShape3D} style={{ ...btnS, color: "#a855f7" }} title="เปลี่ยนรูปทรง 3 มิติ">🧊</button>}
+        {toolType === "spinner" && <>
+          <button onClick={(e) => { e.stopPropagation(); setShowSpinnerEdit(v => !v); }} style={{ ...btnS, color: "#3b82f6" }} title="แก้ไขชื่อ">✏️</button>
+          <button onClick={(e) => { e.stopPropagation(); setSpinnerLabels(labels => labels.length > 2 ? labels.slice(0, -1) : labels); }} style={{ ...btnS, color: "#ec4899" }} title="ลดจำนวนช่อง">−</button>
+          <button onClick={(e) => { e.stopPropagation(); setSpinnerLabels(labels => labels.length < 20 ? [...labels, (labels.length + 1).toString()] : labels); }} style={{ ...btnS, color: "#ec4899" }} title="เพิ่มจำนวนช่อง">+</button>
+          <button onClick={spinWheel} style={{ ...btnS, color: "#a855f7" }} title="หมุนวงล้อ">🎡</button>
+        </>}
         {toolType === "clock_face" && <>
           <button onClick={(e) => adjClock(e, 1, 0)} style={{ ...btnS, color: "#f59e0b" }} title="+1 ชม.">H+</button>
           <button onClick={(e) => adjClock(e, 0, 5)} style={{ ...btnS, color: "#f59e0b" }} title="+5 นาที">M+</button>
         </>}
-        {toolType === "fraction_circle" && <>
-          <button onClick={(e) => adjFraction(e, -1)} style={{ ...btnS, color: "#ec4899" }} title="ลดส่วน">−</button>
-          <button onClick={(e) => adjFraction(e, 1)} style={{ ...btnS, color: "#ec4899" }} title="เพิ่มส่วน">+</button>
+        {toolType === "classroom_timer" && <>
+          <button onClick={(e) => adjTimer(e, 60)} style={{ ...btnS, color: "#3b82f6" }} title="เพิ่ม 1 นาที">+1m</button>
+          <button onClick={(e) => adjTimer(e, -60)} style={{ ...btnS, color: "#ef4444" }} title="ลด 1 นาที">-1m</button>
+          <button onClick={(e) => adjTimer(e, 10)} style={{ ...btnS, color: "#3b82f6" }} title="เพิ่ม 10 วินาที">+10s</button>
+          <button onClick={(e) => adjTimer(e, -10)} style={{ ...btnS, color: "#ef4444" }} title="ลด 10 วินาที">-10s</button>
         </>}
         <button onClick={(e) => { e.stopPropagation(); onClose(toolId); }} style={{ ...btnS, color: "#ef4444", fontSize: 13 }} title="ปิด">✕</button>
       </div>
 
       {/* Tool SVG */}
       <Renderer w={size.w} h={size.h} {...extraProps} />
+
+      {/* Edit Names Panel for Spinner */}
+      {toolType === "spinner" && showSpinnerEdit && (
+        <div style={{ position: "absolute", top: 40, left: "50%", transform: "translateX(-50%)", background: "white", borderRadius: 8, padding: 12, boxShadow: "0 10px 25px rgba(0,0,0,0.2)", zIndex: 10 }}>
+          <div style={{ fontSize: 12, fontWeight: "bold", marginBottom: 8, color: "#334155" }}>แก้ไขชื่อ (1 บรรทัดต่อ 1 ช่อง)</div>
+          <textarea 
+            style={{ width: 160, height: 120, fontSize: 12, padding: 6, borderRadius: 4, border: "1px solid #cbd5e1", resize: "none" }}
+            value={spinnerLabels.join("\n")}
+            onChange={(e) => setSpinnerLabels(e.target.value.split("\n"))}
+            onPointerDown={(e) => e.stopPropagation()}
+            onKeyDown={(e) => e.stopPropagation()}
+          />
+          <button 
+            onClick={(e) => { e.stopPropagation(); setShowSpinnerEdit(false); }}
+            style={{ display: "block", width: "100%", marginTop: 8, padding: "6px", background: "#3b82f6", color: "white", border: "none", borderRadius: 4, cursor: "pointer", fontWeight: "bold" }}
+          >
+            ตกลง
+          </button>
+        </div>
+      )}
 
       {/* Resize Handle */}
       {canEdit && (
