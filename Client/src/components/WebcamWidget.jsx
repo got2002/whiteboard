@@ -6,13 +6,18 @@ import React, { useEffect, useRef, useState, useCallback } from "react";
  * - Remote: รับ frame จาก socket เฉพาะ id ของตัวเอง
  * - ทั้ง 2 ฝั่ง: ลากได้ + ปรับขนาดได้
  */
-function WebcamWidget({ isLocal, socket, ownerName, ownerId, initialPosition }) {
+function WebcamWidget({ isLocal, socket, ownerName, ownerId, initialPosition, onClose }) {
   const videoRef = useRef(null);
   const canvasRef = useRef(null);
   const intervalRef = useRef(null);
   const [error, setError] = useState(null);
   const [stream, setStream] = useState(null);
   const [remoteFrame, setRemoteFrame] = useState(null);
+
+  // ── Camera selection ──
+  const [devices, setDevices] = useState([]);
+  const [deviceIndex, setDeviceIndex] = useState(0);
+  const activeStreamRef = useRef(null);
 
   // ── Drag ──
   const [position, setPosition] = useState(initialPosition || { x: 20, y: 80 });
@@ -30,17 +35,52 @@ function WebcamWidget({ isLocal, socket, ownerName, ownerId, initialPosition }) 
   const MAX_W = 800;
   const MAX_H = 600;
 
+  // ── Enumerate cameras ──
+  useEffect(() => {
+    if (!isLocal) return;
+    const listDevices = async () => {
+      try {
+        // Need initial permission to list devices with labels
+        await navigator.mediaDevices.getUserMedia({ video: true });
+        const all = await navigator.mediaDevices.enumerateDevices();
+        const videoDevices = all.filter(d => d.kind === "videoinput");
+        setDevices(videoDevices);
+      } catch (err) {
+        console.error("Error enumerating devices:", err);
+      }
+    };
+    listDevices();
+  }, [isLocal]);
+
   // ── Local: เปิดกล้อง + ส่ง frame ──
   useEffect(() => {
     if (!isLocal) return;
 
+    let isMounted = true;
     let activeStream = null;
     const startWebcam = async () => {
       try {
-        activeStream = await navigator.mediaDevices.getUserMedia({
-          video: { width: { ideal: 640 }, height: { ideal: 360 } }
-        });
+        // Stop previous stream if any
+        if (activeStreamRef.current) {
+          activeStreamRef.current.getTracks().forEach(t => t.stop());
+        }
+
+        const constraints = {
+          video: devices.length > 0 && devices[deviceIndex]
+            ? { deviceId: { exact: devices[deviceIndex].deviceId }, width: { ideal: 640 }, height: { ideal: 360 } }
+            : { width: { ideal: 640 }, height: { ideal: 360 } }
+        };
+
+        activeStream = await navigator.mediaDevices.getUserMedia(constraints);
+        
+        if (!isMounted) {
+          activeStream.getTracks().forEach(t => t.stop());
+          return;
+        }
+
+        activeStreamRef.current = activeStream;
         setStream(activeStream);
+        setError(null);
         if (videoRef.current) {
           videoRef.current.srcObject = activeStream;
         }
@@ -53,6 +93,7 @@ function WebcamWidget({ isLocal, socket, ownerName, ownerId, initialPosition }) 
         canvasRef.current = cvs;
 
         // Start streaming frames
+        if (intervalRef.current) clearInterval(intervalRef.current);
         intervalRef.current = setInterval(() => {
           if (videoRef.current && canvasRef.current && videoRef.current.readyState >= 2) {
             const v = videoRef.current;
@@ -73,15 +114,23 @@ function WebcamWidget({ isLocal, socket, ownerName, ownerId, initialPosition }) 
     startWebcam();
 
     return () => {
+      isMounted = false;
       if (intervalRef.current) clearInterval(intervalRef.current);
-      if (activeStream) {
-        activeStream.getTracks().forEach((track) => track.stop());
+      if (activeStreamRef.current) {
+        activeStreamRef.current.getTracks().forEach((track) => track.stop());
+        activeStreamRef.current = null;
       }
       // Notify clients webcam is off
       socket?.emit("webcam-toggle", { isOn: false, name: ownerName || "" });
       socket?.emit("webcam-frame", { id: socket.id, frame: null });
     };
-  }, [isLocal, socket, ownerName]);
+  }, [isLocal, socket, ownerName, deviceIndex, devices]);
+
+  // ── Switch camera ──
+  const switchCamera = useCallback(() => {
+    if (devices.length <= 1) return;
+    setDeviceIndex(prev => (prev + 1) % devices.length);
+  }, [devices]);
 
   // ── Remote: ฟัง frame ──
   useEffect(() => {
@@ -113,12 +162,16 @@ function WebcamWidget({ isLocal, socket, ownerName, ownerId, initialPosition }) 
 
   const handleDragMove = useCallback((e) => {
     if (isDragging.current) {
-      setPosition({
-        x: e.clientX - dragOffset.current.x,
-        y: e.clientY - dragOffset.current.y,
-      });
+      let newX = e.clientX - dragOffset.current.x;
+      let newY = e.clientY - dragOffset.current.y;
+      
+      // Constrain within screen bounds (prevent overlapping top header which is 44px)
+      newX = Math.max(0, Math.min(newX, window.innerWidth - size.width));
+      newY = Math.max(44, Math.min(newY, window.innerHeight - size.height));
+
+      setPosition({ x: newX, y: newY });
     }
-  }, []);
+  }, [size]);
 
   const handleDragUp = useCallback((e) => {
     isDragging.current = false;
@@ -157,6 +210,7 @@ function WebcamWidget({ isLocal, socket, ownerName, ownerId, initialPosition }) 
         left: position.x + "px",
         top: position.y + "px",
         width: size.width + "px",
+        "--cam-scale": size.width / (isLocal ? 320 : 220),
       }}
     >
       <div
@@ -172,6 +226,27 @@ function WebcamWidget({ isLocal, socket, ownerName, ownerId, initialPosition }) 
         <div className="webcam-indicator"></div>
         <span className="webcam-title">{ownerName || "Webcam"}</span>
       </div>
+
+      {/* Close Button & Switch Camera Button (Local only) */}
+      {isLocal && (
+        <div className="webcam-top-actions">
+          {devices.length > 1 && (
+            <button className="webcam-switch-btn" onClick={switchCamera} title="สลับกล้อง">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M21.5 2v6h-6M2.13 15.57a10 10 0 1 0 5.43-10.45l-5.43 2.88" />
+              </svg>
+            </button>
+          )}
+          {onClose && (
+            <button className="webcam-close-btn" onClick={onClose} title="ปิดกล้อง">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <line x1="18" y1="6" x2="6" y2="18"></line>
+                <line x1="6" y1="6" x2="18" y2="18"></line>
+              </svg>
+            </button>
+          )}
+        </div>
+      )}
 
       {/* Video content */}
       {error ? (
@@ -208,13 +283,7 @@ function WebcamWidget({ isLocal, socket, ownerName, ownerId, initialPosition }) 
         onPointerMove={handleResizeMove}
         onPointerUp={handleResizeUp}
         onPointerCancel={handleResizeUp}
-      >
-        <svg width="12" height="12" viewBox="0 0 12 12" fill="currentColor">
-          <path d="M11 1v10H1" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-          <path d="M11 5v6H5" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-          <path d="M11 9v2H9" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-        </svg>
-      </div>
+      />
     </div>
   );
 }
