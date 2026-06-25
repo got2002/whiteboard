@@ -320,24 +320,35 @@ export default function PresentationMode({
     };
   }, []);
 
+  // Auto-play action ref to avoid stale closures and unnecessary interval resets
+  const savedAutoPlayAction = useRef(null);
+  useEffect(() => {
+    savedAutoPlayAction.current = () => {
+      const current = slideIndexRef.current;
+      if (isTransitioningRef.current) return;
+      if (current < pages.length - 1) {
+        goToPage(current + 1, "next");
+      } else {
+        goToPage(0, "next");
+      }
+    };
+  }, [pages.length, goToPage]);
+
   // Auto-play
   useEffect(() => {
     if (autoPlayTimerRef.current) clearInterval(autoPlayTimerRef.current);
     if (autoPlay) {
+      // Start/restart the interval every time we arrive at a slide
       autoPlayTimerRef.current = setInterval(() => {
-        const current = slideIndexRef.current;
-        if (isTransitioningRef.current) return; // skip if still transitioning
-        if (current < pages.length - 1) {
-          goToPage(current + 1, "next");
-        } else {
-          goToPage(0, "next");
+        if (savedAutoPlayAction.current) {
+          savedAutoPlayAction.current();
         }
       }, autoPlayInterval * 1000);
     }
     return () => {
       if (autoPlayTimerRef.current) clearInterval(autoPlayTimerRef.current);
     };
-  }, [autoPlay, autoPlayInterval, pages.length, goToPage]);
+  }, [autoPlay, autoPlayInterval, slideIndex]); // depend on slideIndex to restart timer on manual change
 
   // Auto-play progress bar
   const [progress, setProgress] = useState(0);

@@ -652,6 +652,7 @@ export default function MainLayout() {
           ownerName={username}
           ownerId={socket.id}
           initialPosition={{ x: 20, y: 80 }}
+          onClose={() => setShowWebcam(false)}
         />
       )}
 
