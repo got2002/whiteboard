@@ -4617,6 +4617,7 @@ html.on-screen-mode #root {
   touch-action: none;
   user-select: none;
   -webkit-user-select: none;
+  -webkit-app-region: no-drag;
 }
 
 @keyframes screenshotFadeIn {

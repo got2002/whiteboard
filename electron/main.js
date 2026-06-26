@@ -51,6 +51,21 @@ ipcMain.handle('minimize-app', () => {
   if (mainWindow) mainWindow.minimize();
 });
 
+ipcMain.handle('restore-app', () => {
+  if (mainWindow) {
+    mainWindow.restore();
+    mainWindow.show();
+  }
+});
+
+ipcMain.handle('hide-app', () => {
+  if (mainWindow) mainWindow.hide();
+});
+
+ipcMain.handle('show-app', () => {
+  if (mainWindow) mainWindow.show();
+});
+
 // ขยาย/คืนค่าหน้าต่างแบบ Manual (แก้ปัญหาตายตัวสำหรับ Transparent Window)
 let isWindowMaximized = false;
 let normalBounds = { x: 0, y: 0, width: 800, height: 600 };
@@ -92,6 +107,20 @@ ipcMain.handle('toggle-fullscreen', (event, enable) => {
   }
   mainWindow.webContents.send('window-maximized', isWindowMaximized);
   return isWindowMaximized;
+});
+
+// True Fullscreen (Covers taskbar) for Screenshot Overlay
+ipcMain.handle('set-true-fullscreen', (event, enable) => {
+  if (!mainWindow) return;
+  if (enable) {
+    mainWindow.setResizable(false);
+    mainWindow.setAlwaysOnTop(true, 'screen-saver');
+    mainWindow.setFullScreen(true);
+  } else {
+    mainWindow.setFullScreen(false);
+    mainWindow.setAlwaysOnTop(false);
+    mainWindow.setResizable(true);
+  }
 });
 
 // On-Screen mode (transparent + always on top) — ทำงานแยกจาก Fullscreen
@@ -144,6 +173,64 @@ ipcMain.handle('get-app-window-source', async () => {
   if (mainWindow) {
     const mediaSourceId = mainWindow.getMediaSourceId();
     return { id: mediaSourceId, name: 'ProEdu1Whiteboard' };
+  }
+  return null;
+});
+
+// ── Screenshot Endpoints ──
+
+// ดึงภาพหน้าจอทั้งหมด (สำหรับ Screenshot Desktop/Fullscreen)
+ipcMain.handle('capture-screen', async () => {
+  const display = screen.getPrimaryDisplay();
+  const width = Math.round(display.size.width * display.scaleFactor);
+  const height = Math.round(display.size.height * display.scaleFactor);
+  const sources = await desktopCapturer.getSources({ 
+    types: ['screen'], 
+    thumbnailSize: { width: Math.max(width, 3840), height: Math.max(height, 2160) } 
+  });
+  if (sources.length > 0) {
+    return sources[0].thumbnail.toDataURL();
+  }
+  return null;
+});
+
+// ดึงภาพแอปพลิเคชันของเรา (สำหรับ Screenshot App)
+ipcMain.handle('capture-app-window', async () => {
+  if (!mainWindow) return null;
+  try {
+    const image = await mainWindow.webContents.capturePage();
+    return image.toDataURL(); // Returns NativeImage as Data URL
+  } catch (err) {
+    console.error("Failed to capture app window:", err);
+    return null;
+  }
+});
+
+// ดึงรายการหน้าต่างพร้อมภาพตัวอย่าง (สำหรับ Screenshot Window Selection)
+ipcMain.handle('get-windows-with-thumbnails', async () => {
+  const sources = await desktopCapturer.getSources({ 
+    types: ['window'], 
+    thumbnailSize: { width: 600, height: 400 } 
+  });
+  return sources.map(s => ({
+    id: s.id,
+    name: s.name,
+    thumbnail: s.thumbnail.toDataURL()
+  }));
+});
+
+// ดึงภาพหน้าต่างที่เลือก
+ipcMain.handle('capture-window', async (event, windowId) => {
+  const display = screen.getPrimaryDisplay();
+  const width = Math.round(display.size.width * display.scaleFactor);
+  const height = Math.round(display.size.height * display.scaleFactor);
+  const sources = await desktopCapturer.getSources({ 
+    types: ['window'], 
+    thumbnailSize: { width: Math.max(width, 3840), height: Math.max(height, 2160) } 
+  });
+  const source = sources.find(s => s.id === windowId);
+  if (source) {
+    return source.thumbnail.toDataURL();
   }
   return null;
 });

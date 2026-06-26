@@ -2,18 +2,19 @@
 // ScreenshotOverlay.jsx — Selection Screenshot Overlay
 // ============================================================
 // แสดง overlay ทับหน้าจอให้ user ลากเลือกพื้นที่ที่ต้องการ capture
-// จากนั้นแสดง preview ให้ user ตัดสินใจก่อน → กดบันทึก หรือ ยกเลิก
+// รองรับการรับภาพพื้นหลัง bgImage (สำหรับ Desktop/App capture) 
 // ============================================================
 
 import { useState, useRef, useCallback, useEffect } from "react";
 
-function ScreenshotOverlay({ canvasRef, pages, currentPageIndex, onClose }) {
+function ScreenshotOverlay({ canvasRef, pages, currentPageIndex, onClose, bgImage, onAddToBoard, initialPreview }) {
   const overlayRef = useRef(null);
+  const imgRef = useRef(null);
   const [isDragging, setIsDragging] = useState(false);
   const [startPos, setStartPos] = useState(null);
   const [currentPos, setCurrentPos] = useState(null);
   // Preview state
-  const [previewDataUrl, setPreviewDataUrl] = useState(null);
+  const [previewDataUrl, setPreviewDataUrl] = useState(initialPreview || null);
 
   const getClientPos = (e) => {
     if (e.touches && e.touches.length > 0) {
@@ -23,7 +24,6 @@ function ScreenshotOverlay({ canvasRef, pages, currentPageIndex, onClose }) {
   };
 
   const handlePointerDown = useCallback((e) => {
-    // Don't start new selection if preview is showing
     if (previewDataUrl) return;
     const pos = getClientPos(e);
     setStartPos(pos);
@@ -46,7 +46,7 @@ function ScreenshotOverlay({ canvasRef, pages, currentPageIndex, onClose }) {
     }
     setIsDragging(false);
 
-    // Calculate selection rect
+    // Calculate selection rect in screen space
     const x1 = Math.min(startPos.x, currentPos.x);
     const y1 = Math.min(startPos.y, currentPos.y);
     const x2 = Math.max(startPos.x, currentPos.x);
@@ -61,68 +61,94 @@ function ScreenshotOverlay({ canvasRef, pages, currentPageIndex, onClose }) {
       return;
     }
 
-    // Get canvas element
-    const canvas = canvasRef.current;
-    if (!canvas) {
-      onClose();
-      return;
-    }
-
-    // Get canvas bounding rect to map screen coords -> canvas coords
-    const canvasRect = canvas.getBoundingClientRect();
-    const scaleX = canvas.width / canvasRect.width;
-    const scaleY = canvas.height / canvasRect.height;
-
-    const cropX = Math.max(0, (x1 - canvasRect.left) * scaleX);
-    const cropY = Math.max(0, (y1 - canvasRect.top) * scaleY);
-    const cropW = Math.min(canvas.width - cropX, selW * scaleX);
-    const cropH = Math.min(canvas.height - cropY, selH * scaleY);
-
-    if (cropW <= 0 || cropH <= 0) {
-      setStartPos(null);
-      setCurrentPos(null);
-      return;
-    }
-
-    // Create temp canvas with background + drawing
     const tempCanvas = document.createElement("canvas");
-    tempCanvas.width = cropW;
-    tempCanvas.height = cropH;
     const ctx = tempCanvas.getContext("2d");
 
-    // Fill background
-    const page = pages[currentPageIndex];
-    const bg = page?.background || "white";
-    if (bg === "black") ctx.fillStyle = "#1a1a2e";
-    else if (bg === "lined") ctx.fillStyle = "#fefcf3";
-    else if (bg?.startsWith("color-")) ctx.fillStyle = bg.replace("color-", "");
-    else ctx.fillStyle = "#ffffff";
-    ctx.fillRect(0, 0, cropW, cropH);
+    if (bgImage && imgRef.current) {
+      // Cropping from a provided background image (Desktop/App capture)
+      const overlayRect = overlayRef.current.getBoundingClientRect();
+      const scaleX = imgRef.current.naturalWidth / overlayRect.width;
+      const scaleY = imgRef.current.naturalHeight / overlayRect.height;
+      
+      const cropX = x1 * scaleX;
+      const cropY = y1 * scaleY;
+      const cropW = selW * scaleX;
+      const cropH = selH * scaleY;
 
-    // Draw cropped region from main canvas
-    ctx.drawImage(canvas, cropX, cropY, cropW, cropH, 0, 0, cropW, cropH);
+      tempCanvas.width = cropW;
+      tempCanvas.height = cropH;
+      ctx.drawImage(imgRef.current, cropX, cropY, cropW, cropH, 0, 0, cropW, cropH);
+    } else {
+      // Cropping from the app's whiteboard canvas
+      const canvas = canvasRef.current;
+      if (!canvas) {
+        onClose();
+        return;
+      }
+      const canvasRect = canvas.getBoundingClientRect();
+      const scaleX = canvas.width / canvasRect.width;
+      const scaleY = canvas.height / canvasRect.height;
 
-    // Show preview instead of downloading immediately
+      const cropX = Math.max(0, (x1 - canvasRect.left) * scaleX);
+      const cropY = Math.max(0, (y1 - canvasRect.top) * scaleY);
+      const cropW = Math.min(canvas.width - cropX, selW * scaleX);
+      const cropH = Math.min(canvas.height - cropY, selH * scaleY);
+
+      if (cropW <= 0 || cropH <= 0) {
+        setStartPos(null);
+        setCurrentPos(null);
+        return;
+      }
+
+      tempCanvas.width = cropW;
+      tempCanvas.height = cropH;
+      
+      // Fill background
+      const page = pages[currentPageIndex];
+      const bg = page?.background || "white";
+      if (bg === "black") ctx.fillStyle = "#1a1a2e";
+      else if (bg === "lined") ctx.fillStyle = "#fefcf3";
+      else if (bg?.startsWith("color-")) ctx.fillStyle = bg.replace("color-", "");
+      else ctx.fillStyle = "#ffffff";
+      ctx.fillRect(0, 0, cropW, cropH);
+
+      ctx.drawImage(canvas, cropX, cropY, cropW, cropH, 0, 0, cropW, cropH);
+    }
+
+    // Show preview
     const url = tempCanvas.toDataURL("image/png");
     setPreviewDataUrl(url);
-  }, [isDragging, startPos, currentPos, canvasRef, pages, currentPageIndex]);
+  }, [isDragging, startPos, currentPos, canvasRef, pages, currentPageIndex, bgImage]);
 
-  // Save the preview image
+  // Save the preview image to computer
   const handleSave = useCallback(() => {
     if (!previewDataUrl) return;
     const a = document.createElement("a");
     a.href = previewDataUrl;
-    a.download = `proedu1-selection-${Date.now()}.png`;
+    a.download = `proedu1-screenshot-${Date.now()}.png`;
     a.click();
     onClose();
   }, [previewDataUrl, onClose]);
 
+  // Add the preview image directly to the whiteboard
+  const handleAddToBoard = useCallback(() => {
+    if (!previewDataUrl) return;
+    if (onAddToBoard) {
+      onAddToBoard(previewDataUrl);
+    }
+    onClose();
+  }, [previewDataUrl, onAddToBoard, onClose]);
+
   // Retry: go back to selection mode
   const handleRetry = useCallback(() => {
-    setPreviewDataUrl(null);
-    setStartPos(null);
-    setCurrentPos(null);
-  }, []);
+    if (initialPreview && !bgImage) {
+      onClose();
+    } else {
+      setPreviewDataUrl(null);
+      setStartPos(null);
+      setCurrentPos(null);
+    }
+  }, [initialPreview, bgImage, onClose]);
 
   // Keyboard: Escape to cancel
   useEffect(() => {
@@ -168,21 +194,15 @@ function ScreenshotOverlay({ canvasRef, pages, currentPageIndex, onClose }) {
             />
           </div>
 
-          <div className="screenshot-preview-actions">
-            <button className="screenshot-action-btn screenshot-btn-retry" onClick={handleRetry}>
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M3 7v6h6" /><path d="M21 17a9 9 0 0 0-9-9 9 9 0 0 0-6.69 3L3 13" />
-              </svg>
+          <div className="screenshot-preview-actions" style={{ display: 'flex', gap: '8px' }}>
+            <button className="screenshot-action-btn screenshot-btn-retry" onClick={handleRetry} style={{ background: "#475569" }}>
               เลือกใหม่
             </button>
-            <button className="screenshot-action-btn screenshot-btn-cancel" onClick={onClose}>
-              ✕ ยกเลิก
+            <button className="screenshot-action-btn screenshot-btn-save" onClick={handleSave} style={{ background: "#3b82f6" }}>
+              บันทึกลงเครื่อง
             </button>
-            <button className="screenshot-action-btn screenshot-btn-save" onClick={handleSave}>
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><path d="M7 10l5 5 5-5" /><path d="M12 15V3" />
-              </svg>
-              บันทึก
+            <button className="screenshot-action-btn screenshot-btn-save" onClick={handleAddToBoard} style={{ background: "#10b981", flex: 2 }}>
+              แปะลงกระดาน
             </button>
           </div>
         </div>
@@ -195,6 +215,13 @@ function ScreenshotOverlay({ canvasRef, pages, currentPageIndex, onClose }) {
     <div
       ref={overlayRef}
       className="screenshot-overlay"
+      style={{
+        backgroundImage: bgImage ? `url(${bgImage})` : 'none',
+        backgroundSize: '100% 100%',
+        backgroundPosition: 'center',
+        backgroundRepeat: 'no-repeat',
+        backgroundColor: bgImage ? 'transparent' : 'rgba(0, 0, 0, 0.35)'
+      }}
       onMouseDown={handlePointerDown}
       onMouseMove={handlePointerMove}
       onMouseUp={handlePointerUp}
@@ -202,9 +229,17 @@ function ScreenshotOverlay({ canvasRef, pages, currentPageIndex, onClose }) {
       onTouchMove={handlePointerMove}
       onTouchEnd={handlePointerUp}
     >
+      {/* Hidden image element to get natural dimensions */}
+      {bgImage && <img ref={imgRef} src={bgImage} style={{ display: 'none' }} alt="bg" />}
+      
+      {/* Background dimmer if bgImage is used to make it clear we are selecting */}
+      {bgImage && (
+        <div style={{ position: 'absolute', inset: 0, backgroundColor: 'rgba(0,0,0,0.4)', pointerEvents: 'none' }} />
+      )}
+
       {/* Instruction text */}
       {!isDragging && !selRect && (
-        <div className="screenshot-instruction">
+        <div className="screenshot-instruction" style={{ pointerEvents: 'none', zIndex: 10002 }}>
           <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             <path d="M6 2L2 6M2 2l4 4" /><path d="M18 2l4 4M22 2l-4 4" />
             <path d="M6 22l-4-4M2 22l4-4" /><path d="M18 22l4-4M22 22l-4-4" />
@@ -216,23 +251,42 @@ function ScreenshotOverlay({ canvasRef, pages, currentPageIndex, onClose }) {
 
       {/* Selection rectangle */}
       {selRect && selRect.width > 0 && selRect.height > 0 && (
-        <div
-          className="screenshot-selection"
-          style={{
-            left: selRect.left + "px",
-            top: selRect.top + "px",
-            width: selRect.width + "px",
-            height: selRect.height + "px",
-          }}
-        >
-          <span className="screenshot-selection-size">
-            {Math.round(selRect.width)} × {Math.round(selRect.height)}
-          </span>
-        </div>
+        <>
+          {bgImage && (
+            <div 
+              style={{
+                position: 'absolute',
+                left: selRect.left + "px",
+                top: selRect.top + "px",
+                width: selRect.width + "px",
+                height: selRect.height + "px",
+                backgroundImage: `url(${bgImage})`,
+                backgroundSize: `${overlayRef.current ? overlayRef.current.offsetWidth : 100}px ${overlayRef.current ? overlayRef.current.offsetHeight : 100}px`,
+                backgroundPosition: `-${selRect.left}px -${selRect.top}px`,
+                pointerEvents: 'none',
+                zIndex: 10001
+              }}
+            />
+          )}
+          <div
+            className="screenshot-selection"
+            style={{
+              left: selRect.left + "px",
+              top: selRect.top + "px",
+              width: selRect.width + "px",
+              height: selRect.height + "px",
+              zIndex: 10002
+            }}
+          >
+            <span className="screenshot-selection-size">
+              {Math.round(selRect.width)} × {Math.round(selRect.height)}
+            </span>
+          </div>
+        </>
       )}
 
       {/* Cancel button */}
-      <button className="screenshot-cancel-btn" onClick={onClose}>
+      <button className="screenshot-cancel-btn" onClick={onClose} style={{ zIndex: 10003 }}>
         ✕ ยกเลิก
       </button>
     </div>

@@ -19,7 +19,9 @@ import { getStrokeBounds, hitTestHandle, findStrokeAt, HANDLE_SIZE, getCombinedB
 import { snapPointToMathTools } from "../utils/mathToolSnapping";
 import ColorPickerModal from "./ColorPickerModal";
 import VideoWidget from "./VideoWidget";
-import Tesseract from "tesseract.js";
+
+const isLocalhost = window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1";
+const serverUrl = isLocalhost ? "http://localhost:3000" : `http://${window.location.hostname}:3000`;
 
 // สีคงที่สำหรับ Split Board
 const SLOT_COLORS = ["#ef4444", "#3b82f6", "#22c55e", "#f97316", "#a855f7", "#06b6d4", "#ec4899", "#eab308", "#6b7280", "#000000"];
@@ -505,7 +507,7 @@ const Canvas = forwardRef(function Canvas(
     }
   }, [isSplitMode, onExitSplitMode]);
 
-  // Magic Pen / Gesture to Text logic
+  // Magic Pen / Gesture to Text logic (PaddleOCR — Thai + English handwriting)
   const processGestureToText = async () => {
     const strokesToProcess = [...gestureStrokesRef.current];
     if (strokesToProcess.length === 0) return;
@@ -524,9 +526,8 @@ const Canvas = forwardRef(function Canvas(
       // Create offscreen canvas to draw just these strokes
       const tempCanvas = document.createElement("canvas");
       
-      // Scaling up the image dramatically improves Tesseract OCR accuracy for handwriting
+      // Scale up for better recognition accuracy
       const scale = 3;
-      // Add more padding so Tesseract can easily detect the baseline
       const padding = 40; 
       
       tempCanvas.width = (bounds.width + padding * 2) * scale;
@@ -541,8 +542,7 @@ const Canvas = forwardRef(function Canvas(
       tCtx.scale(scale, scale);
       tCtx.translate(-bounds.x + padding, -bounds.y + padding);
       
-      // Calculate optimal line width based on text height (usually ~5-8% of height)
-      // This ensures small handwriting doesn't get too thin, and large handwriting isn't too thick
+      // Calculate optimal line width based on text height
       const optimalLineWidth = Math.max(4, bounds.height * 0.06);
 
       strokesToProcess.forEach(s => {
@@ -560,14 +560,35 @@ const Canvas = forwardRef(function Canvas(
         }
       });
       
-      const dataUrl = tempCanvas.toDataURL("image/jpeg", 1.0);
+      // ── Gemini AI Recognition ──
+      console.log("[Gemini AI] Converting canvas to base64...");
+      const imageBase64 = tempCanvas.toDataURL("image/png");
       
-      // Call Tesseract
-      const result = await Tesseract.recognize(dataUrl, 'tha+eng', {
-        logger: m => console.log("[OCR]", m)
+      if (!imageBase64) {
+        console.error("[Gemini AI] FAILED: Could not create base64 from canvas");
+        return;
+      }
+      
+      console.log("[Gemini AI] Calling server endpoint...");
+      
+      const res = await fetch(`${serverUrl}/api/ai/generate`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          prompt: "Extract the handwritten text from this image. Output only the transcribed text without any formatting, quotes, or markdown. The text may be in Thai or English.",
+          imageBase64
+        })
       });
+
+      if (!res.ok) {
+        const errData = await res.json().catch(() => ({}));
+        throw new Error(errData.error || `HTTP error ${res.status}`);
+      }
+
+      const data = await res.json();
+      let text = data.result ? data.result.trim() : "";
       
-      const text = result.data.text.trim();
+      console.log("[Gemini AI] Recognized text:", text);
       
       if (text) {
         // Delete original strokes
@@ -586,9 +607,12 @@ const Canvas = forwardRef(function Canvas(
           color: color || "#000",
         };
         onStrokeComplete(newTextStroke);
+      } else {
+        console.warn("[Gemini AI] No text recognized from the handwriting");
       }
     } catch (err) {
-      console.error("Gesture to Text failed:", err);
+      console.error("Gesture to Text (Gemini AI) failed:", err);
+      alert("[Magic Pen Error] " + (err?.message || err));
     } finally {
       setIsOcrProcessing(false);
       setOcrBoundingBox(null);
