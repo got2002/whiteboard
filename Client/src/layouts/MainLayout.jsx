@@ -35,6 +35,7 @@ import NameDialog from "../components/NameDialog";
 import VideoPlayerModal from "../components/VideoPlayerModal";
 import WebcamWidget from "../components/WebcamWidget";
 import ScreenshotOverlay from "../components/ScreenshotOverlay";
+import ScreenshotMenu from "../components/ScreenshotMenu";
 import QRCodePanel from "../components/QRCodePanel";
 import ToolBoxButton from "../components/ToolBoxButton";
 import CalculatorWidget from "../components/CalculatorWidget";
@@ -71,6 +72,10 @@ export default function MainLayout() {
   const [remoteWebcams, setRemoteWebcams] = useState({});
   const [isOnScreen, setIsOnScreen] = useState(false);
   const [showScreenshotOverlay, setShowScreenshotOverlay] = useState(false);
+  const [showScreenshotMenu, setShowScreenshotMenu] = useState(false);
+  const [screenshotBgImage, setScreenshotBgImage] = useState(null);
+  const [screenshotInitialPreview, setScreenshotInitialPreview] = useState(null);
+  const [isScreenshotFullscreen, setIsScreenshotFullscreen] = useState(false);
   const [showCalculator, setShowCalculator] = useState(false);
   const [showSpotlight, setShowSpotlight] = useState(false);
   const [showTablePicker, setShowTablePicker] = useState(false);
@@ -303,6 +308,17 @@ export default function MainLayout() {
     setCanSync(canUseFullTools);
   }, [canUseFullTools]);
 
+  // Listen for image insertion to auto-switch to select mode
+  useEffect(() => {
+    const handleImageInserted = () => {
+      if (drawingHook && drawingHook.handleToolChange) {
+        drawingHook.handleToolChange('select');
+      }
+    };
+    window.addEventListener('image-inserted', handleImageInserted);
+    return () => window.removeEventListener('image-inserted', handleImageInserted);
+  }, [drawingHook]);
+
   // Listen for window maximized state to remove border-radius
   useEffect(() => {
     const isElectron = typeof window !== "undefined" && window.electronAPI?.isElectron;
@@ -339,6 +355,59 @@ export default function MainLayout() {
   const isViewerSeeingScreen = userRole !== "host" && remoteScreen;
 
   const bannerHeight = showBanner?.isShowing ? (FONT_SIZES.find(f => f.id === showBanner?.fontSizeId)?.size || 32) + 28 : 0;
+  const handleScreenshotMode = async (mode) => {
+    setShowScreenshotMenu(false);
+    
+    if (mode === 'desktop-selection') {
+      if (window.electronAPI) {
+        await window.electronAPI.hide();
+        setTimeout(async () => {
+          const bgDataUrl = await window.electronAPI.captureScreen();
+          if (bgDataUrl) {
+            setScreenshotBgImage(bgDataUrl);
+            setShowScreenshotOverlay(true);
+            setIsScreenshotFullscreen(true);
+            await window.electronAPI.show();
+            await window.electronAPI.setTrueFullscreen(true);
+          }
+        }, 150);
+      }
+    } else if (mode === 'app-selection') {
+      if (window.electronAPI) {
+        setTimeout(async () => {
+          const bgDataUrl = await window.electronAPI.captureAppWindow();
+          if (bgDataUrl) {
+            setScreenshotBgImage(bgDataUrl);
+            setShowScreenshotOverlay(true);
+          }
+        }, 150);
+      }
+    } else if (mode === 'fullscreen') {
+      if (window.electronAPI) {
+        setTimeout(async () => {
+          const bgDataUrl = await window.electronAPI.captureScreen();
+          if (bgDataUrl) {
+            setScreenshotInitialPreview(bgDataUrl);
+            setShowScreenshotOverlay(true);
+          }
+        }, 150);
+      }
+    }
+  };
+
+  const handleWindowSelected = async (windowId) => {
+    setShowScreenshotMenu(false);
+    if (window.electronAPI) {
+      setTimeout(async () => {
+        const dataUrl = await window.electronAPI.captureWindow(windowId);
+        if (dataUrl) {
+          setScreenshotInitialPreview(dataUrl);
+          setShowScreenshotOverlay(true);
+        }
+      }, 150);
+    }
+  };
+
   const bannerPos = showBanner?.position || "bottom";
 
   return (
@@ -425,7 +494,7 @@ export default function MainLayout() {
           onSavePD1={fileHook.handleSavePD1}
           onExport={fileHook.handleExport}
           onExportAll={fileHook.handleExportAll}
-          onSelectionScreenshot={() => setShowScreenshotOverlay(true)}
+          onSelectionScreenshot={() => setShowScreenshotMenu(true)}
           autoSave={fileHook.autoSave}
           onToggleAutoSave={fileHook.handleToggleAutoSave}
           onInsertImage={fileHook.handleInsertImage}
@@ -738,12 +807,40 @@ export default function MainLayout() {
         initialLocked={isLockedInitial}
       />
 
+      {showScreenshotMenu && (
+        <ScreenshotMenu
+          onClose={() => setShowScreenshotMenu(false)}
+          onSelectMode={handleScreenshotMode}
+          onWindowSelected={handleWindowSelected}
+        />
+      )}
+
       {showScreenshotOverlay && (
         <ScreenshotOverlay
           canvasRef={canvasRef}
           pages={pages}
           currentPageIndex={currentPageIndex}
-          onClose={() => setShowScreenshotOverlay(false)}
+          bgImage={screenshotBgImage}
+          initialPreview={screenshotInitialPreview}
+          onClose={() => {
+            setShowScreenshotOverlay(false);
+            setScreenshotBgImage(null);
+            setScreenshotInitialPreview(null);
+            if (isScreenshotFullscreen && window.electronAPI && window.electronAPI.setTrueFullscreen) {
+              window.electronAPI.setTrueFullscreen(false);
+            }
+            setIsScreenshotFullscreen(false);
+          }}
+          onAddToBoard={(dataUrl) => {
+            fileHook.handleInsertImage(dataUrl);
+            setScreenshotBgImage(null);
+            setScreenshotInitialPreview(null);
+            if (isScreenshotFullscreen && window.electronAPI && window.electronAPI.setTrueFullscreen) {
+              window.electronAPI.setTrueFullscreen(false);
+            }
+            setIsScreenshotFullscreen(false);
+            setShowScreenshotOverlay(false);
+          }}
         />
       )}
 

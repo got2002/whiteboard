@@ -186,7 +186,52 @@ export function useFileOps({ pages, setPages, setCurrentPageIndex, canvasRef, cu
 
   const handleExportAll = () => { handleExport(); };
 
-  const handleInsertImage = useCallback(() => {
+  const handleInsertImage = useCallback((inputDataUrl) => {
+    const processImageDataUrl = (dataUrl) => {
+      const img = new Image();
+      img.onload = () => {
+        const origW = img.width, origH = img.height;
+        let dataW = origW, dataH = origH;
+        const maxDataSize = 3840;
+        if (dataW > maxDataSize || dataH > maxDataSize) {
+          const dataScale = maxDataSize / Math.max(dataW, dataH);
+          dataW = Math.round(dataW * dataScale);
+          dataH = Math.round(dataH * dataScale);
+        }
+        const canvas = document.createElement("canvas");
+        canvas.width = dataW;
+        canvas.height = dataH;
+        const ctx = canvas.getContext("2d");
+        ctx.drawImage(img, 0, 0, dataW, dataH);
+        let compressedDataURL = canvas.toDataURL("image/webp", 0.95);
+        if (!compressedDataURL.startsWith("data:image/webp")) {
+          compressedDataURL = canvas.toDataURL("image/png");
+        }
+        let displayW = origW, displayH = origH;
+        const maxDisplaySize = Math.min(400, window.innerWidth * 0.4, window.innerHeight * 0.4);
+        if (displayW > maxDisplaySize || displayH > maxDisplaySize) {
+          const displayScale = maxDisplaySize / Math.max(displayW, displayH);
+          displayW = Math.round(displayW * displayScale);
+          displayH = Math.round(displayH * displayScale);
+        }
+        const centerX = (window.innerWidth / 2) - (displayW / 2);
+        const centerY = (window.innerHeight / 2) - (displayH / 2);
+        const strokeId = `img-${Date.now()}`;
+        const stroke = {
+          id: strokeId, type: "image", dataURL: compressedDataURL,
+          x: centerX, y: centerY, width: displayW, height: displayH,
+        };
+        handleStrokeComplete(stroke);
+        window.dispatchEvent(new CustomEvent('image-inserted', { detail: { strokeId } }));
+      };
+      img.src = dataUrl;
+    };
+
+    if (typeof inputDataUrl === "string" && inputDataUrl.startsWith("data:image")) {
+      processImageDataUrl(inputDataUrl);
+      return;
+    }
+
     const input = document.createElement("input");
     input.type = "file";
     input.accept = "image/*";
@@ -195,43 +240,7 @@ export function useFileOps({ pages, setPages, setCurrentPageIndex, canvasRef, cu
       if (!file) return;
       const reader = new FileReader();
       reader.onload = (ev) => {
-        const img = new Image();
-        img.onload = () => {
-          const origW = img.width, origH = img.height;
-          let dataW = origW, dataH = origH;
-          const maxDataSize = 1600;
-          if (dataW > maxDataSize || dataH > maxDataSize) {
-            const dataScale = maxDataSize / Math.max(dataW, dataH);
-            dataW = Math.round(dataW * dataScale);
-            dataH = Math.round(dataH * dataScale);
-          }
-          const canvas = document.createElement("canvas");
-          canvas.width = dataW;
-          canvas.height = dataH;
-          const ctx = canvas.getContext("2d");
-          ctx.drawImage(img, 0, 0, dataW, dataH);
-          let compressedDataURL = canvas.toDataURL("image/webp", 0.85);
-          if (!compressedDataURL.startsWith("data:image/webp")) {
-            compressedDataURL = canvas.toDataURL("image/png");
-          }
-          let displayW = origW, displayH = origH;
-          const maxDisplaySize = Math.min(400, window.innerWidth * 0.4, window.innerHeight * 0.4);
-          if (displayW > maxDisplaySize || displayH > maxDisplaySize) {
-            const displayScale = maxDisplaySize / Math.max(displayW, displayH);
-            displayW = Math.round(displayW * displayScale);
-            displayH = Math.round(displayH * displayScale);
-          }
-          const centerX = (window.innerWidth / 2) - (displayW / 2);
-          const centerY = (window.innerHeight / 2) - (displayH / 2);
-          const strokeId = `img-${Date.now()}`;
-          const stroke = {
-            id: strokeId, type: "image", dataURL: compressedDataURL,
-            x: centerX, y: centerY, width: displayW, height: displayH,
-          };
-          handleStrokeComplete(stroke);
-          window.dispatchEvent(new CustomEvent('image-inserted', { detail: { strokeId } }));
-        };
-        img.src = ev.target.result;
+        processImageDataUrl(ev.target.result);
       };
       reader.readAsDataURL(file);
     };
