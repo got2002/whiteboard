@@ -277,6 +277,9 @@ export default function MainLayout() {
       if (data.hostPenStyle) {
         drawingHook.setHostPenStyle(data.hostPenStyle);
       }
+      if (data.slotTitles) {
+        drawingHook.setSlotTitles(data.slotTitles);
+      }
     };
 
     socket.on("webcam-toggle", handleWebcamToggle);
@@ -465,6 +468,8 @@ export default function MainLayout() {
         userRole={userRole}
         onExitSplitMode={() => drawingHook.handlePenStyleChange("pen")}
         isMultiDrawMode={drawingHook.isMultiDrawMode}
+        slotTitles={drawingHook.slotTitles}
+        setSlotTitles={drawingHook.setSlotTitles}
       />
 
       {/* Tables on Canvas */}

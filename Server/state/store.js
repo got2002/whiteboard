@@ -12,6 +12,7 @@ let hostPenStyle = "pen";
 let connectedUsers = 0;
 let isLocked = false;
 let isMultiDrawMode = false;
+let slotTitles = {};
 
 // Widget shared states (synced across all users)
 let widgets = {
@@ -54,4 +55,7 @@ module.exports = {
 
   get isMultiDrawMode() { return isMultiDrawMode; },
   set isMultiDrawMode(val) { isMultiDrawMode = val; },
+
+  get slotTitles() { return slotTitles; },
+  set slotTitles(val) { slotTitles = val; },
 };

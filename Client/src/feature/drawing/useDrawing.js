@@ -3,6 +3,7 @@
 // useDrawing.js — Hook ระบบวาดรูป + Undo/Redo + Tool sync
 // ============================================================
 import { useState, useEffect, useCallback, useRef } from "react";
+import { socket } from "../../core/socket";
 import { drawingService } from "./drawingService";
 
 const RANDOM_COLORS = [
@@ -23,6 +24,7 @@ export function useDrawing({ pages, setPages, userRole, isActive }) {
   // ── Host tool sync ──
   const [hostTool, setHostTool] = useState("pen");
   const [hostPenStyle, setHostPenStyle] = useState("pen");
+  const [slotTitles, setSlotTitles] = useState({});
 
   // ── Undo/Redo ──
   const [undoStack, setUndoStack] = useState([]);
@@ -68,6 +70,9 @@ export function useDrawing({ pages, setPages, userRole, isActive }) {
         p.id === pageId ? { ...p, strokes: p.strokes.filter(s => s.id !== strokeId) } : p
       ));
     };
+    const handleUpdateSlotTitles = (data) => {
+      setSlotTitles(data.slotTitles);
+    };
     const handleHostToolChanged = ({ tool }) => setHostTool(tool);
     const handleHostPenStyleChanged = ({ penStyle }) => setHostPenStyle(penStyle);
     const handleHostMultiDrawModeChanged = ({ isMultiDrawMode }) => setIsMultiDrawMode(isMultiDrawMode);
@@ -82,6 +87,7 @@ export function useDrawing({ pages, setPages, userRole, isActive }) {
     drawingService.onHostToolChanged(handleHostToolChanged);
     drawingService.onHostPenStyleChanged(handleHostPenStyleChanged);
     drawingService.onHostMultiDrawModeChanged(handleHostMultiDrawModeChanged);
+    socket.on("update-slot-titles", handleUpdateSlotTitles);
 
     return () => {
       drawingService.offDraw(handleDraw);
@@ -94,8 +100,17 @@ export function useDrawing({ pages, setPages, userRole, isActive }) {
       drawingService.offHostToolChanged(handleHostToolChanged);
       drawingService.offHostPenStyleChanged(handleHostPenStyleChanged);
       drawingService.offHostMultiDrawModeChanged(handleHostMultiDrawModeChanged);
+      socket.off("update-slot-titles", handleUpdateSlotTitles);
     };
   }, [isActive, setPages]);
+
+  // Sync tool and penStyle to host's selection if user is not host
+  useEffect(() => {
+    if (userRole && userRole !== "host") {
+      setTool(hostTool);
+      setPenStyle(hostPenStyle);
+    }
+  }, [userRole, hostTool, hostPenStyle]);
 
   // ── Handlers ──
   const handleStrokeComplete = useCallback((stroke, pageId) => {
@@ -254,6 +269,7 @@ export function useDrawing({ pages, setPages, userRole, isActive }) {
     isMultiDrawMode, setIsMultiDrawMode,
     hostTool, setHostTool, hostPenStyle, setHostPenStyle,
     undoStack, redoStack, lastDrawRef,
+    slotTitles, setSlotTitles,
     // Handlers
     handleStrokeComplete, handleDraw, handleTextRequest,
     handleStrokeUpdate, handleStrokeResize, handleDeleteStroke,

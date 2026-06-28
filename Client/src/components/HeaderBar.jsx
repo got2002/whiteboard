@@ -514,26 +514,28 @@ function HeaderBar({
                     </>
                 )}
 
-                {/* Exit App Button */}
-                <>
-                    <div className="header-divider" />
-                    <button
-                        className="header-btn"
-                        style={{ color: "#ef4444", opacity: typeof window !== "undefined" && window.electronAPI?.isElectron ? 1 : 0.6 }}
-                        onClick={() => {
-                            if (typeof window !== "undefined" && window.electronAPI?.isElectron) {
-                                window.electronAPI.close();
-                            } else {
-                                alert("ปุ่มปิดโปรแกรมใช้งานได้เฉพาะเมื่อรันผ่าน ProEdu1.exe เท่านั้น หากใช้งานบนเบราว์เซอร์ให้กากบาทแท็บทิ้งได้เลยครับ");
-                            }
-                        }}
-                        title="ออก (Exit)"
-                    >
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                            <path d="M18.36 6.64a9 9 0 1 1-12.73 0" /><line x1="12" y1="2" x2="12" y2="12" />
-                        </svg>
-                    </button>
-                </>
+                {/* Exit App Button (Host Only) */}
+                {isHost && (
+                    <>
+                        <div className="header-divider" />
+                        <button
+                            className="header-btn"
+                            style={{ color: "#ef4444", opacity: typeof window !== "undefined" && window.electronAPI?.isElectron ? 1 : 0.6 }}
+                            onClick={() => {
+                                if (typeof window !== "undefined" && window.electronAPI?.isElectron) {
+                                    window.electronAPI.close();
+                                } else {
+                                    alert("ปุ่มปิดโปรแกรมใช้งานได้เฉพาะเมื่อรันผ่าน ProEdu1.exe เท่านั้น หากใช้งานบนเบราว์เซอร์ให้กากบาทแท็บทิ้งได้เลยครับ");
+                                }
+                            }}
+                            title="ปิดโปรแกรม (Exit App)"
+                        >
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                <path d="M18.36 6.64a9 9 0 1 1-12.73 0" /><line x1="12" y1="2" x2="12" y2="12" />
+                            </svg>
+                        </button>
+                    </>
+                )}
             </div>
         </div>
     );
