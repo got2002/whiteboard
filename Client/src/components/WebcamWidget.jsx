@@ -17,6 +17,7 @@ function WebcamWidget({ isLocal, socket, ownerName, ownerId, initialPosition, on
   // ── Camera selection ──
   const [devices, setDevices] = useState([]);
   const [deviceIndex, setDeviceIndex] = useState(0);
+  const [showCameraMenu, setShowCameraMenu] = useState(false);
   const activeStreamRef = useRef(null);
 
   // ── Drag ──
@@ -49,7 +50,14 @@ function WebcamWidget({ isLocal, socket, ownerName, ownerId, initialPosition, on
         console.error("Error enumerating devices:", err);
       }
     };
+    
     listDevices();
+
+    // Listen for new devices being plugged in or removed
+    navigator.mediaDevices.addEventListener("devicechange", listDevices);
+    return () => {
+      navigator.mediaDevices.removeEventListener("devicechange", listDevices);
+    };
   }, [isLocal]);
 
   // ── Local: เปิดกล้อง + ส่ง frame ──
@@ -127,10 +135,15 @@ function WebcamWidget({ isLocal, socket, ownerName, ownerId, initialPosition, on
   }, [isLocal, socket, ownerName, deviceIndex, devices]);
 
   // ── Switch camera ──
-  const switchCamera = useCallback(() => {
+  const toggleCameraMenu = useCallback(() => {
     if (devices.length <= 1) return;
-    setDeviceIndex(prev => (prev + 1) % devices.length);
+    setShowCameraMenu(prev => !prev);
   }, [devices]);
+
+  const selectCamera = useCallback((index) => {
+    setDeviceIndex(index);
+    setShowCameraMenu(false);
+  }, []);
 
   // ── Remote: ฟัง frame ──
   useEffect(() => {
@@ -231,11 +244,30 @@ function WebcamWidget({ isLocal, socket, ownerName, ownerId, initialPosition, on
       {isLocal && (
         <div className="webcam-top-actions">
           {devices.length > 1 && (
-            <button className="webcam-switch-btn" onClick={switchCamera} title="สลับกล้อง">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M21.5 2v6h-6M2.13 15.57a10 10 0 1 0 5.43-10.45l-5.43 2.88" />
-              </svg>
-            </button>
+            <div style={{ position: "relative" }}>
+              <button className="webcam-switch-btn" onClick={toggleCameraMenu} title="สลับกล้อง">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M22 8v10a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h4l2 3h4a2 2 0 0 1 2 2z"/>
+                  <path d="M7 11.5a5 5 0 0 1 9.9-1"/>
+                  <path d="M17 14.5a5 5 0 0 1-9.9 1"/>
+                  <polyline points="15 13 17 11 19 13"/>
+                  <polyline points="9 11 7 13 5 11"/>
+                </svg>
+              </button>
+              {showCameraMenu && (
+                <div className="webcam-camera-menu">
+                  {devices.map((d, i) => (
+                    <div 
+                      key={d.deviceId || i} 
+                      className={`webcam-camera-item ${i === deviceIndex ? "active" : ""}`}
+                      onClick={() => selectCamera(i)}
+                    >
+                      {d.label || `Camera ${i + 1}`}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
           )}
           {onClose && (
             <button className="webcam-close-btn" onClick={onClose} title="ปิดกล้อง">

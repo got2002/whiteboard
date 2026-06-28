@@ -1,5 +1,13 @@
 const { app, BrowserWindow, screen, ipcMain, desktopCapturer } = require('electron');
 const path = require('path');
+const fs = require('fs');
+
+process.on('uncaughtException', (err) => {
+  fs.appendFileSync(path.join(__dirname, '..', 'crash.log'), 'Uncaught Exception in Main: ' + err.stack + '\n');
+});
+process.on('unhandledRejection', (err) => {
+  fs.appendFileSync(path.join(__dirname, '..', 'crash.log'), 'Unhandled Rejection in Main: ' + err.stack + '\n');
+});
 
 // เริ่มการทำงานของ Server (Express + Socket.io) ทันทีที่เปิดแอป
 require('../Server/server.js');

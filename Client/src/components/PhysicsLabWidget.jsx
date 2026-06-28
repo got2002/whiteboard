@@ -2388,7 +2388,7 @@ export default function PhysicsLabWidget({ canEdit = true, config = {}, onSyncCo
                         setRunning(false);
                         emitSync({ running: false });
                       }} style={{
-                        padding: "7px 22px", border: "none", borderRadius: 8, cursor: "pointer",
+                        padding: "7px 22px", borderRadius: 8, cursor: "pointer",
                         fontSize: 12, fontWeight: 700, letterSpacing: 0.3,
                         background: "linear-gradient(135deg, rgba(239,68,68,0.25), rgba(239,68,68,0.15))",
                         color: "#f87171", border: "1px solid rgba(239,68,68,0.3)",
@@ -2401,7 +2401,7 @@ export default function PhysicsLabWidget({ canEdit = true, config = {}, onSyncCo
                         setRunning(true);
                         emitSync({ running: true });
                       }} style={{
-                        padding: "7px 22px", border: "none", borderRadius: 8, cursor: "pointer",
+                        padding: "7px 22px", borderRadius: 8, cursor: "pointer",
                         fontSize: 12, fontWeight: 700, letterSpacing: 0.3,
                         background: "linear-gradient(135deg, rgba(34,197,94,0.25), rgba(34,197,94,0.15))",
                         color: "#4ade80", border: "1px solid rgba(34,197,94,0.3)",

@@ -47,6 +47,7 @@ const Canvas = forwardRef(function Canvas(
     currentPageIndex,
     onStrokeUpdate, onStrokeResize, onStrokeDelete, userRole,
     onExitSplitMode, isMultiDrawMode,
+    slotTitles, setSlotTitles,
   },
   ref
 ) {
@@ -87,7 +88,7 @@ const Canvas = forwardRef(function Canvas(
   const [editingStrokeId, setEditingStrokeId] = useState(null); // ID of text stroke being edited
 
   // Slot Names state
-  const [slotTitles, setSlotTitles] = useState({});
+
 
   // Pan / Zoom
   const panOffset = useRef({ x: 0, y: 0 });
@@ -631,7 +632,11 @@ const Canvas = forwardRef(function Canvas(
 
     const isViewer = userRole === "viewer";
     const effectiveTool = isViewer || isSpacePressed ? "pan" : tool;
-    const isExplicitPan = effectiveTool === "pan" || (!isMultiDrawMode && activePointers.current.size >= 2);
+    
+    // Lock current view in Multi-Draw mode
+    if (isMultiDrawMode && effectiveTool === "pan") return;
+
+    const isExplicitPan = !isMultiDrawMode && (effectiveTool === "pan" || activePointers.current.size >= 2);
 
     if (isExplicitPan) {
       // Exit split mode when pan/zoom is attempted
@@ -866,9 +871,11 @@ const Canvas = forwardRef(function Canvas(
           if (isHSplit) {
             const slotHeight = window.innerHeight / slots;
             slotIndex = Math.max(0, Math.min(slots - 1, Math.floor(e.clientY / slotHeight)));
+            drawState.splitBound = { type: "h", min: slotIndex * slotHeight, max: (slotIndex + 1) * slotHeight };
           } else {
             const slotWidth = window.innerWidth / slots;
             slotIndex = Math.max(0, Math.min(slots - 1, Math.floor(e.clientX / slotWidth)));
+            drawState.splitBound = { type: "v", min: slotIndex * slotWidth, max: (slotIndex + 1) * slotWidth };
           }
           strokeColor = SLOT_COLORS[slotIndex % SLOT_COLORS.length];
         }
@@ -887,7 +894,7 @@ const Canvas = forwardRef(function Canvas(
 
     const isViewer = userRole === "viewer";
     const effectiveTool = isViewer || isSpacePressed ? "pan" : tool;
-    const isExplicitPan = effectiveTool === "pan" || (!isMultiDrawMode && activePointers.current.size >= 2);
+    const isExplicitPan = !isMultiDrawMode && (effectiveTool === "pan" || activePointers.current.size >= 2);
 
     // Pan & Zoom
     if (isExplicitPan) {
@@ -950,6 +957,16 @@ const Canvas = forwardRef(function Canvas(
 
     const drawState = activeDrawings.current.get(e.pointerId);
     if (!drawState || !drawState.isDrawing) return;
+
+    // Cut off stroke if it crosses split mode boundary
+    if (drawState.splitBound) {
+      const b = drawState.splitBound;
+      if ((b.type === "h" && (e.clientY < b.min || e.clientY > b.max)) ||
+          (b.type === "v" && (e.clientX < b.min || e.clientX > b.max))) {
+        handlePointerUp(e);
+        return;
+      }
+    }
 
     if (tool === "lasso" && drawState.lassoPoints) {
       drawState.lassoPoints.push({x, y});
@@ -1184,12 +1201,19 @@ const Canvas = forwardRef(function Canvas(
   };
 
   // ============================================================
-  // [H2] Mouse Wheel Zoom
+  // [H2] Mouse Wheel Zoom & Native Gesture Prevention
   // ============================================================
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
+    const container = canvas.parentElement;
+    if (!container) return;
+
     const handleWheel = (e) => {
+      if (isMultiDrawMode) {
+        e.preventDefault();
+        return; // Prevent zooming/panning in Multi-Draw mode
+      }
       const isSplitActive = (typeof penStyle === "string" && penStyle.startsWith("split_"))
         || (typeof hostPenStyle === "string" && hostPenStyle.startsWith("split_"));
       if (isSplitActive) {
@@ -1200,7 +1224,7 @@ const Canvas = forwardRef(function Canvas(
       const effectiveTool = userRole === "viewer" ? "pan" : tool;
       if (e.ctrlKey || e.metaKey || effectiveTool === "pan") {
         e.preventDefault();
-        const rect = canvas.getBoundingClientRect();
+        const rect = container.getBoundingClientRect();
         const mouseX = e.clientX - rect.left, mouseY = e.clientY - rect.top;
         const zoomFactor = e.deltaY < 0 ? 1.1 : 0.9;
         const newZoom = Math.min(Math.max(0.1, zoom.current * zoomFactor), 10);
@@ -1210,9 +1234,30 @@ const Canvas = forwardRef(function Canvas(
         redrawAll();
       }
     };
-    canvas.addEventListener("wheel", handleWheel, { passive: false });
-    return () => canvas.removeEventListener("wheel", handleWheel);
-  }, [redrawAll, tool, userRole, penStyle, hostPenStyle]);
+
+    const preventNativeZoom = (e) => {
+      if (isMultiDrawMode) {
+        // If it's a touch event with 2 or more fingers, or a gesture event, prevent it
+        if (e.type.startsWith('gesture') || (e.touches && e.touches.length >= 2)) {
+          e.preventDefault();
+        }
+      }
+    };
+
+    container.addEventListener("wheel", handleWheel, { passive: false });
+    container.addEventListener("gesturestart", preventNativeZoom, { passive: false });
+    container.addEventListener("gesturechange", preventNativeZoom, { passive: false });
+    container.addEventListener("touchstart", preventNativeZoom, { passive: false });
+    container.addEventListener("touchmove", preventNativeZoom, { passive: false });
+
+    return () => {
+      container.removeEventListener("wheel", handleWheel);
+      container.removeEventListener("gesturestart", preventNativeZoom);
+      container.removeEventListener("gesturechange", preventNativeZoom);
+      container.removeEventListener("touchstart", preventNativeZoom);
+      container.removeEventListener("touchmove", preventNativeZoom);
+    };
+  }, [redrawAll, tool, userRole, penStyle, hostPenStyle, isMultiDrawMode]);
 
   // ============================================================
   // [H3] Spacebar to Pan
@@ -1409,6 +1454,7 @@ const Canvas = forwardRef(function Canvas(
         onPointerMove={handlePointerMove}
         onPointerUp={handlePointerUp}
         onPointerLeave={handlePointerUp}
+        onPointerCancel={handlePointerUp}
         onDoubleClick={handleCanvasDoubleClick}
     >
       <canvas
@@ -1712,7 +1758,14 @@ const Canvas = forwardRef(function Canvas(
             }}>
               <div style={{ width: "18px", height: "18px", borderRadius: "50%", flexShrink: 0, backgroundColor: SLOT_COLORS[i % SLOT_COLORS.length], border: "2.5px solid rgba(255,255,255,0.9)", boxShadow: `0 2px 8px ${SLOT_COLORS[i % SLOT_COLORS.length]}66` }} title={`สีช่องที่ ${i+1}`} />
               <input type="text" placeholder={`ชื่อช่อง ${i+1}`} value={slotTitles[i] || ""}
-                onChange={(e) => setSlotTitles(prev => ({ ...prev, [i]: e.target.value }))}
+                onChange={(e) => {
+                  const newTitles = { ...slotTitles, [i]: e.target.value };
+                  setSlotTitles(newTitles);
+                  if (userRole === "host") {
+                    socket.emit("update-slot-titles", { slotTitles: newTitles });
+                  }
+                }}
+                readOnly={userRole !== "host"}
                 style={{ background: "rgba(255,255,255,0.92)", border: "1px solid rgba(0,0,0,0.08)", borderRadius: "10px", padding: "6px 12px", fontSize: "13px", width: "120px", maxWidth: isHorizontalSplit ? "140px" : "50%", color: "#333", outline: "none", boxShadow: "0 2px 12px rgba(0,0,0,0.08)", fontWeight: "600", textAlign: "center", backdropFilter: "blur(12px)" }}
                 onFocus={(e) => e.target.style.borderColor = SLOT_COLORS[i % SLOT_COLORS.length]}
                 onBlur={(e) => e.target.style.borderColor = "rgba(0,0,0,0.08)"}

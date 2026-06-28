@@ -337,7 +337,7 @@ export default function BannerWidget({ bannerConfig, canEdit = true, onBannerSyn
                 onClick={toggleBanner}
                 disabled={!text.trim()}
                 style={{
-                  flex: 1, padding: "9px 0", border: "none", borderRadius: 8, cursor: text.trim() ? "pointer" : "not-allowed",
+                  flex: 1, padding: "9px 0", borderRadius: 8, cursor: text.trim() ? "pointer" : "not-allowed",
                   fontSize: 13, fontWeight: 700, letterSpacing: 0.3,
                   background: isShowing
                     ? "linear-gradient(135deg, rgba(239,68,68,0.3), rgba(239,68,68,0.15))"
@@ -433,7 +433,6 @@ export default function BannerWidget({ bannerConfig, canEdit = true, onBannerSyn
                 : "none",
               fontFamily: "'Inter','Segoe UI',system-ui,sans-serif",
               letterSpacing: 2,
-              animationPlayState: isPaused ? "paused" : "running",
               paddingLeft: 20,
             }}
           >

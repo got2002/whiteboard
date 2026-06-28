@@ -7,6 +7,7 @@
 // ============================================================
 
 const store = require("../state/store");
+const { getLocalIP } = require("../utils/network");
 
 const USER_COLORS = [
   "#ef4444", "#3b82f6", "#22c55e", "#f97316", "#a855f7",
@@ -47,6 +48,20 @@ module.exports = (io, socket) => {
       hostExists: !!store.hostSocketId,
     });
 
+
+    // ส่ง init-state อีกรอบให้มั่นใจว่าได้รับข้อมูลครบถ้วนหลังจากตั้งชื่อ
+    socket.emit("init-state", {
+      pages: store.pages,
+      hostTool: store.hostTool,
+      hostPenStyle: store.hostPenStyle,
+      serverIp: getLocalIP(),
+      isLocked: store.isLocked,
+      widgets: store.widgets,
+      webcams: store.webcams,
+      isMultiDrawMode: store.isMultiDrawMode,
+      slotTitles: store.slotTitles,
+    });
+
     // แจ้งคนอื่นว่ามีคนเข้ามา
     socket.broadcast.emit("user-joined", {
       id: socket.id,
@@ -59,7 +74,7 @@ module.exports = (io, socket) => {
 
   // ── ตรวจสอบว่ามี host หรือยัง ──
   socket.on("check-host", () => {
-    const { getLocalIP } = require("../utils/network");
+
     socket.emit("host-exists", { 
       exists: !!store.hostSocketId,
       serverIp: getLocalIP()

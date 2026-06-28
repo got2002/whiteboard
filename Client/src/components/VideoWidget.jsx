@@ -1,8 +1,10 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { SERVER_URL } from "../core/socket";
 
-export default function VideoWidget({ video, onUpdate, onDelete, onCaptureFrame, tool, zoom = 1, panOffset = { x: 0, y: 0 }, userRole }) {
+export default function VideoWidget({ video: incomingVideo, onUpdate, onDelete, onCaptureFrame, tool, zoom = 1, panOffset = { x: 0, y: 0 }, userRole }) {
   const canEdit = userRole !== "viewer";
+  const [localState, setLocalState] = useState(null);
+  const video = localState || incomingVideo;
   const videoRef = useRef(null);
   const containerRef = useRef(null);
   const progressRef = useRef(null);
@@ -16,8 +18,6 @@ export default function VideoWidget({ video, onUpdate, onDelete, onCaptureFrame,
   const [showControls, setShowControls] = useState(false);
   const [needsInteraction, setNeedsInteraction] = useState(false);
   const hideTimer = useRef(null);
-  const dragRef = useRef(null);
-  const resizeRef = useRef(null);
 
   // Click outside → lock (hide handles)
   useEffect(() => {
@@ -36,12 +36,6 @@ export default function VideoWidget({ video, onUpdate, onDelete, onCaptureFrame,
       window.removeEventListener("keydown", handleKeyDown);
     };
   }, []);
-
-  // Remove prop syncing for play state to allow independent viewing
-  // useEffect(() => {
-  //   setIsPlaying(video.isPlaying);
-  //   if (typeof video.currentTime === "number") setCurrentTime(video.currentTime);
-  // }, [video.isPlaying, video.currentTime]);
 
   // Sync play/pause to element
   useEffect(() => {
@@ -71,44 +65,62 @@ export default function VideoWidget({ video, onUpdate, onDelete, onCaptureFrame,
     e.stopPropagation();
     e.preventDefault();
     if (!canEdit) return;
-    dragRef.current = { startX: e.clientX, startY: e.clientY, origX: video.x, origY: video.y };
+    const startX = e.clientX, startY = e.clientY, origX = video.x, origY = video.y;
+    let finalLayout = { ...video };
+
     const onMove = (ev) => {
-      if (!dragRef.current) return;
-      const dx = (ev.clientX - dragRef.current.startX) / zoom;
-      const dy = (ev.clientY - dragRef.current.startY) / zoom;
-      onUpdate(video.id, { x: dragRef.current.origX + dx, y: dragRef.current.origY + dy });
+      const dx = (ev.clientX - startX) / zoom;
+      const dy = (ev.clientY - startY) / zoom;
+      finalLayout.x = origX + dx;
+      finalLayout.y = origY + dy;
+      setLocalState({ ...finalLayout });
     };
     const onUp = () => {
-      dragRef.current = null;
       window.removeEventListener("pointermove", onMove);
       window.removeEventListener("pointerup", onUp);
+      onUpdate(video.id, finalLayout);
+      setLocalState(null);
     };
     window.addEventListener("pointermove", onMove);
     window.addEventListener("pointerup", onUp);
-  }, [video.id, video.x, video.y, zoom, onUpdate]);
+  }, [video, zoom, onUpdate, canEdit]);
 
   // ── RESIZE ──
   const startResize = useCallback((corner, e) => {
     e.stopPropagation();
     e.preventDefault();
     if (!canEdit) return;
-    resizeRef.current = { corner, startX: e.clientX, startY: e.clientY, origX: video.x, origY: video.y, origW: video.width, origH: video.height };
+    const startX = e.clientX, startY = e.clientY;
+    const origX = video.x, origY = video.y, origW = video.width, origH = video.height;
     const aspect = video.width / video.height;
+    let finalLayout = { ...video };
+
     const onMove = (ev) => {
-      if (!resizeRef.current) return;
-      const r = resizeRef.current;
-      const dx = (ev.clientX - r.startX) / zoom;
-      let nx = r.origX, ny = r.origY, nw = r.origW, nh = r.origH;
-      if (corner === "se") { nw = Math.max(120, r.origW + dx); nh = nw / aspect; }
-      else if (corner === "sw") { nw = Math.max(120, r.origW - dx); nh = nw / aspect; nx = r.origX + r.origW - nw; }
-      else if (corner === "ne") { nw = Math.max(120, r.origW + dx); nh = nw / aspect; ny = r.origY + r.origH - nh; }
-      else if (corner === "nw") { nw = Math.max(120, r.origW - dx); nh = nw / aspect; nx = r.origX + r.origW - nw; ny = r.origY + r.origH - nh; }
-      onUpdate(video.id, { x: nx, y: ny, width: Math.round(nw), height: Math.round(nh) });
+      const dx = (ev.clientX - startX) / zoom;
+      const dy = (ev.clientY - startY) / zoom;
+      let nw = origW, nh = origH, nx = origX, ny = origY;
+
+      if (corner.includes("e")) nw = Math.max(160, origW + dx);
+      if (corner.includes("w")) { nw = Math.max(160, origW - dx); nx = origX + origW - nw; }
+      nh = nw / aspect;
+      if (corner.includes("s")) nh = Math.max(90, origH + dy);
+      if (corner.includes("n")) { nh = Math.max(90, origH - dy); ny = origY + origH - nh; }
+
+      finalLayout.x = nx;
+      finalLayout.y = ny;
+      finalLayout.width = Math.round(nw);
+      finalLayout.height = Math.round(nh);
+      setLocalState({ ...finalLayout });
     };
-    const onUp = () => { resizeRef.current = null; window.removeEventListener("pointermove", onMove); window.removeEventListener("pointerup", onUp); };
+    const onUp = () => { 
+      window.removeEventListener("pointermove", onMove); 
+      window.removeEventListener("pointerup", onUp); 
+      onUpdate(video.id, finalLayout);
+      setLocalState(null);
+    };
     window.addEventListener("pointermove", onMove);
     window.addEventListener("pointerup", onUp);
-  }, [video.id, video.x, video.y, video.width, video.height, zoom, onUpdate]);
+  }, [video, zoom, onUpdate, canEdit]);
 
   // ── Controls ──
   const handlePlayPause = (e) => {

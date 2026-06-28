@@ -55,4 +55,10 @@ module.exports = (io, socket) => {
     store.isMultiDrawMode = isMultiDrawMode;
     socket.broadcast.emit("host-multidraw-mode-changed", { isMultiDrawMode });
   });
+
+  socket.on("update-slot-titles", ({ slotTitles }) => {
+    if (!hasPermission(socket.id, "host")) return;
+    store.slotTitles = slotTitles;
+    socket.broadcast.emit("update-slot-titles", { slotTitles });
+  });
 };

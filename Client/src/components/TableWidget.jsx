@@ -70,7 +70,9 @@ function TableSizePicker({ onSelect, onClose }) {
   );
 }
 
-function CanvasTable({ table, canEdit = true, onUpdate, onRemove }) {
+function CanvasTable({ table: incomingTable, canEdit = true, onUpdate, onRemove }) {
+  const [localState, setLocalState] = useState(null);
+  const table = localState || incomingTable;
   const [editCell, setEditCell] = useState(null);
   const [sel, setSel] = useState(null); // {r,c}
   const [isDragging, setIsDragging] = useState(false);
@@ -118,8 +120,20 @@ function CanvasTable({ table, canEdit = true, onUpdate, onRemove }) {
     e.preventDefault(); e.stopPropagation(); setIsDragging(true);
     const z = currentZoomRef.current;
     const sx = e.clientX, sy = e.clientY, ox = table.x, oy = table.y;
-    const mv = (ev) => onUpdate(table.id, { ...table, x: ox + (ev.clientX - sx) / z, y: oy + (ev.clientY - sy) / z });
-    const end = () => { setIsDragging(false); window.removeEventListener("pointermove", mv); window.removeEventListener("pointerup", end); };
+    let finalLayout = { ...table };
+
+    const mv = (ev) => {
+      finalLayout.x = ox + (ev.clientX - sx) / z;
+      finalLayout.y = oy + (ev.clientY - sy) / z;
+      setLocalState({ ...finalLayout });
+    };
+    const end = () => { 
+      setIsDragging(false); 
+      window.removeEventListener("pointermove", mv); 
+      window.removeEventListener("pointerup", end); 
+      onUpdate(table.id, finalLayout);
+      setLocalState(null);
+    };
     window.addEventListener("pointermove", mv); window.addEventListener("pointerup", end);
   };
 
@@ -128,16 +142,40 @@ function CanvasTable({ table, canEdit = true, onUpdate, onRemove }) {
     e.preventDefault(); e.stopPropagation();
     const z = currentZoomRef.current;
     const sx = e.clientX, sw = table.colWidths[ci];
-    const mv = (ev) => { const nw = [...table.colWidths]; nw[ci] = Math.max(MIN_CW, Math.min(MAX_CW, sw + (ev.clientX - sx) / z)); up({ colWidths: nw }); };
-    const end = () => { window.removeEventListener("pointermove", mv); window.removeEventListener("pointerup", end); };
+    let finalLayout = { ...table };
+
+    const mv = (ev) => { 
+      const nw = [...table.colWidths]; 
+      nw[ci] = Math.max(MIN_CW, Math.min(MAX_CW, sw + (ev.clientX - sx) / z)); 
+      finalLayout.colWidths = nw;
+      setLocalState({ ...finalLayout });
+    };
+    const end = () => { 
+      window.removeEventListener("pointermove", mv); 
+      window.removeEventListener("pointerup", end); 
+      onUpdate(table.id, finalLayout);
+      setLocalState(null);
+    };
     window.addEventListener("pointermove", mv); window.addEventListener("pointerup", end);
   };
   const resizeRow = (e, ri) => {
     e.preventDefault(); e.stopPropagation();
     const z = currentZoomRef.current;
     const sy = e.clientY, sh = table.rowHeights[ri];
-    const mv = (ev) => { const nh = [...table.rowHeights]; nh[ri] = Math.max(MIN_RH, Math.min(MAX_RH, sh + (ev.clientY - sy) / z)); up({ rowHeights: nh }); };
-    const end = () => { window.removeEventListener("pointermove", mv); window.removeEventListener("pointerup", end); };
+    let finalLayout = { ...table };
+
+    const mv = (ev) => { 
+      const nh = [...table.rowHeights]; 
+      nh[ri] = Math.max(MIN_RH, Math.min(MAX_RH, sh + (ev.clientY - sy) / z)); 
+      finalLayout.rowHeights = nh;
+      setLocalState({ ...finalLayout });
+    };
+    const end = () => { 
+      window.removeEventListener("pointermove", mv); 
+      window.removeEventListener("pointerup", end); 
+      onUpdate(table.id, finalLayout);
+      setLocalState(null);
+    };
     window.addEventListener("pointermove", mv); window.addEventListener("pointerup", end);
   };
 
@@ -149,6 +187,7 @@ function CanvasTable({ table, canEdit = true, onUpdate, onRemove }) {
     const sCW = [...table.colWidths], sRH = [...table.rowHeights];
     const sX = table.x, sY = table.y;
     const totalW = sCW.reduce((a, b) => a + b, 0), totalH = sRH.reduce((a, b) => a + b, 0);
+    let finalLayout = { ...table };
 
     const mv = (ev) => {
       const dx = (ev.clientX - sx) / z, dy = (ev.clientY - sy) / z;
@@ -157,13 +196,19 @@ function CanvasTable({ table, canEdit = true, onUpdate, onRemove }) {
       if (dir.includes("l")) { scX = Math.max(0.3, (totalW - dx) / totalW); nx = sX + totalW * (1 - scX); }
       if (dir.includes("b")) scY = Math.max(0.3, (totalH + dy) / totalH);
       if (dir.includes("t")) { scY = Math.max(0.3, (totalH - dy) / totalH); ny = sY + totalH * (1 - scY); }
-      up({
-        x: nx, y: ny,
-        colWidths: sCW.map(w => Math.max(MIN_CW, Math.min(MAX_CW, Math.round(w * scX)))),
-        rowHeights: sRH.map(h => Math.max(MIN_RH, Math.min(MAX_RH, Math.round(h * scY)))),
-      });
+      
+      finalLayout.x = nx;
+      finalLayout.y = ny;
+      finalLayout.colWidths = sCW.map(w => Math.max(MIN_CW, Math.min(MAX_CW, Math.round(w * scX))));
+      finalLayout.rowHeights = sRH.map(h => Math.max(MIN_RH, Math.min(MAX_RH, Math.round(h * scY))));
+      setLocalState({ ...finalLayout });
     };
-    const end = () => { window.removeEventListener("pointermove", mv); window.removeEventListener("pointerup", end); };
+    const end = () => { 
+      window.removeEventListener("pointermove", mv); 
+      window.removeEventListener("pointerup", end); 
+      onUpdate(table.id, finalLayout);
+      setLocalState(null);
+    };
     window.addEventListener("pointermove", mv); window.addEventListener("pointerup", end);
   };
 

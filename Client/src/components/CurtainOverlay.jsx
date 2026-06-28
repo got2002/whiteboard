@@ -56,33 +56,46 @@ export default function CurtainOverlay({ isActive, curtainConfig, canEdit = true
     offsetStartRef.current = offset;
   }, [offset, canEdit]);
 
+  // Use ref for throttling socket emits
+  const lastEmitTime = useRef(0);
+
   useEffect(() => {
     if (!dragging) return;
+    let rAF = null;
 
     const handlePointerMove = (e) => {
       if (!dragStartRef.current) return;
-      const dx = e.clientX - dragStartRef.current.x;
-      const dy = e.clientY - dragStartRef.current.y;
-      let newOffset = offsetStartRef.current;
-
-      if (direction === "top") newOffset -= dy;
-      else if (direction === "bottom") newOffset += dy;
-      else if (direction === "left") newOffset -= dx;
-      else if (direction === "right") newOffset += dx;
-
-      const maxH = window.innerHeight;
-      const maxW = window.innerWidth;
-      const max = (direction === "top" || direction === "bottom") ? maxH : maxW;
-      const finalOffset = Math.max(0, Math.min(max, newOffset));
-      setOffset(finalOffset);
       
-      // Throttle or emit directly
-      syncChanges({ offset: finalOffset });
+      if (rAF) cancelAnimationFrame(rAF);
+      rAF = requestAnimationFrame(() => {
+        const dx = e.clientX - dragStartRef.current.x;
+        const dy = e.clientY - dragStartRef.current.y;
+        let newOffset = offsetStartRef.current;
+
+        if (direction === "top") newOffset -= dy;
+        else if (direction === "bottom") newOffset += dy;
+        else if (direction === "left") newOffset -= dx;
+        else if (direction === "right") newOffset += dx;
+
+        const maxH = window.innerHeight;
+        const maxW = window.innerWidth;
+        const max = (direction === "top" || direction === "bottom") ? maxH : maxW;
+        const finalOffset = Math.max(0, Math.min(max, newOffset));
+        setOffset(finalOffset);
+        
+        // Throttle Socket Emit to ~30fps to avoid network/rendering lag on IFPDs
+        const now = performance.now();
+        if (now - lastEmitTime.current > 33) {
+          syncChanges({ offset: finalOffset });
+          lastEmitTime.current = now;
+        }
+      });
     };
 
     const handlePointerUp = () => {
       setDragging(false);
       dragStartRef.current = null;
+      if (rAF) cancelAnimationFrame(rAF);
     };
 
     window.addEventListener("pointermove", handlePointerMove);

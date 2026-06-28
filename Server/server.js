@@ -1,6 +1,16 @@
 require('dotenv').config({ path: require('path').join(__dirname, '..', '.env') });
 
 const express = require("express");
+const path = require("path");
+const fs = require("fs");
+
+process.on('uncaughtException', (err) => {
+  fs.appendFileSync(path.join(__dirname, '..', 'crash.log'), 'Uncaught Exception in Server: ' + err.stack + '\n');
+});
+process.on('unhandledRejection', (err) => {
+  fs.appendFileSync(path.join(__dirname, '..', 'crash.log'), 'Unhandled Rejection in Server: ' + err.stack + '\n');
+});
+
 const http = require("http");
 const cors = require("cors");
 const { Server } = require("socket.io");
@@ -18,8 +28,7 @@ const io = new Server(server, { cors: { origin: "*" }, maxHttpBufferSize: 5e8 })
 // AI Solution routes
 app.use('/api/ai', aiRoutes);
 
-const fs = require('fs');
-const path = require('path');
+
 
 // Serve uploads directory
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
@@ -97,6 +106,7 @@ io.on("connection", (socket) => {
     widgets: store.widgets,
     webcams: store.webcams,
     isMultiDrawMode: store.isMultiDrawMode,
+    slotTitles: store.slotTitles,
   });
 
   io.emit("user-count", store.connectedUsers);
