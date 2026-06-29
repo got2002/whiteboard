@@ -52,6 +52,8 @@ import MathFunctionWidget from "../components/MathFunctionWidget";
 import LockScreenOverlay from "../components/LockScreenOverlay";
 import AiSolutionWidget from "../components/AiSolutionWidget";
 import PhysicsLabWidget from "../components/PhysicsLabWidget";
+import StudentLabWidget from "../components/StudentLabWidget";
+import StatisticsWidget from "../components/StatisticsWidget";
 import BannerWidget, { FONT_SIZES } from "../components/BannerWidget";
 import AudioWaveform from "../components/AudioWaveform";
 
@@ -83,8 +85,13 @@ export default function MainLayout() {
   const [showSketchpad, setShowSketchpad] = useState(false);
   const [showLockScreen, setShowLockScreen] = useState(false);
   const [showAiSolution, setShowAiSolution] = useState(false);
+  const [aiScreenshotMode, setAiScreenshotMode] = useState(false);
+  const [aiScreenshotImage, setAiScreenshotImage] = useState(null);
   const [localShowBanner, setLocalShowBanner] = useState(false);
   const [isWindowMaximized, setIsWindowMaximized] = useState(false);
+  
+  // ── Global Toast State ──
+  const [toast, setToast] = useState(null);
   
   // Local Tool Widgets (Not synced globally anymore)
   const [showGraph, setShowGraph] = useState(null);
@@ -100,6 +107,8 @@ export default function MainLayout() {
     presentation: showPresentation, setPresentation: setShowPresentation,
     periodicTable: showPeriodic, setPeriodicTable: setShowPeriodic,
     physicsLab: showPhysicsLab, setPhysicsLab: setShowPhysicsLab,
+    studentLab: showStudentLab, setStudentLab: setShowStudentLab,
+    statistics: showStatistics, setStatistics: setShowStatistics,
     mathTools: activeMathTools, setMathTools: setActiveMathTools,
     syncTableAdd, syncTableUpdate, syncTableRemove,
     syncBannerUpdate, syncCurtainUpdate, syncPresentationUpdate,
@@ -147,6 +156,41 @@ export default function MainLayout() {
     drawingHook.handleDraw(data, currentPageIndex);
   }, [drawingHook.handleDraw, currentPageIndex]);
 
+  const handleInsertAIText = useCallback((text) => {
+    const strokeId = `text-${Date.now()}-${Math.random().toString(36).substr(2, 5)}`;
+    
+    let x = 100;
+    let y = 100;
+    if (canvasRef.current) {
+        const rect = canvasRef.current.getBoundingClientRect();
+        const screenX = rect.left + rect.width / 2;
+        const screenY = rect.top + rect.height / 2;
+        if (canvasRef.current.screenToCanvas) {
+            const pt = canvasRef.current.screenToCanvas(screenX, screenY);
+            x = pt.x;
+            y = pt.y;
+        }
+    }
+
+    const stroke = {
+      id: strokeId,
+      type: "text",
+      x: x,
+      y: y,
+      text: text,
+      color: drawingHook.color,
+      size: 24, // default size
+      font: "Inter",
+    };
+    handleStrokeComplete(stroke);
+    
+    // Switch to select tool
+    drawingHook.handleToolChange("select", { type: "select" });
+    
+    // Dispatch event to select the stroke
+    window.dispatchEvent(new CustomEvent('image-inserted', { detail: { strokeId } }));
+  }, [handleStrokeComplete, drawingHook]);
+
   const handleTextRequest = useCallback((x, y) => {
     drawingHook.handleTextRequest(x, y, currentPage.id);
   }, [drawingHook.handleTextRequest, currentPage.id]);
@@ -167,21 +211,7 @@ export default function MainLayout() {
     drawingHook.handleClear(currentPage.id);
   }, [drawingHook.handleClear, currentPage.id]);
 
-  const handleInsertAIText = useCallback((text) => {
-    const strokeId = `text-${Date.now()}-${Math.random().toString(36).substr(2, 5)}`;
-    // วางข้อความ AI ไว้ที่ (100, 100) ของหน้าจอ (ปรับตามความเหมาะสม)
-    const stroke = {
-      id: strokeId,
-      type: "text",
-      x: 100,
-      y: 100,
-      text: text,
-      color: drawingHook.color,
-      size: 24, // default size
-      font: "Inter",
-    };
-    handleStrokeComplete(stroke);
-  }, [handleStrokeComplete, drawingHook.color]);
+
 
 
 
@@ -302,6 +332,16 @@ export default function MainLayout() {
   // ════════════════════════════════════════════════════════════
   // Render: Name Dialog (ก่อน login)
   // ════════════════════════════════════════════════════════════
+  // ── Global Toast Listener ──
+  useEffect(() => {
+    const handleShowToast = (e) => {
+      setToast(e.detail);
+      setTimeout(() => setToast(null), 5000);
+    };
+    window.addEventListener('show-toast', handleShowToast);
+    return () => window.removeEventListener('show-toast', handleShowToast);
+  }, []);
+
   // ── Permission Level ──
   const { permissionLevel } = permHook;
   // host = ทุกอย่าง, full_access contributor = เกือบทุกอย่าง, draw_only = วาดเท่านั้น
@@ -318,9 +358,38 @@ export default function MainLayout() {
         drawingHook.handleToolChange('select');
       }
     };
+    
+    const handleEditChart = (e) => {
+      const stroke = e.detail.stroke;
+      if (stroke && stroke.chartConfig) {
+        setShowGraph({ 
+          isActive: true, 
+          config: { 
+            ...stroke.chartConfig, 
+            editingStrokeId: stroke.id, 
+            editingStroke: stroke 
+          } 
+        });
+      }
+    };
+    
+    const handleUpdateStrokeEvent = (e) => {
+      const { strokeId, changes } = e.detail;
+      if (drawingHook && drawingHook.handleStrokeUpdate) {
+        drawingHook.handleStrokeUpdate(strokeId, changes, currentPage.id);
+      }
+    };
+
     window.addEventListener('image-inserted', handleImageInserted);
-    return () => window.removeEventListener('image-inserted', handleImageInserted);
-  }, [drawingHook]);
+    window.addEventListener('edit-chart', handleEditChart);
+    window.addEventListener('update-stroke', handleUpdateStrokeEvent);
+    
+    return () => {
+      window.removeEventListener('image-inserted', handleImageInserted);
+      window.removeEventListener('edit-chart', handleEditChart);
+      window.removeEventListener('update-stroke', handleUpdateStrokeEvent);
+    };
+  }, [drawingHook, currentPage.id]);
 
   // Listen for window maximized state to remove border-radius
   useEffect(() => {
@@ -521,18 +590,20 @@ export default function MainLayout() {
           onToggleOnScreen={(val) => setIsOnScreen(val)}
           isWindowMaximized={isWindowMaximized}
           showCalculator={showCalculator}
-          activeTools={{ calculator: showCalculator, spotlight: showSpotlight, table: canvasTables.length > 0, graph: !!showGraph?.isActive, math_grapher: !!showMathGrapher?.isActive, periodic: showPeriodic, curtain: !!showCurtain?.isActive, sketchpad: showSketchpad, lock_screen: showLockScreen, physics_lab: !!showPhysicsLab?.isActive, banner: !!showBanner?.isShowing }}
+          activeTools={{ calculator: showCalculator, spotlight: showSpotlight, table: canvasTables.length > 0, graph: !!showGraph?.isActive, math_grapher: !!showMathGrapher?.isActive, statistics: !!showStatistics?.isActive, periodic: showPeriodic, curtain: !!showCurtain?.isActive, sketchpad: showSketchpad, lock_screen: showLockScreen, physics_lab: !!showPhysicsLab?.isActive, student_lab: !!showStudentLab?.isActive, banner: !!showBanner?.isShowing }}
           onToolBoxSelect={(toolId) => {
             if (toolId === 'calculator') setShowCalculator(v => !v);
             if (toolId === 'spotlight') setShowSpotlight(v => !v);
             if (toolId === 'table') setShowTablePicker(true);
             if (toolId === 'graph') setShowGraph(prev => prev?.isActive ? null : { isActive: true, config: null });
-            if (toolId === 'math_grapher') setShowMathGrapher(prev => prev?.isActive ? null : { isActive: true, config: null });
-            if (toolId === 'periodic') syncWidgetToggle('periodicTable', !showPeriodic);
+            if (toolId === 'math_grapher') syncWidgetToggle('mathGrapher', !showMathGrapher?.isActive);
+            if (toolId === 'statistics') syncWidgetToggle('statistics', !showStatistics?.isActive);
+            if (toolId === 'periodic') syncWidgetToggle('periodicTable', !showPeriodic?.isActive);
             if (toolId === 'curtain') syncCurtainUpdate(showCurtain?.isActive ? null : { isActive: true, direction: "top", offset: 0 });
             if (toolId === 'sketchpad') setShowSketchpad(v => !v);
             if (toolId === 'lock_screen') setShowLockScreen(v => !v);
             if (toolId === 'physics_lab') syncWidgetToggle('physicsLab', !showPhysicsLab?.isActive);
+            if (toolId === 'student_lab') syncWidgetToggle('studentLab', !showStudentLab?.isActive);
             if (toolId === 'banner') {
               if (showBanner?.isShowing) {
                 setLocalShowBanner(false);
@@ -755,7 +826,7 @@ export default function MainLayout() {
         <GraphWidget
           canEdit={canSync}
           config={showGraph.config}
-          onSyncConfig={(config) => setShowGraph({ isActive: true, config })}
+          onSyncConfig={(newConfig) => setShowGraph(prev => ({ isActive: true, config: { ...prev?.config, ...newConfig } }))}
           onClose={() => setShowGraph(null)}
           onInsertToBoard={(stroke) => drawingHook.handleStrokeComplete(stroke, currentPage.id)}
           onToolChange={drawingHook.setTool}
@@ -940,9 +1011,33 @@ export default function MainLayout() {
       {/* AI Solution Widget */}
       {showAiSolution && (
         <AiSolutionWidget
-          onClose={() => setShowAiSolution(false)}
+          onClose={() => { setShowAiSolution(false); setAiScreenshotImage(null); }}
           canvasRef={canvasRef}
           onInsertText={handleInsertAIText}
+          onStartScreenshot={() => {
+            setShowAiSolution(false);
+            setAiScreenshotMode(true);
+          }}
+          initialImage={aiScreenshotImage}
+        />
+      )}
+
+      {/* AI Snippet Capture Overlay */}
+      {aiScreenshotMode && (
+        <ScreenshotOverlay
+          canvasRef={canvasRef}
+          pages={pages}
+          currentPageIndex={currentPageIndex}
+          onClose={() => {
+            setAiScreenshotMode(false);
+            setShowAiSolution(true); // Restore widget without image if cancelled
+          }}
+          onConfirm={(dataUrl) => {
+            setAiScreenshotImage(dataUrl);
+            setAiScreenshotMode(false);
+            setShowAiSolution(true); // Restore widget with image
+          }}
+          confirmText="ส่งให้ AI วิเคราะห์"
         />
       )}
 
@@ -956,12 +1051,30 @@ export default function MainLayout() {
         />
       )}
 
+      {showStudentLab?.isActive && (
+        <StudentLabWidget 
+          canEdit={canSync}
+          config={showStudentLab.config || {}}
+          onSyncConfig={(config) => syncWidgetToggle('studentLab', true, config)}
+          onClose={() => syncWidgetToggle('studentLab', false)} 
+        />
+      )}
+
+      {showStatistics?.isActive && (
+        <StatisticsWidget
+          canEdit={canSync}
+          config={showStatistics.config || {}}
+          onSyncConfig={(config) => syncWidgetToggle('statistics', true, config)}
+          onClose={() => syncWidgetToggle('statistics', false)}
+        />
+      )}
+
       </div>
 
       {/* Spacer for Bottom Banner */}
       {bannerPos === "bottom" && bannerHeight > 0 && <div style={{ height: bannerHeight, flexShrink: 0 }} />}
 
-      {/* Banner อักษรวิ่ง */}
+      {/* Banner โฆษณา ลิ้งค์ */}
       {(localShowBanner || showBanner?.isShowing) && (
         <BannerWidget 
           bannerConfig={showBanner} 
@@ -969,6 +1082,43 @@ export default function MainLayout() {
           onBannerSync={syncBannerUpdate} 
           onClose={() => { setLocalShowBanner(false); syncBannerUpdate(null); }} 
         />
+      )}
+
+      {/* ── Global Toast Notification ── */}
+      {toast && (
+        <div style={{
+          position: "fixed",
+          bottom: "20px",
+          left: "50%",
+          transform: "translateX(-50%)",
+          zIndex: 9999,
+          background: toast.type === "error" ? "rgba(239, 68, 68, 0.95)" : "rgba(16, 185, 129, 0.95)",
+          backdropFilter: "blur(4px)",
+          padding: "12px 24px",
+          borderRadius: "8px",
+          boxShadow: "0 4px 15px rgba(0,0,0,0.2)",
+          display: "flex",
+          alignItems: "center",
+          gap: "12px",
+          color: "white",
+          fontWeight: "500",
+          fontSize: "14px",
+          animation: "slideUp 0.3s ease-out"
+        }}>
+          {toast.type === "error" ? (
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <circle cx="12" cy="12" r="10" />
+              <line x1="12" y1="8" x2="12" y2="12" />
+              <line x1="12" y1="16" x2="12.01" y2="16" />
+            </svg>
+          ) : (
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
+              <polyline points="22 4 12 14.01 9 11.01" />
+            </svg>
+          )}
+          <span>{toast.message}</span>
+        </div>
       )}
     </div>
   );

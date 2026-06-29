@@ -78,6 +78,7 @@ const Canvas = forwardRef(function Canvas(
   const [ocrBoundingBox, setOcrBoundingBox] = useState(null); // For loading UI
 
   // Voice to Text
+  const [aiError, setAiError] = useState(null);
   const [isListeningVoice, setIsListeningVoice] = useState(false);
   const [voicePos, setVoicePos] = useState(null);
 
@@ -495,6 +496,8 @@ const Canvas = forwardRef(function Canvas(
     return () => window.removeEventListener('image-inserted', handleImageInserted);
   }, []);
 
+
+
   // ============================================================
   // [H] Pointer Events
   // ============================================================
@@ -509,7 +512,7 @@ const Canvas = forwardRef(function Canvas(
   }, [isSplitMode, onExitSplitMode]);
 
   // Magic Pen / Gesture to Text logic (PaddleOCR — Thai + English handwriting)
-  const processGestureToText = async () => {
+  const processGestureToText = async (mode = "ai_text") => {
     const strokesToProcess = [...gestureStrokesRef.current];
     if (strokesToProcess.length === 0) return;
 
@@ -572,11 +575,15 @@ const Canvas = forwardRef(function Canvas(
       
       console.log("[Gemini AI] Calling server endpoint...");
       
+      const promptStr = mode === "ai_pen"
+        ? "จงอ่านคำถามหรือสมการคณิตศาสตร์ที่เขียนด้วยลายมือในรูปภาพนี้ และให้คำตอบพร้อมคำอธิบายที่สั้น กระชับ ชัดเจน ตอบเป็นภาษาเดียวกับคำถาม (ส่วนใหญ่เป็นภาษาไทย) ห้ามมีคำพูดเกริ่นนำ"
+        : "Extract the handwritten text from this image. Output only the transcribed text without any formatting, quotes, or markdown. The text may be in Thai or English.";
+
       const res = await fetch(`${serverUrl}/api/ai/generate`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          prompt: "Extract the handwritten text from this image. Output only the transcribed text without any formatting, quotes, or markdown. The text may be in Thai or English.",
+          prompt: promptStr,
           imageBase64
         })
       });
@@ -592,20 +599,22 @@ const Canvas = forwardRef(function Canvas(
       console.log("[Gemini AI] Recognized text:", text);
       
       if (text) {
-        // Delete original strokes
-        strokesToProcess.forEach(s => {
-          onStrokeDelete?.(s.id);
-        });
+        if (mode === "ai_text") {
+          // Delete original strokes only if replacing text
+          strokesToProcess.forEach(s => {
+            onStrokeDelete?.(s.id);
+          });
+        }
         
         // Add text stroke
         const newTextStroke = {
           id: Date.now().toString(36) + Math.random().toString(36).substr(2),
           type: "text",
           text: text,
-          x: bounds.x,
-          y: bounds.y,
-          fontSize: 32, // default readable size
-          color: color || "#000",
+          x: mode === "ai_pen" ? bounds.x + bounds.width + 20 : bounds.x,
+          y: mode === "ai_pen" ? bounds.y : bounds.y,
+          fontSize: mode === "ai_pen" ? 24 : 32, // slightly smaller font for answers
+          color: mode === "ai_pen" ? "#0369a1" : (color || "#000"), // blueish color for AI answers
         };
         onStrokeComplete(newTextStroke);
       } else {
@@ -613,7 +622,9 @@ const Canvas = forwardRef(function Canvas(
       }
     } catch (err) {
       console.error("Gesture to Text (Gemini AI) failed:", err);
-      alert("[Magic Pen Error] " + (err?.message || err));
+      const errMsg = err?.message || String(err);
+      setAiError(errMsg);
+      setTimeout(() => setAiError(null), 5000);
     } finally {
       setIsOcrProcessing(false);
       setOcrBoundingBox(null);
@@ -670,7 +681,8 @@ const Canvas = forwardRef(function Canvas(
 
       const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
       if (!SpeechRecognition) {
-        alert("เบราว์เซอร์ของคุณไม่รองรับการพิมพ์ด้วยเสียง (Voice to Text)");
+        setAiError("เบราว์เซอร์นี้ไม่รองรับระบบสั่งงานด้วยเสียง (Voice to Text)");
+        setTimeout(() => setAiError(null), 5000);
         return;
       }
 
@@ -817,10 +829,10 @@ const Canvas = forwardRef(function Canvas(
     }
 
     const isShapeTool = SHAPE_TOOLS.includes(tool);
-    const isPenLike = tool === "pen" || tool === "eraser" || tool === "highlighter" || tool === "ai_text";
+    const isPenLike = tool === "pen" || tool === "eraser" || tool === "highlighter" || tool === "ai_text" || tool === "ai_pen";
     if (!isShapeTool && !isPenLike) return;
 
-    if (tool === "ai_text") {
+    if (tool === "ai_text" || tool === "ai_pen") {
       if (gestureTimeoutRef.current) clearTimeout(gestureTimeoutRef.current);
     }
 
@@ -1188,11 +1200,11 @@ const Canvas = forwardRef(function Canvas(
         onStrokeComplete(drawState.currentStroke);
         
         // Trigger Gesture to Text timeout if magic pen is used
-        if (tool === "ai_text") {
+        if (tool === "ai_text" || tool === "ai_pen") {
            gestureStrokesRef.current.push(drawState.currentStroke);
            if (gestureTimeoutRef.current) clearTimeout(gestureTimeoutRef.current);
            gestureTimeoutRef.current = setTimeout(() => {
-              processGestureToText();
+              processGestureToText(tool);
            }, 1500); // 1.5 seconds after last stroke
         }
       }
@@ -1281,23 +1293,7 @@ const Canvas = forwardRef(function Canvas(
   const effectiveToolForCursor = (userRole === "viewer" || isSpacePressed) ? "pan" : tool;
   if (effectiveToolForCursor === "pen" || effectiveToolForCursor === "highlighter") cursorStyle = "crosshair";
   else if (effectiveToolForCursor === "eraser") {
-    const actualSize = penSize * 5; // eraser uses size * 5 in strokeRenderer
-    const size = Math.max(32, Math.min(Math.round(actualSize), 128)); 
-    const hs = Math.round(size / 2);
-
-    // วาดวงกลมบอกขนาดพื้นที่ลบ + ไอคอนรูปยางลบตรงกลาง
-    const cursorSvg = `
-      <svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="0 0 ${size} ${size}">
-        <circle cx="${hs}" cy="${hs}" r="${Math.max(1, hs - 2)}" fill="rgba(239, 68, 68, 0.15)" stroke="rgba(239, 68, 68, 0.6)" stroke-width="1.5" stroke-dasharray="4,2" />
-        <g transform="translate(${hs - 10}, ${hs - 10})">
-          <rect x="0" y="0" width="20" height="20" rx="4" fill="#ffffff" stroke="#ef4444" stroke-width="2"/>
-          <rect x="0" y="10" width="20" height="10" rx="4" fill="#ef4444" />
-        </g>
-      </svg>
-    `.trim().replace(/\s+/g, ' '); // ลบเว้นวรรคส่วนเกิน
-
-    const encoded = encodeURIComponent(cursorSvg);
-    cursorStyle = `url("data:image/svg+xml,${encoded}") ${hs} ${hs}, auto`;
+    cursorStyle = `url("/eraser-cursor.png") 16 16, auto`;
   }
 
 
@@ -1727,6 +1723,20 @@ const Canvas = forwardRef(function Canvas(
               {handles.map(h => (
                 <div key={h.id} style={{ position: "absolute", left: h.left + "px", top: h.top + "px", width: hs + "px", height: hs + "px", background: h.id === "rot" ? "#10b981" : "#fff", border: "2px solid #3b82f6", borderRadius: h.id === "rot" ? "50%" : "2px", pointerEvents: "none" }} />
               ))}
+              
+              {/* Edit Chart Button */}
+              {selStrokes.length === 1 && selStrokes[0].chartConfig && (
+                <button
+                  onPointerDown={(e) => {
+                    e.stopPropagation();
+                    window.dispatchEvent(new CustomEvent('edit-chart', { detail: { stroke: selStrokes[0] } }));
+                  }}
+                  style={{ position: 'absolute', top: '-45px', left: '50%', transform: 'translateX(-50%)', background: '#4f46e5', color: 'white', border: 'none', padding: '6px 12px', borderRadius: '4px', cursor: 'pointer', pointerEvents: 'auto', display: 'flex', gap: '6px', alignItems: 'center', fontSize: '12px', fontWeight: 'bold', boxShadow: '0 2px 5px rgba(0,0,0,0.2)' }}
+                >
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" /><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" /></svg>
+                  Edit Chart
+                </button>
+              )}
             </div>
           );
         }
@@ -1914,6 +1924,46 @@ const Canvas = forwardRef(function Canvas(
             <line x1="16.24" y1="7.76" x2="19.07" y2="4.93" />
           </svg>
           กำลังแปลงเป็นข้อความ...
+        </div>
+      )}
+
+      {/* AI Error Toast */}
+      {aiError && (
+        <div style={{
+          position: "absolute",
+          bottom: "20px",
+          left: "50%",
+          transform: "translateX(-50%)",
+          zIndex: 1000,
+          background: "rgba(239, 68, 68, 0.95)",
+          backdropFilter: "blur(4px)",
+          padding: "12px 24px",
+          borderRadius: "8px",
+          boxShadow: "0 4px 15px rgba(0,0,0,0.2)",
+          display: "flex",
+          alignItems: "center",
+          gap: "12px",
+          color: "white",
+          fontSize: "14px",
+          fontWeight: "500",
+          pointerEvents: "auto",
+          maxWidth: "80%",
+        }}>
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <circle cx="12" cy="12" r="10" />
+            <line x1="12" y1="8" x2="12" y2="12" />
+            <line x1="12" y1="16" x2="12.01" y2="16" />
+          </svg>
+          <span style={{ wordBreak: "break-word" }}>{aiError}</span>
+          <button 
+            onClick={() => setAiError(null)}
+            style={{
+              background: "transparent", border: "none", color: "white", 
+              cursor: "pointer", marginLeft: "auto", padding: "4px"
+            }}
+          >
+            ✕
+          </button>
         </div>
       )}
 

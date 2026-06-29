@@ -352,11 +352,7 @@ function ToolPalette({
                         setShowPenPopup(false);
                         setShowShapePopup(false);
                     }} title="ยางลบ (E)">
-                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                            <path d="m7 21-4.3-4.3c-1-1-1-2.5 0-3.4l9.6-9.6c1-1 2.5-1 3.4 0l5.6 5.6c1 1 1 2.5 0 3.4L13 21" />
-                            <path d="M22 21H7" />
-                            <path d="m5 11 9 9" />
-                        </svg>
+                        <img src="/eraser.png" style={{ width: "20px", height: "20px", objectFit: "contain" }} alt="Eraser" />
                     </button>
                     {showEraserPopup && (
                         <div className="tp-popup pen-popup" style={{ width: "200px" }}>
@@ -410,6 +406,9 @@ function ToolPalette({
                         </svg>
                     </button>
                 )}
+                <button className={`tp-btn ${tool === "ai_pen" ? "active" : ""}`} onClick={() => { onToolChange("ai_pen"); setShowPenPopup(false); setShowEraserPopup(false); }} title="AI Pen (เสกคำตอบ)">
+                    <span style={{ fontSize: '18px' }}>✨</span>
+                </button>
                 <button className={`tp-btn ${tool === "ai_text" ? "active" : ""}`} onClick={() => { onToolChange("ai_text"); setShowPenPopup(false); setShowEraserPopup(false); }} title="Magic Pen">
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                         <path d="M12 19l7-7 3 3-7 7-3-3z"/>

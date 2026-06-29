@@ -166,6 +166,18 @@ const TOOLBOX_ITEMS = [
         category: "math",
     },
     {
+        id: "statistics",
+        label: "Data & Statistics",
+        icon: (
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                <rect x="18" y="3" width="4" height="18" rx="1" />
+                <rect x="10" y="8" width="4" height="13" rx="1" />
+                <rect x="2" y="13" width="4" height="8" rx="1" />
+            </svg>
+        ),
+        category: "math",
+    },
+    {
         id: "protractor",
         label: "Protractor",
         icon: (
@@ -393,6 +405,21 @@ const TOOLBOX_ITEMS = [
         ),
         category: "science",
     },
+    {
+        id: "student_lab",
+        label: "Student Lab",
+        icon: (
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M9 3h6" />
+                <path d="M10 3v6l-4 8a1 1 0 001 1.5h10a1 1 0 001-1.5l-4-8V3" fill="rgba(16,185,129,0.15)" />
+                <circle cx="9" cy="15" r="1" fill="rgba(16,185,129,0.6)" stroke="none" />
+                <circle cx="12" cy="14" r="0.8" fill="rgba(59,130,246,0.6)" stroke="none" />
+                <circle cx="14.5" cy="16" r="0.6" fill="rgba(251,191,36,0.6)" stroke="none" />
+                <path d="M6 21h12" strokeDasharray="2,2" />
+            </svg>
+        ),
+        category: "science",
+    }
 ];
 
 const CATEGORIES = [

@@ -7,7 +7,7 @@
 
 import { useState, useRef, useCallback, useEffect } from "react";
 
-function ScreenshotOverlay({ canvasRef, pages, currentPageIndex, onClose, bgImage, onAddToBoard, initialPreview }) {
+function ScreenshotOverlay({ canvasRef, pages, currentPageIndex, onClose, bgImage, onAddToBoard, onConfirm, confirmText = "ยืนยัน", initialPreview }) {
   const overlayRef = useRef(null);
   const imgRef = useRef(null);
   const [isDragging, setIsDragging] = useState(false);
@@ -112,7 +112,18 @@ function ScreenshotOverlay({ canvasRef, pages, currentPageIndex, onClose, bgImag
       else ctx.fillStyle = "#ffffff";
       ctx.fillRect(0, 0, cropW, cropH);
 
-      ctx.drawImage(canvas, cropX, cropY, cropW, cropH, 0, 0, cropW, cropH);
+      const wrapper = canvas.closest?.(".canvas-container") || document.body;
+      const canvases = wrapper.querySelectorAll ? wrapper.querySelectorAll("canvas.drawing-canvas") : [canvas];
+      
+      if (canvases.length > 0) {
+        canvases.forEach(c => {
+          if (c.width > 0 && c.height > 0) {
+            ctx.drawImage(c, cropX, cropY, cropW, cropH, 0, 0, cropW, cropH);
+          }
+        });
+      } else {
+        ctx.drawImage(canvas, cropX, cropY, cropW, cropH, 0, 0, cropW, cropH);
+      }
     }
 
     // Show preview
@@ -133,11 +144,13 @@ function ScreenshotOverlay({ canvasRef, pages, currentPageIndex, onClose, bgImag
   // Add the preview image directly to the whiteboard
   const handleAddToBoard = useCallback(() => {
     if (!previewDataUrl) return;
-    if (onAddToBoard) {
+    if (onConfirm) {
+      onConfirm(previewDataUrl);
+    } else if (onAddToBoard) {
       onAddToBoard(previewDataUrl);
     }
     onClose();
-  }, [previewDataUrl, onAddToBoard, onClose]);
+  }, [previewDataUrl, onConfirm, onAddToBoard, onClose]);
 
   // Retry: go back to selection mode
   const handleRetry = useCallback(() => {
@@ -201,8 +214,8 @@ function ScreenshotOverlay({ canvasRef, pages, currentPageIndex, onClose, bgImag
             <button className="screenshot-action-btn screenshot-btn-save" onClick={handleSave} style={{ background: "#3b82f6" }}>
               บันทึกลงเครื่อง
             </button>
-            <button className="screenshot-action-btn screenshot-btn-save" onClick={handleAddToBoard} style={{ background: "#10b981", flex: 2 }}>
-              แปะลงกระดาน
+            <button className="screenshot-action-btn screenshot-btn-save" onClick={handleAddToBoard} style={{ background: onConfirm ? "#8b5cf6" : "#10b981", flex: 2 }}>
+              {onConfirm ? confirmText : "เพิ่มลงกระดาน"}
             </button>
           </div>
         </div>

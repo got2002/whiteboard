@@ -40,7 +40,7 @@ function renderBarChart(ctx, data, w, h) {
   const maxVal = Math.max(...data.map(d => d.value), 1);
   const barPad = 12;
   const labelH = 36;
-  const topPad = 20;
+  const topPad = 36;
   const chartH = h - labelH - topPad;
   const totalW = w - 40;
   const barW = Math.min(60, (totalW - barPad * (data.length + 1)) / data.length);
@@ -147,7 +147,7 @@ function renderLineChart(ctx, data, w, h) {
   if (data.length === 0) return;
   const maxVal = Math.max(...data.map(d => d.value), 1);
   const pad = 30;
-  const topPad = 20;
+  const topPad = 36;
   const labelH = 36;
   const chartW = w - pad * 2;
   const chartH = h - labelH - topPad;
@@ -236,8 +236,8 @@ function renderPieChart(ctx, data, w, h, isDoughnut) {
   if (total === 0) return;
 
   const cx = w / 2;
-  const cy = h / 2 - 5;
-  const radius = Math.min(w, h) / 2 - 30;
+  const cy = h / 2 + 10;
+  const radius = Math.min(w, h) / 2 - 45;
   const innerR = isDoughnut ? radius * 0.55 : 0;
 
   let startAngle = -Math.PI / 2;
@@ -349,7 +349,7 @@ export default function GraphWidget({ canEdit = true, config, onSyncConfig, onCl
 
   // ── Add entry ──
   const addEntry = useCallback(() => {
-    if (!newLabel.trim()) return;
+    if (!newLabel.trim() || newValue === "") return;
     const val = parseFloat(newValue) || 0;
     setEntries(prev => [...prev, { id: nextId, label: newLabel.trim(), value: val }]);
     setNextId(n => n + 1);
@@ -364,9 +364,16 @@ export default function GraphWidget({ canEdit = true, config, onSyncConfig, onCl
 
   // ── Update entry ──
   const updateEntry = useCallback((id, field, value) => {
-    setEntries(prev => prev.map(e =>
-      e.id === id ? { ...e, [field]: field === "value" ? (parseFloat(value) || 0) : value } : e
-    ));
+    setEntries(prev => prev.map(e => {
+      if (e.id === id) {
+        let val = value;
+        if (field === "value") {
+          val = value === "" ? "" : (parseFloat(value) || 0);
+        }
+        return { ...e, [field]: val };
+      }
+      return e;
+    }));
   }, []);
 
   // ============================================================
@@ -394,7 +401,7 @@ export default function GraphWidget({ canEdit = true, config, onSyncConfig, onCl
       ctx.fillText(chartTitle, canvasW / 2, 14);
     }
 
-    const validData = entries.filter(e => e.label.trim());
+    const validData = entries.filter(e => e.label.trim() && e.value !== "");
     if (validData.length === 0) {
       ctx.fillStyle = "rgba(30,41,59,0.3)";
       ctx.font = "13px Inter, sans-serif";
@@ -428,18 +435,25 @@ export default function GraphWidget({ canEdit = true, config, onSyncConfig, onCl
   const handleInsert = () => {
     if (!canvasRef.current || !onInsertToBoard) return;
     const dataUrl = canvasRef.current.toDataURL("image/png");
-    const strokeId = Date.now().toString(36) + Math.random().toString(36).substr(2);
+    const isEditing = config?.editingStrokeId;
+    const strokeId = isEditing ? config.editingStrokeId : (Date.now().toString(36) + Math.random().toString(36).substr(2));
     
     const stroke = {
       id: strokeId,
       type: "image",
       dataURL: dataUrl,
-      x: Math.max(100, window.innerWidth / 2 - canvasW / 2),
-      y: Math.max(100, window.innerHeight / 2 - canvasH / 2),
+      x: isEditing ? config.editingStroke.x : Math.max(100, window.innerWidth / 2 - canvasW / 2),
+      y: isEditing ? config.editingStroke.y : Math.max(100, window.innerHeight / 2 - canvasH / 2),
       width: canvasW,
-      height: canvasH
+      height: canvasH,
+      chartConfig: { chartType, chartTitle, entries }
     };
-    onInsertToBoard(stroke);
+
+    if (isEditing) {
+      window.dispatchEvent(new CustomEvent('update-stroke', { detail: { strokeId, changes: stroke } }));
+    } else {
+      onInsertToBoard(stroke);
+    }
     
     // Auto-switch to select tool so user can move/resize immediately
     if (onToolChange) onToolChange("select");
@@ -447,6 +461,12 @@ export default function GraphWidget({ canEdit = true, config, onSyncConfig, onCl
     // Auto-select it immediately
     const event = new CustomEvent('image-inserted', { detail: { strokeId } });
     window.dispatchEvent(event);
+    
+    if (isEditing) {
+      onClose(); // Close widget after editing
+    } else {
+      if (onClose) onClose();
+    }
   };
 
   return (
@@ -474,7 +494,7 @@ export default function GraphWidget({ canEdit = true, config, onSyncConfig, onCl
         </div>
         <div className="graph-titlebar-actions">
           <button className="graph-insert-btn" onClick={handleInsert}>
-            Insert to Board
+            {config?.editingStrokeId ? "Save" : "Insert to Board"}
           </button>
           <button className="graph-close-btn" onClick={onClose} title="Close Chart">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
@@ -555,7 +575,7 @@ export default function GraphWidget({ canEdit = true, config, onSyncConfig, onCl
           className="chart-add-label"
           value={newLabel}
           onChange={(e) => setNewLabel(e.target.value)}
-          placeholder="Label"
+          placeholder="Label *"
           spellCheck={false}
         />
         <input
@@ -563,9 +583,18 @@ export default function GraphWidget({ canEdit = true, config, onSyncConfig, onCl
           type="number"
           value={newValue}
           onChange={(e) => setNewValue(e.target.value)}
-          placeholder="Value"
+          placeholder="Value *"
         />
-        <button type="submit" className="chart-add-btn" disabled={!newLabel.trim()} title="Add Data">
+        <button 
+          type="submit" 
+          className="chart-add-btn" 
+          disabled={!newLabel.trim() || newValue === ""} 
+          title="Add Data"
+          style={{
+            opacity: (!newLabel.trim() || newValue === "") ? 0.4 : 1,
+            cursor: (!newLabel.trim() || newValue === "") ? "not-allowed" : "pointer"
+          }}
+        >
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M12 5v14M5 12h14" /></svg>
         </button>
       </form>
