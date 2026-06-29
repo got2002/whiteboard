@@ -348,9 +348,10 @@ export function drawStampOnCtx(ctx, stamp) {
 const imageCache = {};
 export function drawImageOnCtx(ctx, imgStroke) {
   let img = imageCache[imgStroke.id];
-  if (!img) {
+  if (!img || img.originalDataURL !== imgStroke.dataURL) {
     img = new Image();
     img.src = imgStroke.dataURL;
+    img.originalDataURL = imgStroke.dataURL;
     imageCache[imgStroke.id] = img;
     if (!img.complete) {
       img.onload = () => {

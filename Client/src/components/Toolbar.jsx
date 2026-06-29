@@ -599,6 +599,7 @@ function Toolbar({
                 )}
 
                 <button className={`tool-btn ${tool === "eraser" ? "active" : ""}`} onClick={() => { onToolChange("eraser"); setShowPenPopup(false); }} title="ยางลบ (E)">🧹</button>
+                <button className={`tool-btn ${tool === "ai_pen" ? "active" : ""}`} onClick={() => { onToolChange("ai_pen"); setShowPenPopup(false); }} title="AI Pen (เสกคำตอบ)">✨</button>
                 <button className={`tool-btn ${tool === "text" ? "active" : ""}`} onClick={() => { onToolChange("text"); setShowPenPopup(false); }} title="ข้อความ (T)">🔤</button>
                 {/* Laser Pointer */}
                 <button className={`tool-btn ${tool === "laser" ? "active laser-btn" : ""}`} onClick={() => { onToolChange("laser"); setShowPenPopup(false); }} title="เลเซอร์ชี้">🔴</button>

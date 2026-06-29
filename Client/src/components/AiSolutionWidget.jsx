@@ -43,14 +43,13 @@ const LANGUAGES = [
 // ============================================================
 // AiSolutionWidget Component
 // ============================================================
-export default function AiSolutionWidget({ onClose, canvasRef, onInsertText }) {
+export default function AiSolutionWidget({ onClose, canvasRef, onInsertText, onStartScreenshot, initialImage }) {
     // ── State ──
     const [activeTab, setActiveTab] = useState("generate"); // 'generate' | 'translate'
     const [prompt, setPrompt] = useState("");
     const [result, setResult] = useState("");
     const [isLoading, setIsLoading] = useState(false);
-    const [error, setError] = useState("");
-    const [capturedImage, setCapturedImage] = useState(null); // base64 string
+    const [capturedImage, setCapturedImage] = useState(initialImage || null); // base64 string
     const [targetLang, setTargetLang] = useState("en");
     const [isMinimized, setIsMinimized] = useState(false);
     const [copied, setCopied] = useState(false);
@@ -62,7 +61,6 @@ export default function AiSolutionWidget({ onClose, canvasRef, onInsertText }) {
         setActiveTab(tab);
         setPrompt("");
         setResult("");
-        setError("");
         setCapturedImage(null);
     };
 
@@ -76,46 +74,10 @@ export default function AiSolutionWidget({ onClose, canvasRef, onInsertText }) {
     // Canvas Capture — จับภาพจาก Canvas (bg + fg layers)
     // ============================================================
     const handleCaptureCanvas = useCallback(() => {
-        if (!canvasRef?.current) return;
-        try {
-            // Get the canvas element — the component uses forwardRef
-            // We need to find the actual canvas DOM elements
-            const container = canvasRef.current;
-            const wrapper = container.closest?.(".canvas-bg") || document.body;
-            const canvases = wrapper.querySelectorAll ? wrapper.querySelectorAll("canvas") : [];
-
-            if (canvases.length >= 2) {
-                // Find bg and fg specifically by class to be safe
-                const bgCanvas = Array.from(canvases).find(c => c.classList.contains('bg-canvas')) || canvases[0];
-                const fgCanvas = Array.from(canvases).find(c => !c.classList.contains('bg-canvas')) || canvases[1];
-                const tempCanvas = document.createElement("canvas");
-                tempCanvas.width = bgCanvas.width;
-                tempCanvas.height = bgCanvas.height;
-                const ctx = tempCanvas.getContext("2d");
-                ctx.fillStyle = "#ffffff";
-                ctx.fillRect(0, 0, tempCanvas.width, tempCanvas.height);
-                ctx.drawImage(bgCanvas, 0, 0);
-                ctx.drawImage(fgCanvas, 0, 0);
-                const dataUrl = tempCanvas.toDataURL("image/jpeg", 0.9);
-                setCapturedImage(dataUrl);
-            } else {
-                // Fallback: try to get any visible canvas
-                const anyCanvas = document.querySelector("canvas");
-                if (anyCanvas) {
-                    const tempCanvas = document.createElement("canvas");
-                    tempCanvas.width = anyCanvas.width;
-                    tempCanvas.height = anyCanvas.height;
-                    const ctx = tempCanvas.getContext("2d");
-                    ctx.fillStyle = "#ffffff";
-                    ctx.fillRect(0, 0, tempCanvas.width, tempCanvas.height);
-                    ctx.drawImage(anyCanvas, 0, 0);
-                    setCapturedImage(tempCanvas.toDataURL("image/jpeg", 0.9));
-                }
-            }
-        } catch (err) {
-            console.error("Canvas capture failed:", err);
+        if (onStartScreenshot) {
+            onStartScreenshot();
         }
-    }, [canvasRef]);
+    }, [onStartScreenshot]);
 
     const handleUploadImage = () => {
         const input = document.createElement("input");
@@ -139,7 +101,6 @@ export default function AiSolutionWidget({ onClose, canvasRef, onInsertText }) {
     const handleGenerate = useCallback(async () => {
         if (!prompt.trim() && !capturedImage) return;
         setIsLoading(true);
-        setError("");
         setResult("");
         try {
             const body = { prompt };
@@ -156,7 +117,10 @@ export default function AiSolutionWidget({ onClose, canvasRef, onInsertText }) {
             const data = await res.json();
             setResult(data.result);
         } catch (err) {
-            setError(err.message);
+            console.error("AI Generation Error:", err);
+            window.dispatchEvent(new CustomEvent('show-toast', { 
+                detail: { message: "AI กำลังยุ่งหรือเซิร์ฟเวอร์มีปัญหา กรุณาลองใหม่ครับ", type: "error" } 
+            }));
         } finally {
             setIsLoading(false);
         }
@@ -168,7 +132,6 @@ export default function AiSolutionWidget({ onClose, canvasRef, onInsertText }) {
     const handleTranslate = useCallback(async () => {
         if (!prompt.trim() && !capturedImage) return;
         setIsLoading(true);
-        setError("");
         setResult("");
         try {
             const body = { text: prompt, targetLang };
@@ -185,7 +148,10 @@ export default function AiSolutionWidget({ onClose, canvasRef, onInsertText }) {
             const data = await res.json();
             setResult(data.result);
         } catch (err) {
-            setError(err.message);
+            console.error("AI Translation Error:", err);
+            window.dispatchEvent(new CustomEvent('show-toast', { 
+                detail: { message: "AI กำลังยุ่งหรือเซิร์ฟเวอร์แปลภาษามีปัญหา กรุณาลองใหม่ครับ", type: "error" } 
+            }));
         } finally {
             setIsLoading(false);
         }
@@ -244,6 +210,7 @@ export default function AiSolutionWidget({ onClose, canvasRef, onInsertText }) {
     const handleInsertToBoard = useCallback(() => {
         if (onInsertText && result) {
             onInsertText(result);
+            setIsMinimized(true);
         }
     }, [onInsertText, result]);
 
@@ -441,17 +408,7 @@ export default function AiSolutionWidget({ onClose, canvasRef, onInsertText }) {
                         )}
                     </button>
 
-                    {/* ── Error Display ── */}
-                    {error && (
-                        <div className="ai-widget-error">
-                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                <circle cx="12" cy="12" r="10" />
-                                <line x1="15" y1="9" x2="9" y2="15" />
-                                <line x1="9" y1="9" x2="15" y2="15" />
-                            </svg>
-                            <span>{error}</span>
-                        </div>
-                    )}
+                    {/* ❌ Error Display removed in favor of Toast */}
 
                     {/* ── Result Section ── */}
                     {isLoading && (

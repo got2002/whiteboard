@@ -19,6 +19,8 @@ export function useWidgetSync({ isActive, canSync }) {
   const [presentation, setPresentation] = useState(null); // {isActive, slideIndex} | null
   const [periodicTable, setPeriodicTable] = useState(null);
   const [physicsLab, setPhysicsLab] = useState(null);
+  const [studentLab, setStudentLab] = useState(null);
+  const [statistics, setStatistics] = useState(null);
   const [mathTools, setMathTools] = useState([]);
 
   // ref เพื่อป้องกัน infinite loop (emit → listen → emit)
@@ -35,6 +37,8 @@ export function useWidgetSync({ isActive, canSync }) {
     if (widgets.presentation) setPresentation(widgets.presentation);
     if (widgets.periodicTable !== undefined) setPeriodicTable(widgets.periodicTable);
     if (widgets.physicsLab !== undefined) setPhysicsLab(widgets.physicsLab);
+    if (widgets.studentLab !== undefined) setStudentLab(widgets.studentLab);
+    if (widgets.statistics !== undefined) setStatistics(widgets.statistics);
     if (widgets.mathTools) setMathTools(widgets.mathTools);
   }, []);
 
@@ -82,6 +86,10 @@ export function useWidgetSync({ isActive, canSync }) {
         setPeriodicTable(active ? { isActive: true, config } : null);
       } else if (widgetType === "physicsLab") {
         setPhysicsLab(active ? { isActive: true, config } : null);
+      } else if (widgetType === "studentLab") {
+        setStudentLab(active ? { isActive: true, config } : null);
+      } else if (widgetType === "statistics") {
+        setStatistics(active ? { isActive: true, config } : null);
       }
     };
 
@@ -178,6 +186,10 @@ export function useWidgetSync({ isActive, canSync }) {
       setPeriodicTable(isActiveVal ? { isActive: true, config } : null);
     } else if (widgetType === "physicsLab") {
       setPhysicsLab(isActiveVal ? { isActive: true, config } : null);
+    } else if (widgetType === "studentLab") {
+      setStudentLab(isActiveVal ? { isActive: true, config } : null);
+    } else if (widgetType === "statistics") {
+      setStatistics(isActiveVal ? { isActive: true, config } : null);
     }
     // These widgets are local now, so only global widgets remain here.
     widgetService.emitWidgetToggle(widgetType, isActiveVal, config);
@@ -214,6 +226,8 @@ export function useWidgetSync({ isActive, canSync }) {
     presentation, setPresentation,
     periodicTable, setPeriodicTable,
     physicsLab, setPhysicsLab,
+    studentLab, setStudentLab,
+    statistics, setStatistics,
     mathTools, setMathTools,
 
     // Init
