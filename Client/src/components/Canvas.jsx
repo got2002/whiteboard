@@ -853,13 +853,18 @@ const Canvas = forwardRef(function Canvas(
     const drawState = { isDrawing: true, currentStroke: null, prevX: x, prevY: y, shapeStart: null };
     activeDrawings.current.set(pId, drawState);
 
-    if (isShapeTool) {
-      drawState.shapeStart = { x, y };
+    const effectivePenStyle = (tool === "highlighter") ? "highlighter" : (tool === "eraser" ? "pen" : penStyle);
+    const needsFullRedraw = effectivePenStyle === "highlighter" || effectivePenStyle === "dashed" || effectivePenStyle === "dotted";
+
+    if (isShapeTool || needsFullRedraw) {
+      if (isShapeTool) drawState.shapeStart = { x, y };
       const preview = previewCanvasRef.current;
       const pCtx = preview.getContext("2d");
       pCtx.clearRect(0, 0, preview.width, preview.height);
       pCtx.drawImage(canvasRef.current, 0, 0);
-    } else {
+    }
+    
+    if (!isShapeTool) {
       const effectiveToolForStroke = tool;
       const effectivePenSizeForStroke = penSize;
       
@@ -1137,9 +1142,27 @@ const Canvas = forwardRef(function Canvas(
         }
       }
 
-      drawSegmentLocal(drawState.prevX, drawState.prevY, x, y, strokeColor, strokeSize, strokeTool, effectiveStyle);
-      onDraw({ prevX: drawState.prevX, prevY: drawState.prevY, x, y, color: strokeColor, size: strokeSize, tool: strokeTool, penStyle: effectiveStyle });
       drawState.currentStroke?.points.push({ x, y });
+
+      const needsFullRedrawMove = effectiveStyle === "highlighter" || effectiveStyle === "dashed" || effectiveStyle === "dotted";
+
+      if (needsFullRedrawMove) {
+        const ctx = ctxRef.current;
+        const dpr = window.devicePixelRatio || 1;
+        ctx.save();
+        ctx.setTransform(1, 0, 0, 1, 0, 0);
+        ctx.clearRect(0, 0, canvasRef.current.width, canvasRef.current.height);
+        ctx.drawImage(previewCanvasRef.current, 0, 0);
+        ctx.scale(dpr, dpr);
+        ctx.translate(panOffset.current.x, panOffset.current.y);
+        ctx.scale(zoom.current, zoom.current);
+        if (drawState.currentStroke) drawPenStroke(ctx, drawState.currentStroke);
+        ctx.restore();
+      } else {
+        drawSegmentLocal(drawState.prevX, drawState.prevY, x, y, strokeColor, strokeSize, strokeTool, effectiveStyle);
+      }
+
+      onDraw({ prevX: drawState.prevX, prevY: drawState.prevY, x, y, color: strokeColor, size: strokeSize, tool: strokeTool, penStyle: effectiveStyle });
       drawState.prevX = x; drawState.prevY = y;
     }
   };

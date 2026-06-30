@@ -105,15 +105,24 @@ function ColorSidebar({
 
             {/* ── Color Palette ── */}
             <div className="cs-section cs-colors">
-                {recentColors.map((c) => (
-                    <button
-                        key={c}
-                        className={`cs-color-btn ${color === c ? "active" : ""}`}
-                        style={{ backgroundColor: c }}
-                        onClick={() => { onColorChange(c); addRecentColor(c); }}
-                        title={c}
-                    />
-                ))}
+                {recentColors.map((c) => {
+                    const isWhite = /^#(?:fff(?:fff)?|FFFFFF|FFF)$/i.test(c) || c === "white" || c === "rgb(255, 255, 255)" || c === "rgb(255,255,255)";
+                    return (
+                        <button
+                            key={c}
+                            className={`cs-color-btn ${color === c ? "active" : ""}`}
+                            style={{
+                                backgroundColor: c,
+                                ...(isWhite ? {
+                                    border: "3px solid #555",
+                                    boxShadow: "inset 0 0 0 2px #fff, 0 0 0 1px #555",
+                                } : {})
+                            }}
+                            onClick={() => { onColorChange(c); addRecentColor(c); }}
+                            title={c}
+                        />
+                    );
+                })}
                 {/* Full color picker trigger */}
                 <button
                     className="cs-size-trigger"

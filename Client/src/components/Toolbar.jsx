@@ -82,9 +82,9 @@ const SplitPenIcon = ({ slots, horizontal }) => {
 };
 
 const PEN_STYLES = [
-    { id: "pen",         label: "Pen",         icon: <PenSvg><path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z" /></PenSvg>,  desc: "ปากกาปกติ"         },
-    { id: "highlighter", label: "Highlighter", icon: <PenSvg><path d="M15 3h6v6l-10 10H5v-6L15 3z" /><path d="M5 19h14" /></PenSvg>,  desc: "ปากกาเน้น"         },
-    { id: "brush",       label: "Brush",       icon: <PenSvg><path d="M18.42 2.61a2.1 2.1 0 0 1 2.97 2.97C20 7 15 13 15 13l-4-4s6-5 10.39-8.39z" /><path d="M15 13l-4-4-5.5 5.5a2.12 2.12 0 0 0 3 3L15 13z" /></PenSvg>,  desc: "พู่กัน"             },
+    { id: "pen",         label: "Pen",         icon: <img src="/pen.png" alt="Pen" style={{width: "18px", height: "18px", objectFit: "contain"}} />,  desc: "ปากกาปกติ"         },
+    { id: "highlighter", label: "Highlighter", icon: <img src="/highlighter.png" alt="Highlight" style={{width: "18px", height: "18px", objectFit: "contain"}} />,  desc: "ปากกาเน้น"         },
+    { id: "brush",       label: "Brush",       icon: <img src="/brush.png" alt="Brush" style={{width: "18px", height: "18px", objectFit: "contain"}} />,  desc: "พู่กัน"             },
     { id: "calligraphy", label: "Calligraphy", icon: <PenSvg><path d="M12 2l4 10v4a4 4 0 0 1-8 0v-4z" /><path d="M12 2v10" /><circle cx="12" cy="14" r="1" fill="currentColor" stroke="none" /></PenSvg>,  desc: "หมึกซึม"           },
     { id: "crayon",      label: "Crayon",      icon: <PenSvg><path d="M17.5 6.5l-12 12-4 1 1-4 12-12 3 3z" /><path d="M14 5l5 5" /><path d="M5 14l5 5" /></PenSvg>,  desc: "สีเทียน"           },
     { id: "dashed",      label: "Dashed",      icon: <PenSvg><path d="M4 12h3M10.5 12h3M17 12h3" strokeLinecap="butt" /></PenSvg>,   desc: "เส้นประ"           },
@@ -501,7 +501,6 @@ function Toolbar({
                     title={`ปากกา: ${PEN_STYLES.find(p => p.id === penStyle)?.label || "Pen"}`}
                 >
                     {currentPenIcon}
-                    <span className="pen-indicator" />
                 </button>
 
                 {/* Pen Popup Panel */}
@@ -511,11 +510,30 @@ function Toolbar({
                             <span className="pen-popup-title">Pen</span>
                         </div>
 
-                        {/* Grid ปากกา */}
+                        {/* แถบเลื่อนแนวนอนสำหรับปากกา */}
+                        <div style={{fontSize:'12px', fontWeight:'bold', color:'rgba(255,255,255,0.7)', marginBottom:'8px'}}>ปากกา</div>
+                        <div className="pen-horizontal-scroll">
+                            {PEN_STYLES.filter(ps => !ps.id.startsWith('split_')).map((ps) => {
+                                const isActive = penStyle === ps.id;
+                                return (
+                                    <button
+                                        key={ps.id}
+                                        className={`pen-option ${isActive ? "active" : ""}`}
+                                        onClick={() => handlePenStyleSelect(ps.id)}
+                                        title={ps.desc}
+                                    >
+                                        <span className="pen-option-icon">{ps.icon}</span>
+                                        <span className="pen-option-label">{ps.label}</span>
+                                    </button>
+                                );
+                            })}
+                        </div>
+
+                        {/* Grid แบ่งหน้าจอ */}
+                        <div style={{fontSize:'12px', fontWeight:'bold', color:'rgba(255,255,255,0.7)', marginBottom:'8px'}}>แบ่งหน้าจอ</div>
                         <div className="pen-grid">
-                            {PEN_STYLES.map((ps) => {
-                                // For split items, check if current penStyle matches (including h variant)
-                                const isActive = penStyle === ps.id || (ps.id.startsWith("split_") && penStyle === `split_h_${ps.id.split("_")[1]}`);
+                            {PEN_STYLES.filter(ps => ps.id.startsWith('split_')).map((ps) => {
+                                const isActive = ps.id.startsWith("split_") && (penStyle === ps.id || penStyle === `split_h_${ps.id.split("_")[1]}`);
                                 return (
                                     <button
                                         key={ps.id}
@@ -599,7 +617,7 @@ function Toolbar({
                 )}
 
                 <button className={`tool-btn ${tool === "eraser" ? "active" : ""}`} onClick={() => { onToolChange("eraser"); setShowPenPopup(false); }} title="ยางลบ (E)">🧹</button>
-                <button className={`tool-btn ${tool === "ai_pen" ? "active" : ""}`} onClick={() => { onToolChange("ai_pen"); setShowPenPopup(false); }} title="AI Pen (เสกคำตอบ)">✨</button>
+                <button className={`tool-btn ${tool === "ai_pen" ? "active" : ""}`} onClick={() => { onToolChange("ai_pen"); setShowPenPopup(false); }} title="AI Pen (เสกคำตอบ)"><img src="/ai-pen.png" alt="AI Pen" style={{width: "20px", height: "20px"}}/></button>
                 <button className={`tool-btn ${tool === "text" ? "active" : ""}`} onClick={() => { onToolChange("text"); setShowPenPopup(false); }} title="ข้อความ (T)">🔤</button>
                 {/* Laser Pointer */}
                 <button className={`tool-btn ${tool === "laser" ? "active laser-btn" : ""}`} onClick={() => { onToolChange("laser"); setShowPenPopup(false); }} title="เลเซอร์ชี้">🔴</button>
@@ -616,7 +634,6 @@ function Toolbar({
                     title={`รูปทรง: ${currentShapeObj?.label}`}
                 >
                     {currentShapeObj?.icon}
-                    <span className="pen-indicator" />
                 </button>
 
                 {/* Shape Popup Panel */}
@@ -659,7 +676,7 @@ function Toolbar({
                 {COLORS.map((c) => (
                     <button
                         key={c}
-                        className={`color-btn ${color === c ? "active" : ""}`}
+                        className={`color-btn ${color === c ? "active" : ""} ${c.toLowerCase() === "#ffffff" ? "is-white" : ""}`}
                         style={{ backgroundColor: c }}
                         onClick={() => onColorChange(c)}
                         title={c}

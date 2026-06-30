@@ -263,9 +263,21 @@ export function drawPenStroke(ctx, stroke) {
   applyStrokeStyle(ctx, stroke);
   ctx.beginPath();
   ctx.moveTo(stroke.points[0].x, stroke.points[0].y);
-  for (let i = 1; i < stroke.points.length; i++) {
-    ctx.lineTo(stroke.points[i].x, stroke.points[i].y);
+  
+  if (stroke.points.length < 3) {
+    for (let i = 1; i < stroke.points.length; i++) {
+      ctx.lineTo(stroke.points[i].x, stroke.points[i].y);
+    }
+  } else {
+    for (let i = 1; i < stroke.points.length - 2; i++) {
+      const xc = (stroke.points[i].x + stroke.points[i + 1].x) / 2;
+      const yc = (stroke.points[i].y + stroke.points[i + 1].y) / 2;
+      ctx.quadraticCurveTo(stroke.points[i].x, stroke.points[i].y, xc, yc);
+    }
+    const len = stroke.points.length;
+    ctx.quadraticCurveTo(stroke.points[len - 2].x, stroke.points[len - 2].y, stroke.points[len - 1].x, stroke.points[len - 1].y);
   }
+  
   ctx.stroke();
   ctx.restore();
 }

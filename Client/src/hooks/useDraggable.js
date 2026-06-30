@@ -85,7 +85,7 @@ export function useDraggable({ storageKey, defaultPosition = null } = {}) {
             const newX = Math.max(minX, Math.min(dragStartRef.current.elemX + deltaX, maxX));
             const newY = Math.max(minY, Math.min(dragStartRef.current.elemY + deltaY, maxY));
 
-            setPosition({ x: newX, y: newY });
+            setPosition({ x: newX, y: newY, ww: window.innerWidth, wh: window.innerHeight });
         };
 
         const handlePointerUp = () => {
@@ -140,14 +140,26 @@ export function useDraggable({ storageKey, defaultPosition = null } = {}) {
                 setPosition((prevPos) => {
                     if (!prevPos) return prevPos;
 
-                    const newX = Math.max(minX, Math.min(prevPos.x, maxX));
-                    const newY = Math.max(minY, Math.min(prevPos.y, maxY));
+                    let newX = prevPos.x;
+                    let newY = prevPos.y;
 
-                    if (newX !== prevPos.x || newY !== prevPos.y) {
-                        if (storageKey) {
-                            try { localStorage.setItem(storageKey, JSON.stringify({ x: newX, y: newY })); } catch {}
+                    // Stick to the right edge if it was near it
+                    if (prevPos.ww && prevPos.ww !== window.innerWidth) {
+                        const dw = window.innerWidth - prevPos.ww;
+                        if (prevPos.x >= prevPos.ww - elemW - 20) {
+                            newX += dw;
                         }
-                        return { x: newX, y: newY };
+                    }
+
+                    newX = Math.max(minX, Math.min(newX, maxX));
+                    newY = Math.max(minY, Math.min(newY, maxY));
+
+                    if (newX !== prevPos.x || newY !== prevPos.y || prevPos.ww !== window.innerWidth || prevPos.wh !== window.innerHeight) {
+                        const newState = { x: newX, y: newY, ww: window.innerWidth, wh: window.innerHeight };
+                        if (storageKey) {
+                            try { localStorage.setItem(storageKey, JSON.stringify(newState)); } catch {}
+                        }
+                        return newState;
                     }
                     return prevPos;
                 });

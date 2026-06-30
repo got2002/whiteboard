@@ -12,6 +12,7 @@
   "dependencies": {
     "mobile-drag-drop": "^3.0.0-rc.0",
     "onnxruntime-web": "^1.27.0",
+    "perfect-freehand": "^1.2.3",
     "qrcode.react": "^4.2.0",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
