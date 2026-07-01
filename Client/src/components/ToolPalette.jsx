@@ -44,14 +44,19 @@ const SplitPenIcon = ({ slots, horizontal }) => (
 );
 
 const PEN_STYLES = [
-    { id: "pen", label: "Pen", icon: <PenSvg><path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z" /></PenSvg>, desc: "ปากกาปกติ" },
-    { id: "highlighter", label: "Highlight", icon: <PenSvg><path d="M15 3h6v6l-10 10H5v-6L15 3z" /><path d="M5 19h14" /></PenSvg>, desc: "ปากกาเน้น" },
-    { id: "brush", label: "Brush", icon: <PenSvg><path d="M18.42 2.61a2.1 2.1 0 0 1 2.97 2.97C20 7 15 13 15 13l-4-4s6-5 10.39-8.39z" /><path d="M15 13l-4-4-5.5 5.5a2.12 2.12 0 0 0 3 3L15 13z" /></PenSvg>, desc: "พู่กัน" },
+    { id: "pen", label: "Pen", icon: <img src="/pen.png" alt="Pen" style={{width: "18px", height: "18px", objectFit: "contain"}} />, desc: "ปากกาปกติ" },
+    { id: "highlighter", label: "Highlight", icon: <img src="/highlighter.png" alt="Highlight" style={{width: "18px", height: "18px", objectFit: "contain"}} />, desc: "ปากกาเน้นข้อความ" },
+    { id: "brush", label: "Brush", icon: <img src="/brush.png" alt="Brush" style={{width: "18px", height: "18px", objectFit: "contain"}} />, desc: "พู่กัน" },
     { id: "calligraphy", label: "Callig.", icon: <PenSvg><path d="M12 2l4 10v4a4 4 0 0 1-8 0v-4z" /><path d="M12 2v10" /><circle cx="12" cy="14" r="1" fill="currentColor" stroke="none" /></PenSvg>, desc: "หมึกซึม" },
     { id: "crayon", label: "Crayon", icon: <PenSvg><path d="M17.5 6.5l-12 12-4 1 1-4 12-12 3 3z" /><path d="M14 5l5 5" /><path d="M5 14l5 5" /></PenSvg>, desc: "สีเทียน" },
     { id: "dashed", label: "Dashed", icon: <PenSvg><path d="M4 12h3M10.5 12h3M17 12h3" strokeLinecap="butt" /></PenSvg>, desc: "เส้นประ" },
     { id: "dotted", label: "Dotted", icon: <PenSvg><circle cx="5" cy="12" r="1.5" fill="currentColor" stroke="none" /><circle cx="12" cy="12" r="1.5" fill="currentColor" stroke="none" /><circle cx="19" cy="12" r="1.5" fill="currentColor" stroke="none" /></PenSvg>, desc: "เส้นจุด" },
     { id: "neon", label: "Neon", icon: <PenSvg><path d="M12 3l1.5 4.5L18 9l-4.5 1.5L12 15l-1.5-4.5L6 9l4.5-1.5z" /><path d="M17 17l1 3 3 1-3 1-1 3-1-3-3-1 3-1z" /><path d="M7 19l.5 1.5 1.5.5-1.5.5-.5 1.5-.5-1.5-1.5-.5 1.5-.5z" /></PenSvg>, desc: "เรืองแสง" },
+    { id: "pencil", label: "Pencil", icon: <PenSvg><path d="M17 3a2.83 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z" /></PenSvg>, desc: "ดินสอ" },
+    { id: "marker", label: "Marker", icon: <PenSvg><path d="M18 3l3 3-12 12H6v-3L18 3z" /><path d="M15 6l3 3" /><path d="M2 22h6" /></PenSvg>, desc: "ปากกาเมจิก" },
+    { id: "chalk", label: "Chalk", icon: <PenSvg><path d="M4 20l3-12L18 3l3 3-5 11L4 20z" /><path d="M7 8l9 9" /></PenSvg>, desc: "ชอล์ค" },
+    { id: "watercolor", label: "Watercolor", icon: <PenSvg><path d="M12 22c5.5 0 7-3.5 7-7 0-4-7-13-7-13S5 11 5 15c0 3.5 1.5 7 7 7z" /><path d="M9 15c0 2 1.5 3.5 3 3.5" /></PenSvg>, desc: "สีน้ำ" },
+    { id: "fountain", label: "Fountain", icon: <PenSvg><path d="M15.5 3l-1 5.5L12 12l-2.5-3.5L8.5 3" /><path d="M12 12v8" /><path d="M9 22h6" /><circle cx="12" cy="12" r="1" fill="currentColor" stroke="none" /></PenSvg>, desc: "ปากกาหมึกซึม" },
     // Split Board
     { id: "split_2", label: "2 Slots", icon: <SplitPenIcon slots={2} />, desc: "แบ่ง 2 ช่อง" },
     { id: "split_3", label: "3 Slots", icon: <SplitPenIcon slots={3} />, desc: "แบ่ง 3 ช่อง" },
@@ -269,16 +274,32 @@ function ToolPalette({
             {/* ── Drawing Tools ── */}
             <div className="tp-group" ref={penPopupRef}>
                 <button className={`tp-btn ${isPenActive ? "active" : ""}`} onClick={handlePenClick} title="ปากกา">
-                    {currentPenIcon}
+                    <img src="/pen.png" className="tall-tool-img scale-1-1" alt="Pen" />
                     <span className="tp-indicator" />
                 </button>
 
                 {showPenPopup && (
                     <div className="tp-popup pen-popup">
                         <div className="pen-popup-header"><span className="pen-popup-title">Pen Style</span></div>
+                        {/* แถบเลื่อนแนวนอนสำหรับปากกา */}
+                        <div style={{fontSize:'12px', fontWeight:'bold', color:'rgba(255,255,255,0.7)', marginBottom:'8px'}}>ปากกา</div>
+                        <div className="pen-horizontal-scroll">
+                            {PEN_STYLES.filter(ps => !ps.id.startsWith('split_')).map((ps) => {
+                                const isActive = penStyle === ps.id;
+                                return (
+                                    <button key={ps.id} className={`pen-option ${isActive ? "active" : ""}`} onClick={() => handlePenStyleSelect(ps.id)} title={ps.desc}>
+                                        <span className="pen-option-icon">{ps.icon}</span>
+                                        <span className="pen-option-label">{ps.label}</span>
+                                    </button>
+                                );
+                            })}
+                        </div>
+                        
+                        {/* Grid แบ่งหน้าจอ */}
+                        <div style={{fontSize:'12px', fontWeight:'bold', color:'rgba(255,255,255,0.7)', marginBottom:'8px'}}>แบ่งหน้าจอ</div>
                         <div className="pen-grid">
-                            {PEN_STYLES.map(ps => {
-                                const isActive = penStyle === ps.id || (ps.id.startsWith("split_") && penStyle === `split_h_${ps.id.split("_")[1]}`);
+                            {PEN_STYLES.filter(ps => ps.id.startsWith('split_')).map(ps => {
+                                const isActive = ps.id.startsWith("split_") && (penStyle === ps.id || penStyle === `split_h_${ps.id.split("_")[1]}`);
                                 return (
                                     <button key={ps.id} className={`pen-option ${isActive ? "active" : ""}`} onClick={() => handlePenStyleSelect(ps.id)} title={ps.desc}>
                                         <span className="pen-option-icon">{ps.icon}</span>
@@ -352,7 +373,7 @@ function ToolPalette({
                         setShowPenPopup(false);
                         setShowShapePopup(false);
                     }} title="ยางลบ (E)">
-                        <img src="/eraser.png" style={{ width: "20px", height: "20px", objectFit: "contain" }} alt="Eraser" />
+                        <img src="/eraser.png" className="tall-tool-img scale-1-2" alt="Eraser" />
                     </button>
                     {showEraserPopup && (
                         <div className="tp-popup pen-popup" style={{ width: "200px" }}>
@@ -381,6 +402,18 @@ function ToolPalette({
                     )}
                 </div>
 
+                <button className={`tp-btn ${tool === "ai_pen" ? "active" : ""}`} onClick={() => { onToolChange("ai_pen"); setShowPenPopup(false); setShowEraserPopup(false); }} title="AI Pen (วาดภาพอัจฉริยะ)">
+                    <img src="/ai-pen.png" className="tall-tool-img scale-1-2" alt="AI Pen" />
+                </button>
+                <button className={`tp-btn ${tool === "ai_text" ? "active" : ""}`} onClick={() => { onToolChange("ai_text"); setShowPenPopup(false); setShowEraserPopup(false); }} title="Magic Pen">
+                    <img src="/magic_pen.png" className="tall-tool-img scale-1-3" alt="Magic Pen" />
+                </button>
+            </div>
+
+            <div className="tp-divider" />
+
+            <div className="tp-group">
+
                 <button className={`tp-btn ${tool === "text" ? "active" : ""}`} onClick={() => { onToolChange("text"); setShowPenPopup(false); setShowEraserPopup(false); }} title="ข้อความ (T)">
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                         <polyline points="4 7 4 4 20 4 20 7" />
@@ -406,17 +439,11 @@ function ToolPalette({
                         </svg>
                     </button>
                 )}
-                <button className={`tp-btn ${tool === "ai_pen" ? "active" : ""}`} onClick={() => { onToolChange("ai_pen"); setShowPenPopup(false); setShowEraserPopup(false); }} title="AI Pen (เสกคำตอบ)">
-                    <span style={{ fontSize: '18px' }}>✨</span>
-                </button>
-                <button className={`tp-btn ${tool === "ai_text" ? "active" : ""}`} onClick={() => { onToolChange("ai_text"); setShowPenPopup(false); setShowEraserPopup(false); }} title="Magic Pen">
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                        <path d="M12 19l7-7 3 3-7 7-3-3z"/>
-                        <path d="M18 13l-1.5-7.5L2 2l3.5 14.5L13 18l5-5z"/>
-                        <path d="M2 2l7.586 7.586"/>
-                        <circle cx="11" cy="11" r="2"/>
-                    </svg>
-                </button>
+            </div>
+
+            <div className="tp-divider" />
+
+            <div className="tp-group">
                 <button className={`tp-btn ${tool === "voice_text" ? "active" : ""}`} onClick={() => { onToolChange("voice_text"); setShowPenPopup(false); setShowEraserPopup(false); }} title="พิมพ์ด้วยเสียง (Voice to Text)">
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                         <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z" />
@@ -428,7 +455,7 @@ function ToolPalette({
 
             <div className="tp-divider" />
 
-            {/* ── Shape Tool ── */}
+            {/* ── Shape & Selection Tools ── */}
             <div className="tp-group" ref={shapePopupRef}>
                 <button className={`tp-btn ${isShapeActive ? "active" : ""}`} onClick={handleShapeClick} title="รูปทรง">
                     {currentShapeObj?.icon}
@@ -447,12 +474,6 @@ function ToolPalette({
                         </div>
                     </div>
                 )}
-            </div>
-
-            <div className="tp-divider" />
-
-            {/* ── Select & Pan ── */}
-            <div className="tp-group">
                 <button className={`tp-btn ${tool === "select" ? "active" : ""}`} onClick={() => onToolChange("select")} title="เลือก/ย้าย (V)">
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                         <path d="M4 4l7.07 17 2.51-7.39L21 11.07z" />

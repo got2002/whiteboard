@@ -82,14 +82,14 @@ const SplitPenIcon = ({ slots, horizontal }) => {
 };
 
 const PEN_STYLES = [
-    { id: "pen",         label: "Pen",         icon: <PenSvg><path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z" /></PenSvg>,  desc: "ปากกาปกติ"         },
-    { id: "highlighter", label: "Highlighter", icon: <PenSvg><path d="M15 3h6v6l-10 10H5v-6L15 3z" /><path d="M5 19h14" /></PenSvg>,  desc: "ปากกาเน้น"         },
-    { id: "brush",       label: "Brush",       icon: <PenSvg><path d="M18.42 2.61a2.1 2.1 0 0 1 2.97 2.97C20 7 15 13 15 13l-4-4s6-5 10.39-8.39z" /><path d="M15 13l-4-4-5.5 5.5a2.12 2.12 0 0 0 3 3L15 13z" /></PenSvg>,  desc: "พู่กัน"             },
-    { id: "calligraphy", label: "Calligraphy", icon: <PenSvg><path d="M12 2l4 10v4a4 4 0 0 1-8 0v-4z" /><path d="M12 2v10" /><circle cx="12" cy="14" r="1" fill="currentColor" stroke="none" /></PenSvg>,  desc: "หมึกซึม"           },
-    { id: "crayon",      label: "Crayon",      icon: <PenSvg><path d="M17.5 6.5l-12 12-4 1 1-4 12-12 3 3z" /><path d="M14 5l5 5" /><path d="M5 14l5 5" /></PenSvg>,  desc: "สีเทียน"           },
-    { id: "dashed",      label: "Dashed",      icon: <PenSvg><path d="M4 12h3M10.5 12h3M17 12h3" strokeLinecap="butt" /></PenSvg>,   desc: "เส้นประ"           },
-    { id: "dotted",      label: "Dotted",      icon: <PenSvg><circle cx="5" cy="12" r="1.5" fill="currentColor" stroke="none" /><circle cx="12" cy="12" r="1.5" fill="currentColor" stroke="none" /><circle cx="19" cy="12" r="1.5" fill="currentColor" stroke="none" /></PenSvg>,   desc: "เส้นจุด"           },
-    { id: "neon",        label: "Neon",        icon: <PenSvg><path d="M12 3l1.5 4.5L18 9l-4.5 1.5L12 15l-1.5-4.5L6 9l4.5-1.5z" /><path d="M17 17l1 3 3 1-3 1-1 3-1-3-3-1 3-1z" /><path d="M7 19l.5 1.5 1.5.5-1.5.5-.5 1.5-.5-1.5-1.5-.5 1.5-.5z" /></PenSvg>,   desc: "เรืองแสง"          },
+    { id: "pen",         label: "Pen",         icon: <img src="/pen.png" alt="Pen" style={{width: "18px", height: "18px", objectFit: "contain"}} />,  desc: "ปากกาปกติ"         },
+    { id: "highlighter", label: "Highlighter", icon: <img src="/highlighter.png" alt="Highlight" style={{width: "18px", height: "18px", objectFit: "contain"}} />,  desc: "ปากกาไฮไลต์"         },
+    { id: "pencil",      label: "Pencil",      icon: <PenSvg><path d="M17 3a2.83 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z" /></PenSvg>,   desc: "ปากกาหัวเล็ก"             },
+    { id: "calligraphy", label: "Calligraphy", icon: <PenSvg><path d="M12 2l4 10v4a4 4 0 0 1-8 0v-4z" /><path d="M12 2v10" /><circle cx="12" cy="14" r="1" fill="currentColor" stroke="none" /></PenSvg>,  desc: "ปากกาเซ็นชื่อ"           },
+    { id: "fountain",    label: "Fountain",    icon: <PenSvg><path d="M15.5 3l-1 5.5L12 12l-2.5-3.5L8.5 3" /><path d="M12 12v8" /><path d="M9 22h6" /><circle cx="12" cy="12" r="1" fill="currentColor" stroke="none" /></PenSvg>,   desc: "ปากกาหมึกซึม"     },
+    { id: "neon",        label: "Neon",        icon: <img src="/neon.png" alt="Neon" style={{width: "18px", height: "18px", objectFit: "contain"}} />,  desc: "เรืองแสง" },
+    { id: "dashed",      label: "Dashed",      icon: <img src="/dashed.png" alt="Dashed" style={{width: "18px", height: "18px", objectFit: "contain"}} />,  desc: "เส้นประ" },
+    { id: "dotted",      label: "Dotted",      icon: <img src="/dotted.png" alt="Dotted" style={{width: "18px", height: "18px", objectFit: "contain"}} />,  desc: "เส้นจุด" },
     // Split Board Pens
     { id: "split_2",     label: "2 Slots",     icon: <SplitPenIcon slots={2} />, desc: "แบ่ง 2 ช่อง" },
     { id: "split_3",     label: "3 Slots",     icon: <SplitPenIcon slots={3} />, desc: "แบ่ง 3 ช่อง" },
@@ -214,6 +214,95 @@ function PenPreview({ penStyle, color, size }) {
                 for (let i = 1; i < points.length; i++) {
                     ctx.lineTo(points[i].x + (Math.random() - 0.5) * size * 0.5, points[i].y + (Math.random() - 0.5) * size * 0.5);
                 }
+                ctx.stroke();
+            }
+            ctx.restore();
+            return;
+        } else if (penStyle === "pencil") {
+            ctx.strokeStyle = color;
+            ctx.lineWidth = Math.max(1, size * 0.7);
+            ctx.lineCap = "round";
+            ctx.lineJoin = "round";
+            for (let layer = 0; layer < 2; layer++) {
+                ctx.globalAlpha = layer === 0 ? 0.7 : 0.3;
+                ctx.lineWidth = Math.max(1, size * (layer === 0 ? 0.7 : 0.4));
+                ctx.beginPath();
+                ctx.moveTo(points[0].x, points[0].y);
+                for (let i = 1; i < points.length; i++) {
+                    ctx.lineTo(points[i].x + (Math.random() - 0.5) * size * 0.3, points[i].y + (Math.random() - 0.5) * size * 0.3);
+                }
+                ctx.stroke();
+            }
+            ctx.restore();
+            return;
+        } else if (penStyle === "marker") {
+            ctx.fillStyle = color;
+            ctx.globalAlpha = 0.65;
+            const angle = Math.PI / 6;
+            const hw = size * 2, hh = size * 0.8;
+            const cos = Math.cos(angle), sin = Math.sin(angle);
+            for (let i = 0; i < points.length - 1; i++) {
+                const p0 = points[i], p1 = points[i + 1];
+                ctx.beginPath();
+                ctx.moveTo(p0.x - hw * cos + hh * sin, p0.y - hw * sin - hh * cos);
+                ctx.lineTo(p0.x + hw * cos + hh * sin, p0.y + hw * sin - hh * cos);
+                ctx.lineTo(p1.x + hw * cos - hh * sin, p1.y + hw * sin + hh * cos);
+                ctx.lineTo(p1.x - hw * cos - hh * sin, p1.y - hw * sin + hh * cos);
+                ctx.closePath();
+                ctx.fill();
+            }
+            ctx.restore();
+            return;
+        } else if (penStyle === "chalk") {
+            ctx.strokeStyle = color;
+            ctx.lineCap = "round";
+            ctx.lineJoin = "round";
+            for (let layer = 0; layer < 5; layer++) {
+                ctx.globalAlpha = 0.15 + (Math.random() * 0.1);
+                ctx.lineWidth = size * (0.6 + Math.random() * 0.8);
+                ctx.beginPath();
+                const offX = (Math.random() - 0.5) * size * 0.8;
+                const offY = (Math.random() - 0.5) * size * 0.8;
+                ctx.moveTo(points[0].x + offX, points[0].y + offY);
+                for (let i = 1; i < points.length; i++) {
+                    ctx.lineTo(points[i].x + (Math.random() - 0.5) * size * 0.6 + offX, points[i].y + (Math.random() - 0.5) * size * 0.6 + offY);
+                }
+                ctx.stroke();
+            }
+            ctx.restore();
+            return;
+        } else if (penStyle === "watercolor") {
+            ctx.lineCap = "round";
+            ctx.lineJoin = "round";
+            for (let layer = 0; layer < 4; layer++) {
+                ctx.strokeStyle = color;
+                ctx.globalAlpha = 0.08 + layer * 0.04;
+                ctx.lineWidth = size * (3 - layer * 0.5);
+                ctx.beginPath();
+                const offX = (Math.random() - 0.5) * size * 1.5;
+                const offY = (Math.random() - 0.5) * size * 1.5;
+                ctx.moveTo(points[0].x + offX, points[0].y + offY);
+                for (let i = 1; i < points.length; i++) {
+                    ctx.lineTo(points[i].x + (Math.random() - 0.5) * size + offX, points[i].y + (Math.random() - 0.5) * size + offY);
+                }
+                ctx.stroke();
+            }
+            ctx.restore();
+            return;
+        } else if (penStyle === "fountain") {
+            ctx.strokeStyle = color;
+            ctx.lineCap = "round";
+            ctx.lineJoin = "round";
+            ctx.globalAlpha = 0.9;
+            for (let i = 0; i < points.length - 1; i++) {
+                const p0 = points[i], p1 = points[i + 1];
+                const dx = p1.x - p0.x, dy = p1.y - p0.y;
+                const angle = Math.atan2(dy, dx);
+                const crossAngle = Math.abs(Math.sin(angle));
+                ctx.lineWidth = Math.max(0.5, size * (0.4 + crossAngle * 1.8));
+                ctx.beginPath();
+                ctx.moveTo(p0.x, p0.y);
+                ctx.lineTo(p1.x, p1.y);
                 ctx.stroke();
             }
             ctx.restore();
@@ -501,7 +590,6 @@ function Toolbar({
                     title={`ปากกา: ${PEN_STYLES.find(p => p.id === penStyle)?.label || "Pen"}`}
                 >
                     {currentPenIcon}
-                    <span className="pen-indicator" />
                 </button>
 
                 {/* Pen Popup Panel */}
@@ -511,11 +599,30 @@ function Toolbar({
                             <span className="pen-popup-title">Pen</span>
                         </div>
 
-                        {/* Grid ปากกา */}
+                        {/* แถบเลื่อนแนวนอนสำหรับปากกา */}
+                        <div style={{fontSize:'12px', fontWeight:'bold', color:'rgba(255,255,255,0.7)', marginBottom:'8px'}}>ปากกา</div>
+                        <div className="pen-horizontal-scroll">
+                            {PEN_STYLES.filter(ps => !ps.id.startsWith('split_')).map((ps) => {
+                                const isActive = penStyle === ps.id;
+                                return (
+                                    <button
+                                        key={ps.id}
+                                        className={`pen-option ${isActive ? "active" : ""}`}
+                                        onClick={() => handlePenStyleSelect(ps.id)}
+                                        title={ps.desc}
+                                    >
+                                        <span className="pen-option-icon">{ps.icon}</span>
+                                        <span className="pen-option-label">{ps.label}</span>
+                                    </button>
+                                );
+                            })}
+                        </div>
+
+                        {/* Grid แบ่งหน้าจอ */}
+                        <div style={{fontSize:'12px', fontWeight:'bold', color:'rgba(255,255,255,0.7)', marginBottom:'8px'}}>แบ่งหน้าจอ</div>
                         <div className="pen-grid">
-                            {PEN_STYLES.map((ps) => {
-                                // For split items, check if current penStyle matches (including h variant)
-                                const isActive = penStyle === ps.id || (ps.id.startsWith("split_") && penStyle === `split_h_${ps.id.split("_")[1]}`);
+                            {PEN_STYLES.filter(ps => ps.id.startsWith('split_')).map((ps) => {
+                                const isActive = ps.id.startsWith("split_") && (penStyle === ps.id || penStyle === `split_h_${ps.id.split("_")[1]}`);
                                 return (
                                     <button
                                         key={ps.id}
@@ -598,8 +705,8 @@ function Toolbar({
                     </div>
                 )}
 
-                <button className={`tool-btn ${tool === "eraser" ? "active" : ""}`} onClick={() => { onToolChange("eraser"); setShowPenPopup(false); }} title="ยางลบ (E)">🧹</button>
-                <button className={`tool-btn ${tool === "ai_pen" ? "active" : ""}`} onClick={() => { onToolChange("ai_pen"); setShowPenPopup(false); }} title="AI Pen (เสกคำตอบ)">✨</button>
+                <button className={`tool-btn ${tool === "eraser" ? "active" : ""}`} onClick={() => { onToolChange("eraser"); setShowPenPopup(false); }} title="ยางลบ (E)"><img src="/eraser.png" alt="Eraser" style={{width: "24px", height: "24px"}}/></button>
+                <button className={`tool-btn ${tool === "ai_pen" ? "active" : ""}`} onClick={() => { onToolChange("ai_pen"); setShowPenPopup(false); }} title="Magic Pen"><img src="/magic_pen.png" alt="Magic Pen" style={{width: "28px", height: "28px", transform: "scale(1.2)"}}/></button>
                 <button className={`tool-btn ${tool === "text" ? "active" : ""}`} onClick={() => { onToolChange("text"); setShowPenPopup(false); }} title="ข้อความ (T)">🔤</button>
                 {/* Laser Pointer */}
                 <button className={`tool-btn ${tool === "laser" ? "active laser-btn" : ""}`} onClick={() => { onToolChange("laser"); setShowPenPopup(false); }} title="เลเซอร์ชี้">🔴</button>
@@ -616,7 +723,6 @@ function Toolbar({
                     title={`รูปทรง: ${currentShapeObj?.label}`}
                 >
                     {currentShapeObj?.icon}
-                    <span className="pen-indicator" />
                 </button>
 
                 {/* Shape Popup Panel */}
@@ -659,7 +765,7 @@ function Toolbar({
                 {COLORS.map((c) => (
                     <button
                         key={c}
-                        className={`color-btn ${color === c ? "active" : ""}`}
+                        className={`color-btn ${color === c ? "active" : ""} ${c.toLowerCase() === "#ffffff" ? "is-white" : ""}`}
                         style={{ backgroundColor: c }}
                         onClick={() => onColorChange(c)}
                         title={c}
