@@ -853,8 +853,9 @@ const Canvas = forwardRef(function Canvas(
     const drawState = { isDrawing: true, currentStroke: null, prevX: x, prevY: y, shapeStart: null };
     activeDrawings.current.set(pId, drawState);
 
-    const effectivePenStyle = (tool === "highlighter") ? "highlighter" : (tool === "eraser" ? "pen" : penStyle);
-    const needsFullRedraw = effectivePenStyle === "highlighter" || effectivePenStyle === "dashed" || effectivePenStyle === "dotted";
+    const effectivePenStyle = (tool === "ai_pen" || tool === "ai_text") ? "pen" : (tool === "highlighter") ? "highlighter" : (tool === "eraser" ? "pen" : penStyle);
+    const FULL_REDRAW_STYLES = ["pen","highlighter","dashed","dotted","crayon","brush","calligraphy","neon","pencil","marker","chalk","watercolor","fountain"];
+    const needsFullRedraw = tool !== "eraser" && FULL_REDRAW_STYLES.includes(effectivePenStyle);
 
     if (isShapeTool || needsFullRedraw) {
       if (isShapeTool) drawState.shapeStart = { x, y };
@@ -868,7 +869,7 @@ const Canvas = forwardRef(function Canvas(
       const effectiveToolForStroke = tool;
       const effectivePenSizeForStroke = penSize;
       
-      const effectivePenStyle = (effectiveToolForStroke === "highlighter") ? "highlighter" : (effectiveToolForStroke === "eraser" ? "pen" : penStyle);
+      const effectivePenStyle = (effectiveToolForStroke === "ai_pen" || effectiveToolForStroke === "ai_text") ? "pen" : (effectiveToolForStroke === "highlighter") ? "highlighter" : (effectiveToolForStroke === "eraser" ? "pen" : penStyle);
       let strokeColor = effectiveToolForStroke === "eraser" ? "#000" : color;
 
       // Multi-Touch: ถ้าเป็น touch pointer → ใช้สีจาก pointerColorMap แทน color picker (เมื่อเปิดโหมด)
@@ -899,7 +900,7 @@ const Canvas = forwardRef(function Canvas(
       }
       drawState.currentStroke = {
         id: Date.now().toString(36) + Math.random().toString(36).substr(2) + pId,
-        tool: effectiveToolForStroke, penStyle: effectivePenStyle, color: strokeColor, size: effectivePenSizeForStroke, points: [{ x, y }],
+        tool: effectiveToolForStroke, penStyle: effectivePenStyle, color: strokeColor, size: effectivePenSizeForStroke, points: [{ x, y, pressure: e.pressure !== undefined ? e.pressure : 0.5 }],
       };
     }
   };
@@ -1126,7 +1127,7 @@ const Canvas = forwardRef(function Canvas(
       const strokeTool = drawState.currentStroke ? drawState.currentStroke.tool : tool;
       const strokeSize = drawState.currentStroke ? drawState.currentStroke.size : penSize;
       const strokeColor = drawState.currentStroke ? drawState.currentStroke.color : (strokeTool === "eraser" ? "#000" : color);
-      const effectiveStyle = (strokeTool === "highlighter") ? "highlighter" : (strokeTool === "eraser" ? "pen" : penStyle);
+      const effectiveStyle = (strokeTool === "ai_pen" || strokeTool === "ai_text") ? "pen" : (strokeTool === "highlighter") ? "highlighter" : (strokeTool === "eraser" ? "pen" : penStyle);
       
       const dx = x - drawState.prevX;
       const dy = y - drawState.prevY;
@@ -1142,9 +1143,11 @@ const Canvas = forwardRef(function Canvas(
         }
       }
 
-      drawState.currentStroke?.points.push({ x, y });
+      const pressure = e.pressure !== undefined ? e.pressure : 0.5;
+      drawState.currentStroke?.points.push({ x, y, pressure });
 
-      const needsFullRedrawMove = effectiveStyle === "highlighter" || effectiveStyle === "dashed" || effectiveStyle === "dotted";
+      const FULL_REDRAW_STYLES_MOVE = ["pen","highlighter","dashed","dotted","crayon","brush","calligraphy","neon","pencil","marker","chalk","watercolor","fountain"];
+      const needsFullRedrawMove = drawState.tool !== "eraser" && FULL_REDRAW_STYLES_MOVE.includes(effectiveStyle);
 
       if (needsFullRedrawMove) {
         const ctx = ctxRef.current;

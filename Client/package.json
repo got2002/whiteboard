@@ -10,6 +10,7 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "canvas": "^3.2.3",
     "mobile-drag-drop": "^3.0.0-rc.0",
     "onnxruntime-web": "^1.27.0",
     "perfect-freehand": "^1.2.3",
