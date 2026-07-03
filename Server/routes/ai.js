@@ -149,4 +149,45 @@ router.post("/translate", async (req, res) => {
   }
 });
 
+// ============================================================
+// POST /stt - แปลงเสียงเป็นข้อความ (Speech-to-Text)
+// ============================================================
+router.post("/stt", async (req, res) => {
+  try {
+    const model = getGeminiModel();
+    if (!model) {
+      return res.status(503).json({ error: "GEMINI_API_KEY is not configured on the server." });
+    }
+
+    const clientIp = req.ip || req.connection.remoteAddress;
+    if (!checkRateLimit(clientIp)) {
+      return res.status(429).json({ error: "Rate limit exceeded. Max 10 requests per minute." });
+    }
+
+    const { audioBase64, mimeType } = req.body;
+    if (!audioBase64) {
+      return res.status(400).json({ error: "audioBase64 is required." });
+    }
+
+    // Prepare audio part
+    const audioPart = {
+      inlineData: {
+        data: audioBase64.replace(/^data:audio\/\w+(?:-\w+)?;base64,/, ""),
+        mimeType: mimeType || "audio/webm",
+      },
+    };
+
+    const prompt = "Transcribe the following audio in Thai language. Return only the transcribed text without any markdown or formatting. If there is no speech, just return nothing.";
+    
+    const result = await model.generateContent([prompt, audioPart]);
+    const response = await result.response;
+    const text = response.text().trim();
+
+    res.json({ result: text });
+  } catch (err) {
+    console.error("❌ STT Error:", err.message || err);
+    res.status(500).json({ error: "Speech-to-Text failed: " + err.message });
+  }
+});
+
 module.exports = router;

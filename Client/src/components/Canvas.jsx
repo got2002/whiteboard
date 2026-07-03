@@ -80,7 +80,11 @@ const Canvas = forwardRef(function Canvas(
   // Voice to Text
   const [aiError, setAiError] = useState(null);
   const [isListeningVoice, setIsListeningVoice] = useState(false);
+  const [isVoiceProcessing, setIsVoiceProcessing] = useState(false);
   const [voicePos, setVoicePos] = useState(null);
+  const [interimVoiceText, setInterimVoiceText] = useState("");
+  const mediaRecorderRef = useRef(null);
+  const audioChunksRef = useRef([]);
 
   // Inline Text Editing
   const [inlineText, setInlineText] = useState(null); // { x, y, screenX, screenY, fontSize }
@@ -679,50 +683,104 @@ const Canvas = forwardRef(function Canvas(
       const canvasX = (e.clientX - rect.left - panOffset.current.x) / zoom.current;
       const canvasY = (e.clientY - rect.top - panOffset.current.y) / zoom.current;
 
-      const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-      if (!SpeechRecognition) {
-        setAiError("เบราว์เซอร์นี้ไม่รองรับระบบสั่งงานด้วยเสียง (Voice to Text)");
-        setTimeout(() => setAiError(null), 5000);
-        return;
+      if (isListeningVoice) {
+         // Stop recording
+         if (mediaRecorderRef.current && mediaRecorderRef.current.state === "recording") {
+            mediaRecorderRef.current.stop();
+         }
+         return; // Prevent multiple instances, toggle off
       }
 
-      if (isListeningVoice) return; // Prevent multiple instances
-
-      const recognition = new SpeechRecognition();
-      recognition.lang = 'th-TH'; // Default to Thai
-      recognition.interimResults = false;
-      recognition.maxAlternatives = 1;
-
-      setIsListeningVoice(true);
       setVoicePos({ x: canvasX, y: canvasY });
+      setIsListeningVoice(true);
+      setInterimVoiceText("กำลังเชื่อมต่อไมโครโฟน...");
 
-      recognition.start();
-
-      recognition.onresult = (event) => {
-         const transcript = event.results[0][0].transcript;
-         if (transcript) {
-            const stroke = {
-               id: `text-${Date.now()}`,
-               type: "text",
-               text: transcript,
-               x: canvasX,
-               y: canvasY,
-               color: color || "#000",
-               fontSize: 32,
-               fontFamily: "Inter, sans-serif",
-            };
-            onStrokeComplete(stroke);
+      navigator.mediaDevices.getUserMedia({ 
+         audio: { 
+            sampleRate: 16000, 
+            channelCount: 1, 
+            echoCancellation: true 
+         } 
+      }).then(stream => {
+         let options = {};
+         if (MediaRecorder.isTypeSupported('audio/webm;codecs=opus')) {
+            options = { mimeType: 'audio/webm;codecs=opus', audioBitsPerSecond: 16000 };
          }
-      };
+         const mediaRecorder = new MediaRecorder(stream, options);
+         mediaRecorderRef.current = mediaRecorder;
+         audioChunksRef.current = [];
 
-      recognition.onerror = (event) => {
-         console.error("Speech recognition error", event.error);
-         setIsListeningVoice(false);
-      };
+         mediaRecorder.ondataavailable = (event) => {
+            if (event.data.size > 0) {
+               audioChunksRef.current.push(event.data);
+            }
+         };
 
-      recognition.onend = () => {
+         mediaRecorder.onstop = async () => {
+            // Stop mic tracks
+            stream.getTracks().forEach(track => track.stop());
+            setIsListeningVoice(false);
+            setInterimVoiceText("");
+            
+            const audioBlob = new Blob(audioChunksRef.current, { type: "audio/webm" });
+            if (audioBlob.size === 0) return;
+
+            setIsVoiceProcessing(true);
+            
+            try {
+               const reader = new FileReader();
+               reader.readAsDataURL(audioBlob);
+               reader.onloadend = async () => {
+                  const base64Audio = reader.result;
+                  try {
+                     const response = await fetch(`${serverUrl}/api/ai/stt`, {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({ audioBase64: base64Audio, mimeType: "audio/webm" }),
+                     });
+                     
+                     const data = await response.json();
+                     if (data.error) throw new Error(data.error);
+                     
+                     const transcript = data.result;
+                     if (transcript) {
+                        const stroke = {
+                           id: `text-${Date.now()}`,
+                           type: "text",
+                           text: transcript,
+                           x: canvasX,
+                           y: canvasY,
+                           color: color || "#000",
+                           fontSize: 32,
+                           fontFamily: "Inter, sans-serif",
+                        };
+                        onStrokeComplete(stroke);
+                     } else {
+                        setAiError("ไม่ได้ยินเสียง หรือไม่มีข้อความ");
+                        setTimeout(() => setAiError(null), 3000);
+                     }
+                  } catch (err) {
+                     setAiError(`STT Error: ${err.message}`);
+                     setTimeout(() => setAiError(null), 5000);
+                  } finally {
+                     setIsVoiceProcessing(false);
+                  }
+               };
+            } catch (err) {
+               setAiError(`Audio processing error: ${err.message}`);
+               setTimeout(() => setAiError(null), 5000);
+               setIsVoiceProcessing(false);
+            }
+         };
+
+         mediaRecorder.start();
+         setInterimVoiceText("กำลังบันทึกเสียง... (คลิกอีกครั้งเพื่อหยุด)");
+      }).catch(err => {
+         setAiError("ไม่สามารถเข้าถึงไมโครโฟนได้: " + err.message);
+         setTimeout(() => setAiError(null), 5000);
          setIsListeningVoice(false);
-      };
+         setInterimVoiceText("");
+      });
 
       return;
     }
@@ -1909,7 +1967,30 @@ const Canvas = forwardRef(function Canvas(
             <path d="M19 10v2a7 7 0 0 1-14 0v-2" />
             <line x1="12" x2="12" y1="19" y2="22" />
           </svg>
-          กำลังฟังเสียง...
+          {interimVoiceText ? interimVoiceText : "กำลังฟังเสียง..."}
+        </div>
+      )}
+
+      {/* Voice Processing Indicator */}
+      {isVoiceProcessing && voicePos && (
+        <div style={{
+          position: "fixed",
+          left: (voicePos.x * zoom.current + panOffset.current.x) + "px",
+          top: (voicePos.y * zoom.current + panOffset.current.y - 40) + "px",
+          zIndex: 100,
+          background: "white",
+          padding: "8px 16px",
+          borderRadius: "8px",
+          boxShadow: "0 4px 12px rgba(0,0,0,0.15)",
+          display: "flex",
+          alignItems: "center",
+          gap: "12px",
+          border: "1px solid #e2e8f0"
+        }}>
+          <div className="ai-spinner"></div>
+          <span style={{ fontSize: "14px", fontWeight: "500", color: "#475569" }}>
+            กำลังแปลงเสียงเป็นข้อความ...
+          </span>
         </div>
       )}
 
