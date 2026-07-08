@@ -625,10 +625,12 @@ export default function MathToolWidget({ canEdit = true, toolId, toolType, toolD
       dragRef.current = null; 
       window.removeEventListener("pointermove", onMove); 
       window.removeEventListener("pointerup", onUp); 
+      window.removeEventListener("pointercancel", onUp); 
     };
     window.addEventListener("pointermove", onMove);
     window.addEventListener("pointerup", onUp);
-  }, [pos]);
+    window.addEventListener("pointercancel", onUp);
+  }, [pos, currentZoomRef, updateState]);
 
   // Resize
   const startResize = useCallback((e) => {
@@ -650,10 +652,12 @@ export default function MathToolWidget({ canEdit = true, toolId, toolType, toolD
       resizeRef.current = null; 
       window.removeEventListener("pointermove", onMove); 
       window.removeEventListener("pointerup", onUp); 
+      window.removeEventListener("pointercancel", onUp); 
     };
     window.addEventListener("pointermove", onMove);
     window.addEventListener("pointerup", onUp);
-  }, [size]);
+    window.addEventListener("pointercancel", onUp);
+  }, [size, currentZoomRef, updateState]);
 
   // Rotate
   const startRotate = useCallback((e) => {
@@ -672,10 +676,12 @@ export default function MathToolWidget({ canEdit = true, toolId, toolType, toolD
       updateState({ rotation: startRot + (angle - startAngle) * (180 / Math.PI) });
       window.removeEventListener("pointermove", onMove); 
       window.removeEventListener("pointerup", onUp); 
+      window.removeEventListener("pointercancel", onUp); 
     };
     window.addEventListener("pointermove", onMove);
     window.addEventListener("pointerup", onUp);
-  }, [rotation]);
+    window.addEventListener("pointercancel", onUp);
+  }, [rotation, updateState]);
 
   // Actions
   const handleDrawCircle = (e) => {
@@ -770,11 +776,10 @@ export default function MathToolWidget({ canEdit = true, toolId, toolType, toolD
     <div ref={containerRef}
       onMouseEnter={() => setHovered(true)} onMouseLeave={() => setHovered(false)}
       style={{
-        position: "fixed", width: size.w, zIndex: 50,
+        position: "fixed", width: size.w, height: size.h, zIndex: 50,
         paddingTop: 36,
-        transform: `rotate(${rotation}deg)`, transformOrigin: `center calc(50% + 18px)`,
         pointerEvents: (canEdit && (tool === "select" || tool === "lasso" || tool === "pan")) ? "auto" : "none", 
-        userSelect: "none", cursor: "grab",
+        userSelect: "none", cursor: "grab", touchAction: "none"
       }}
       onPointerDown={(e) => { e.stopPropagation(); startDrag(e); }}
     >
@@ -841,14 +846,14 @@ export default function MathToolWidget({ canEdit = true, toolId, toolType, toolD
 
       {/* Resize Handle */}
       {canEdit && (
-        <div style={{ position: "absolute", right: -8, bottom: -8, width: 24, height: 24, cursor: "se-resize", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 4 }} onPointerDown={(e) => { e.stopPropagation(); startResize(e); }}>
+        <div style={{ position: "absolute", right: -8, bottom: -8, width: 24, height: 24, cursor: "se-resize", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 4, touchAction: "none" }} onPointerDown={(e) => { e.stopPropagation(); startResize(e); }}>
           <div style={{ width: 12, height: 12, borderRight: "3px solid #cbd5e1", borderBottom: "3px solid #cbd5e1" }} />
         </div>
       )}
 
       {/* Rotate Handle */}
       {canEdit && (
-        <div style={{ position: "absolute", right: -28, top: "50%", transform: "translateY(-50%)", width: 24, height: 24, cursor: "grab", background: "#f1f5f9", border: "1px solid #cbd5e1", borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 4, boxShadow: "0 1px 3px rgba(0,0,0,0.1)" }} onPointerDown={(e) => { e.stopPropagation(); startRotate(e); }} title="ลากเพื่อหมุน">
+        <div style={{ position: "absolute", right: -28, top: "50%", transform: "translateY(-50%)", width: 24, height: 24, cursor: "grab", background: "#f1f5f9", border: "1px solid #cbd5e1", borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 4, boxShadow: "0 1px 3px rgba(0,0,0,0.1)", touchAction: "none" }} onPointerDown={(e) => { e.stopPropagation(); startRotate(e); }} title="หมุนเครื่องมือ">
           ↻
         </div>
       )}

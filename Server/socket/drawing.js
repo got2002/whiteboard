@@ -8,6 +8,12 @@ function hasPermission(socketId, minRole) {
   return (ROLE_LEVELS[user.role] || 0) >= (ROLE_LEVELS[minRole] || 99);
 }
 
+function canSyncHostTools(socketId) {
+  const user = store.users[socketId];
+  if (!user) return false;
+  return user.role === 'host' || (user.role === 'contributor' && user.permissionLevel === 'full_access');
+}
+
 module.exports = (io, socket) => {
 
   socket.on("draw", (data) => {
@@ -51,13 +57,13 @@ module.exports = (io, socket) => {
   });
 
   socket.on("host-multidraw-mode-changed", ({ isMultiDrawMode }) => {
-    if (!hasPermission(socket.id, "host")) return;
+    if (!canSyncHostTools(socket.id)) return;
     store.isMultiDrawMode = isMultiDrawMode;
     socket.broadcast.emit("host-multidraw-mode-changed", { isMultiDrawMode });
   });
 
   socket.on("update-slot-titles", ({ slotTitles }) => {
-    if (!hasPermission(socket.id, "host")) return;
+    if (!canSyncHostTools(socket.id)) return;
     store.slotTitles = slotTitles;
     socket.broadcast.emit("update-slot-titles", { slotTitles });
   });

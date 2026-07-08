@@ -4,13 +4,30 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { collaborationService } from "./collaborationService";
 
+import { socket } from "../../core/socket";
+
 export function useCollaboration({ isActive, currentPageIndex, setCurrentPageIndex }) {
   const [remoteUsers, setRemoteUsers] = useState({});
   const [remoteCursors, setRemoteCursors] = useState({});
+  const [remoteViewports, setRemoteViewports] = useState({});
   const [laserPointers, setLaserPointers] = useState({});
   const [followUserId, setFollowUserId] = useState(null);
   const followUserIdRef = useRef(null);
 
+  const initUsers = useCallback((users) => {
+    if (users) {
+      setRemoteUsers(prev => {
+        const next = { ...prev };
+        Object.keys(users).forEach(id => {
+          if (id !== socket.id) {
+            const u = users[id];
+            next[id] = { name: u.name || "ผู้ใช้", role: u.role, color: u.color, pageIndex: u.pageIndex || 0, permissionLevel: u.permissionLevel || null };
+          }
+        });
+        return next;
+      });
+    }
+  }, []);
   // ── Socket listeners ──
   useEffect(() => {
     if (!isActive) return;
@@ -21,23 +38,34 @@ export function useCollaboration({ isActive, currentPageIndex, setCurrentPageInd
     const handleLaser = (data) => {
       setLaserPointers(prev => ({ ...prev, [data.id]: { ...data, timestamp: Date.now() } }));
     };
-    const handleUserJoined = ({ id, name, role, color, permissionLevel }) => {
-      setRemoteUsers(prev => ({ ...prev, [id]: { name, role, color, pageIndex: 0, permissionLevel } }));
+    const handleViewport = (data) => {
+      setRemoteViewports(prev => ({ ...prev, [data.id]: data }));
     };
+    const handleUserJoined = ({ id, name, role, color, permissionLevel }) => {
+      setRemoteUsers(prev => ({ ...prev, [id]: { name: name || "ผู้ใช้", role, color, pageIndex: 0, permissionLevel } }));
+    };
+
     const handleUserLeft = ({ id }) => {
       setRemoteUsers(prev => { const next = { ...prev }; delete next[id]; return next; });
       setRemoteCursors(prev => { const next = { ...prev }; delete next[id]; return next; });
       setLaserPointers(prev => { const next = { ...prev }; delete next[id]; return next; });
     };
     const handleUserPageChanged = ({ id, pageIndex }) => {
-      setRemoteUsers(prev => ({ ...prev, [id]: { ...prev[id], pageIndex } }));
+      setRemoteUsers(prev => {
+        if (!prev[id]) return prev;
+        return { ...prev, [id]: { ...prev[id], pageIndex } };
+      });
     };
     const handleUserRoleUpdated = ({ id, role, permissionLevel }) => {
-      setRemoteUsers(prev => ({ ...prev, [id]: { ...prev[id], role, permissionLevel } }));
+      setRemoteUsers(prev => {
+        if (!prev[id]) return prev;
+        return { ...prev, [id]: { ...prev[id], role, permissionLevel } };
+      });
     };
 
     collaborationService.onCursorMove(handleCursorMove);
     collaborationService.onLaser(handleLaser);
+    collaborationService.onViewport(handleViewport);
     collaborationService.onUserJoined(handleUserJoined);
     collaborationService.onUserLeft(handleUserLeft);
     collaborationService.onUserPageChanged(handleUserPageChanged);
@@ -46,6 +74,7 @@ export function useCollaboration({ isActive, currentPageIndex, setCurrentPageInd
     return () => {
       collaborationService.offCursorMove(handleCursorMove);
       collaborationService.offLaser(handleLaser);
+      collaborationService.offViewport(handleViewport);
       collaborationService.offUserJoined(handleUserJoined);
       collaborationService.offUserLeft(handleUserLeft);
       collaborationService.offUserPageChanged(handleUserPageChanged);
@@ -89,8 +118,9 @@ export function useCollaboration({ isActive, currentPageIndex, setCurrentPageInd
   };
 
   return {
-    remoteUsers, remoteCursors, laserPointers,
+    remoteUsers, remoteCursors, remoteViewports, laserPointers,
     followUserId, setFollowUserId, followUserIdRef,
-    handleCursorMove, handleFollow,
+    handleCursorMove, handleFollow, initUsers,
+    collaborationService
   };
 }

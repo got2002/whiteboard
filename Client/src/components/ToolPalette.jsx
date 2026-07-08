@@ -47,11 +47,11 @@ const PEN_STYLES = [
     { id: "pen", label: "Pen", icon: <img src="/pen.png" alt="Pen" style={{width: "18px", height: "18px", objectFit: "contain"}} />, desc: "ปากกาปกติ" },
     { id: "highlighter", label: "Highlight", icon: <img src="/highlighter.png" alt="Highlight" style={{width: "18px", height: "18px", objectFit: "contain"}} />, desc: "ปากกาเน้นข้อความ" },
     { id: "brush", label: "Brush", icon: <img src="/brush.png" alt="Brush" style={{width: "18px", height: "18px", objectFit: "contain"}} />, desc: "พู่กัน" },
-    { id: "calligraphy", label: "Callig.", icon: <PenSvg><path d="M12 2l4 10v4a4 4 0 0 1-8 0v-4z" /><path d="M12 2v10" /><circle cx="12" cy="14" r="1" fill="currentColor" stroke="none" /></PenSvg>, desc: "หมึกซึม" },
-    { id: "crayon", label: "Crayon", icon: <PenSvg><path d="M17.5 6.5l-12 12-4 1 1-4 12-12 3 3z" /><path d="M14 5l5 5" /><path d="M5 14l5 5" /></PenSvg>, desc: "สีเทียน" },
-    { id: "dashed", label: "Dashed", icon: <PenSvg><path d="M4 12h3M10.5 12h3M17 12h3" strokeLinecap="butt" /></PenSvg>, desc: "เส้นประ" },
-    { id: "dotted", label: "Dotted", icon: <PenSvg><circle cx="5" cy="12" r="1.5" fill="currentColor" stroke="none" /><circle cx="12" cy="12" r="1.5" fill="currentColor" stroke="none" /><circle cx="19" cy="12" r="1.5" fill="currentColor" stroke="none" /></PenSvg>, desc: "เส้นจุด" },
-    { id: "neon", label: "Neon", icon: <PenSvg><path d="M12 3l1.5 4.5L18 9l-4.5 1.5L12 15l-1.5-4.5L6 9l4.5-1.5z" /><path d="M17 17l1 3 3 1-3 1-1 3-1-3-3-1 3-1z" /><path d="M7 19l.5 1.5 1.5.5-1.5.5-.5 1.5-.5-1.5-1.5-.5 1.5-.5z" /></PenSvg>, desc: "เรืองแสง" },
+    { id: "calligraphy", label: "Callig.", icon: <img src="/calligraphy.png" alt="Callig." style={{width: "18px", height: "18px", objectFit: "contain"}} />, desc: "หมึกซึม" },
+    { id: "crayon", label: "Crayon", icon: <img src="/crayon.png" alt="Crayon" style={{width: "18px", height: "18px", objectFit: "contain"}} />, desc: "สีเทียน" },
+    { id: "dashed", label: "Dashed", icon: <img src="/dashed.png" alt="Dashed" style={{width: "18px", height: "18px", objectFit: "contain"}} />, desc: "เส้นประ" },
+    { id: "dotted", label: "Dotted", icon: <img src="/dotted.png" alt="Dotted" style={{width: "18px", height: "18px", objectFit: "contain"}} />, desc: "เส้นจุด" },
+    { id: "neon", label: "Neon", icon: <img src="/neon.png" alt="Neon" style={{width: "18px", height: "18px", objectFit: "contain"}} />, desc: "เรืองแสง" },
     { id: "pencil", label: "Pencil", icon: <PenSvg><path d="M17 3a2.83 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z" /></PenSvg>, desc: "ดินสอ" },
     { id: "marker", label: "Marker", icon: <PenSvg><path d="M18 3l3 3-12 12H6v-3L18 3z" /><path d="M15 6l3 3" /><path d="M2 22h6" /></PenSvg>, desc: "ปากกาเมจิก" },
     { id: "chalk", label: "Chalk", icon: <PenSvg><path d="M4 20l3-12L18 3l3 3-5 11L4 20z" /><path d="M7 8l9 9" /></PenSvg>, desc: "ชอล์ค" },
@@ -171,10 +171,13 @@ function PenPreview({ penStyle, color, size }) {
 // ToolPalette Component
 // ============================================================
 function ToolPalette({
+    canUseFullTools = true,
     tool, color, penSize, penStyle,
     onToolChange, onPenStyleChange, onPenSizeChange,
+    eraserSize = 10, onEraserSizeChange,
     onUndo, onRedo, onClear, onInsertImage, onInsertVideo,
     userRole,
+    hostPenStyle,
 }) {
     const [showPenPopup, setShowPenPopup] = useState(false);
     const penPopupRef = useRef(null);
@@ -231,7 +234,7 @@ function ToolPalette({
     };
 
     const isPenActive = tool === "pen" || tool === "highlighter";
-    const isSplitActive = penStyle.startsWith("split_");
+    const isSplitActive = penStyle.startsWith("split_") || (typeof hostPenStyle === "string" && hostPenStyle.startsWith("split_"));
     const isShapeActive = SHAPES.some(s => s.id === tool);
     const lookupPenStyle = penStyle.startsWith("split_h_") ? `split_${penStyle.split("_")[2]}` : penStyle;
     const currentPenIcon = PEN_STYLES.find(p => p.id === lookupPenStyle)?.icon || PEN_STYLES[0].icon;
@@ -295,52 +298,78 @@ function ToolPalette({
                             })}
                         </div>
                         
-                        {/* Grid แบ่งหน้าจอ */}
-                        <div style={{fontSize:'12px', fontWeight:'bold', color:'rgba(255,255,255,0.7)', marginBottom:'8px'}}>แบ่งหน้าจอ</div>
-                        <div className="pen-grid">
-                            {PEN_STYLES.filter(ps => ps.id.startsWith('split_')).map(ps => {
-                                const isActive = ps.id.startsWith("split_") && (penStyle === ps.id || penStyle === `split_h_${ps.id.split("_")[1]}`);
-                                return (
-                                    <button key={ps.id} className={`pen-option ${isActive ? "active" : ""}`} onClick={() => handlePenStyleSelect(ps.id)} title={ps.desc}>
-                                        <span className="pen-option-icon">{ps.icon}</span>
-                                        <span className="pen-option-label">{ps.label}</span>
-                                    </button>
-                                );
-                            })}
-                        </div>
-                        {/* Split Direction Toggle */}
-                        {isSplitActive && (
-                            <div style={{
-                                display: "flex", alignItems: "center", justifyContent: "center",
-                                gap: "6px", padding: "8px 12px", margin: "8px 12px 0",
-                                background: "rgba(255,255,255,0.06)", borderRadius: "8px",
-                            }}>
-                                <span style={{ fontSize: "11px", color: "rgba(255,255,255,0.5)", marginRight: "4px" }}>ทิศทาง:</span>
-                                <button
-                                    onClick={() => { if (penStyle.startsWith("split_h_")) handleSplitDirectionToggle(); }}
-                                    style={{
-                                        padding: "4px 12px", borderRadius: "6px", border: "none",
-                                        fontSize: "11px", fontWeight: 600, cursor: "pointer",
-                                        background: !penStyle.startsWith("split_h_") ? "rgba(99, 102, 241, 0.5)" : "rgba(255,255,255,0.08)",
-                                        color: !penStyle.startsWith("split_h_") ? "#fff" : "rgba(255,255,255,0.5)",
-                                    }}
-                                    title="แบ่งแนวตั้ง"
-                                >
-                                    │ แนวตั้ง
-                                </button>
-                                <button
-                                    onClick={() => { if (!penStyle.startsWith("split_h_")) handleSplitDirectionToggle(); }}
-                                    style={{
-                                        padding: "4px 12px", borderRadius: "6px", border: "none",
-                                        fontSize: "11px", fontWeight: 600, cursor: "pointer",
-                                        background: penStyle.startsWith("split_h_") ? "rgba(99, 102, 241, 0.5)" : "rgba(255,255,255,0.08)",
-                                        color: penStyle.startsWith("split_h_") ? "#fff" : "rgba(255,255,255,0.5)",
-                                    }}
-                                    title="แบ่งแนวนอน"
-                                >
-                                    ─ แนวนอน
-                                </button>
-                            </div>
+                        {/* Grid แบ่งหน้าจอ (Only for Full Access / Host) */}
+                        {canUseFullTools && (
+                            <>
+                                <div style={{fontSize:'12px', fontWeight:'bold', color:'rgba(255,255,255,0.7)', marginBottom:'8px'}}>แบ่งหน้าจอ</div>
+                                <div className="pen-grid">
+                                    {PEN_STYLES.filter(ps => ps.id.startsWith('split_')).map(ps => {
+                                        const isActive = ps.id.startsWith("split_") && (penStyle === ps.id || penStyle === `split_h_${ps.id.split("_")[1]}`);
+                                        return (
+                                            <button key={ps.id} className={`pen-option ${isActive ? "active" : ""}`} onClick={() => handlePenStyleSelect(ps.id)} title={ps.desc}>
+                                                <span className="pen-option-icon">{ps.icon}</span>
+                                                <span className="pen-option-label">{ps.label}</span>
+                                            </button>
+                                        );
+                                    })}
+                                </div>
+                                {/* Split Direction Toggle */}
+                                {isSplitActive && (
+                                    <>
+                                        <div style={{
+                                            display: "flex", alignItems: "center", justifyContent: "center",
+                                            padding: "6px", margin: "16px 12px 0",
+                                            background: "rgba(0, 0, 0, 0.15)", borderRadius: "10px",
+                                            boxShadow: "inset 0 1px 3px rgba(0,0,0,0.2)"
+                                        }}>
+                                            <span style={{ fontSize: "12px", fontWeight: 600, color: "rgba(255,255,255,0.6)", marginRight: "12px" }}>ทิศทาง:</span>
+                                            <div style={{ display: "flex", gap: "4px", background: "rgba(255,255,255,0.05)", padding: "4px", borderRadius: "8px" }}>
+                                                <button
+                                                    onClick={() => { if (penStyle.startsWith("split_h_")) handleSplitDirectionToggle(); }}
+                                                    style={{
+                                                        padding: "6px 16px", borderRadius: "6px", border: "none",
+                                                        fontSize: "12px", fontWeight: 600, cursor: "pointer",
+                                                        background: !penStyle.startsWith("split_h_") ? "#6366f1" : "transparent",
+                                                        color: !penStyle.startsWith("split_h_") ? "#fff" : "rgba(255,255,255,0.6)",
+                                                        boxShadow: !penStyle.startsWith("split_h_") ? "0 2px 4px rgba(0,0,0,0.2)" : "none",
+                                                        transition: "all 0.2s"
+                                                    }}
+                                                    title="แบ่งแนวตั้ง"
+                                                >
+                                                    │ แนวตั้ง
+                                                </button>
+                                                <button
+                                                    onClick={() => { if (!penStyle.startsWith("split_h_")) handleSplitDirectionToggle(); }}
+                                                    style={{
+                                                        padding: "6px 16px", borderRadius: "6px", border: "none",
+                                                        fontSize: "12px", fontWeight: 600, cursor: "pointer",
+                                                        background: penStyle.startsWith("split_h_") ? "#6366f1" : "transparent",
+                                                        color: penStyle.startsWith("split_h_") ? "#fff" : "rgba(255,255,255,0.6)",
+                                                        boxShadow: penStyle.startsWith("split_h_") ? "0 2px 4px rgba(0,0,0,0.2)" : "none",
+                                                        transition: "all 0.2s"
+                                                    }}
+                                                    title="แบ่งแนวนอน"
+                                                >
+                                                    ─ แนวนอน
+                                                </button>
+                                            </div>
+                                        </div>
+                                        <button
+                                            onClick={() => handlePenStyleSelect("pen")}
+                                            style={{
+                                                margin: "12px 12px 0", width: "calc(100% - 24px)", padding: "8px", borderRadius: "8px",
+                                                background: "rgba(239, 68, 68, 0.15)", color: "#fca5a5", border: "1px solid rgba(239, 68, 68, 0.3)",
+                                                cursor: "pointer", fontWeight: "bold", fontSize: "12px",
+                                                transition: "all 0.2s"
+                                            }}
+                                            onMouseOver={(e) => { e.target.style.background = "rgba(239, 68, 68, 0.25)"; }}
+                                            onMouseOut={(e) => { e.target.style.background = "rgba(239, 68, 68, 0.15)"; }}
+                                        >
+                                            ❌ รีเซ็ตการแบ่งหน้าจอ
+                                        </button>
+                                    </>
+                                )}
+                            </>
                         )}
                         <div className="pen-preview-section">
                             <PenPreview penStyle={penStyle} color={color} size={penSize} />
@@ -378,7 +407,7 @@ function ToolPalette({
                     {showEraserPopup && (
                         <div className="tp-popup pen-popup" style={{ width: "200px" }}>
                             <div className="pen-popup-header"><span className="pen-popup-title">ยางลบ</span></div>
-                            {onPenSizeChange && (
+                            {onEraserSizeChange && (
                                 <div className="pen-slider-section" style={{ marginTop: "12px" }}>
                                     <span className="pen-slider-label">ขนาด</span>
                                     <input
@@ -386,18 +415,20 @@ function ToolPalette({
                                         className="pen-slider"
                                         min={1}
                                         max={100}
-                                        value={penSize}
-                                        onChange={(e) => onPenSizeChange(Number(e.target.value))}
-                                        title={`ขนาด: ${penSize}`}
+                                        value={eraserSize}
+                                        onChange={(e) => onEraserSizeChange(Number(e.target.value))}
+                                        title={`ขนาด: ${eraserSize}`}
                                     />
-                                    <span className="pen-slider-value">{penSize}</span>
+                                    <span className="pen-slider-value">{eraserSize}</span>
                                 </div>
                             )}
-                            <div style={{ marginTop: "16px", display: "flex", justifyContent: "center" }}>
-                                <button className="tp-btn tp-danger" style={{ width: "100%", borderRadius: "8px", justifyContent: "center" }} onClick={() => { onClear(); setShowEraserPopup(false); }}>
-                                    Clear Page 🗑️
-                                </button>
-                            </div>
+                            {onClear && (
+                                <div style={{ marginTop: "16px", display: "flex", justifyContent: "center" }}>
+                                    <button className="tp-btn tp-danger" style={{ width: "100%", borderRadius: "8px", justifyContent: "center" }} onClick={() => { onClear(); setShowEraserPopup(false); }}>
+                                        Clear Page 🗑️
+                                    </button>
+                                </div>
+                            )}
                         </div>
                     )}
                 </div>
@@ -482,8 +513,8 @@ function ToolPalette({
                 <button className={`tp-btn ${tool === "lasso" ? "active" : ""}`} onClick={() => onToolChange("lasso")} title="บ่วงเชือก (Lasso)">
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                         <path d="M7 22a5 5 0 0 1-2-4" />
-                        <path d="M7 16.93c2.1.27 4.8.27 6.8.27 6.1 0 11.2-3.6 11.2-8s-5.1-8-11.2-8C7.7 1.2 2.6 4.8 2.6 9.2c0 2.4 1.5 4.6 3.8 6.2" />
-                        <circle cx="7" cy="18" r="2" />
+                        <path d="M3.3 14A6.8 6.8 0 0 1 2 10c0-4.4 4.5-8 10-8s10 3.6 10 8-4.5 8-10 8a12 12 0 0 1-5-1" />
+                        <path d="M5 18a2 2 0 1 0 0-4 2 2 0 0 0 0 4z" />
                     </svg>
                 </button>
                 <button className={`tp-btn ${tool === "pan" ? "active" : ""}`} onClick={() => onToolChange("pan")} title="เลื่อนกระดาน">

@@ -294,8 +294,8 @@ export default function SpotlightOverlay({
         </div>
       )}
 
-      {/* ── Mini Control Bar (Host only) ── */}
-      {isHost && showControls && (
+      {/* ── Mini Control Bar (Driver only) ── */}
+      {isHost && isActive && showControls && (
         <div className="spotlight-controls" style={{ zIndex: 203 }}>
           {/* Shape Toggle */}
           <button

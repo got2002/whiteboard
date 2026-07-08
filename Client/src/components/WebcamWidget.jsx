@@ -54,9 +54,13 @@ function WebcamWidget({ isLocal, socket, ownerName, ownerId, initialPosition, on
     listDevices();
 
     // Listen for new devices being plugged in or removed
-    navigator.mediaDevices.addEventListener("devicechange", listDevices);
+    if (navigator.mediaDevices) {
+      navigator.mediaDevices.addEventListener("devicechange", listDevices);
+    }
     return () => {
-      navigator.mediaDevices.removeEventListener("devicechange", listDevices);
+      if (navigator.mediaDevices) {
+        navigator.mediaDevices.removeEventListener("devicechange", listDevices);
+      }
     };
   }, [isLocal]);
 

@@ -48,8 +48,9 @@ function getClosestPointOnArc(px, py, cx, cy, r, startAngle, endAngle) {
   return { x: snapX, y: snapY, dist: Math.hypot(px - snapX, py - snapY) };
 }
 
-export function snapPointToMathTools(px, py, mathTools, zoom) {
-  const SNAP_THRESHOLD = 20 / zoom; // Snapping distance in world coordinates
+export function snapPointToMathTools(px, py, mathTools, zoom, isTouch = false) {
+  const baseThreshold = isTouch ? 60 : 20;
+  const SNAP_THRESHOLD = baseThreshold / zoom; // Snapping distance in world coordinates
   
   let bestSnap = null;
   let minDistance = Infinity;

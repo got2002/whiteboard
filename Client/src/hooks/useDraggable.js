@@ -105,16 +105,14 @@ export function useDraggable({ storageKey, defaultPosition = null } = {}) {
             }
         };
 
-        document.addEventListener("mousemove", handlePointerMove);
-        document.addEventListener("mouseup", handlePointerUp);
-        document.addEventListener("touchmove", handlePointerMove, { passive: false });
-        document.addEventListener("touchend", handlePointerUp);
+        document.addEventListener("pointermove", handlePointerMove, { passive: false });
+        document.addEventListener("pointerup", handlePointerUp);
+        document.addEventListener("pointercancel", handlePointerUp);
 
         return () => {
-            document.removeEventListener("mousemove", handlePointerMove);
-            document.removeEventListener("mouseup", handlePointerUp);
-            document.removeEventListener("touchmove", handlePointerMove);
-            document.removeEventListener("touchend", handlePointerUp);
+            document.removeEventListener("pointermove", handlePointerMove);
+            document.removeEventListener("pointerup", handlePointerUp);
+            document.removeEventListener("pointercancel", handlePointerUp);
         };
     }, [isDragging, storageKey]);
 

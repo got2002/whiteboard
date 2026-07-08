@@ -21,6 +21,12 @@ function hasPermission(socketId, minRole) {
   return (ROLE_LEVELS[user.role] || 0) >= (ROLE_LEVELS[minRole] || 99);
 }
 
+function canSyncHostTools(socketId) {
+  const user = store.users[socketId];
+  if (!user) return false;
+  return user.role === 'host' || (user.role === 'contributor' && user.permissionLevel === 'full_access');
+}
+
 module.exports = (io, socket) => {
 
   // ── ลงทะเบียนผู้ใช้ ──
@@ -60,6 +66,7 @@ module.exports = (io, socket) => {
       webcams: store.webcams,
       isMultiDrawMode: store.isMultiDrawMode,
       slotTitles: store.slotTitles,
+      users: store.users,
     });
 
     // แจ้งคนอื่นว่ามีคนเข้ามา
@@ -81,16 +88,16 @@ module.exports = (io, socket) => {
     });
   });
 
-  // ── Host เปลี่ยนเครื่องมือ → sync ไปทุกคน ──
+  // ── Host เปลี่ยนเครื่องมือหลัก + sync ไปให้ทุกคน ──
   socket.on("host-tool-changed", ({ tool }) => {
-    if (socket.id !== store.hostSocketId) return;
+    if (!canSyncHostTools(socket.id)) return;
     store.hostTool = tool;
     socket.broadcast.emit("host-tool-changed", { tool });
   });
 
-  // ── Host เปลี่ยน pen style → sync ไปทุกคน ──
+  // ── Host เปลี่ยน pen style + sync ไปให้ทุกคน ──
   socket.on("host-pen-style-changed", ({ penStyle }) => {
-    if (socket.id !== store.hostSocketId) return;
+    if (!canSyncHostTools(socket.id)) return;
     store.hostPenStyle = penStyle;
     socket.broadcast.emit("host-pen-style-changed", { penStyle });
   });
@@ -106,9 +113,9 @@ module.exports = (io, socket) => {
     });
   });
 
-  // ── Host เปลี่ยนหน้าสำหรับทุกคน ──
+  // ── Host เปลี่ยนหน้าและบังคับทุกคน ──
   socket.on("host-change-page", ({ pageIndex }) => {
-    if (socket.id !== store.hostSocketId) return;
+    if (!canSyncHostTools(socket.id)) return;
     socket.broadcast.emit("host-change-page", { pageIndex });
   });
 
