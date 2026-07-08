@@ -1887,12 +1887,18 @@ export default function PhysicsLabWidget({ canEdit = true, config = {}, onSyncCo
 
   // Sync incoming config from network
   useEffect(() => {
-    if (!config || canEdit) return;
-    if (config.category && config.category !== category) setCategory(config.category);
-    if (config.experiment && config.experiment !== experiment) setExperiment(config.experiment);
-    if (config.params) setParams(config.params);
-    if (config.running !== undefined) setRunning(config.running);
-  }, [config, canEdit, category, experiment]);
+    if (!config) return;
+    
+    setCategory(prev => config.category !== undefined && config.category !== prev ? config.category : prev);
+    setExperiment(prev => config.experiment !== undefined && config.experiment !== prev ? config.experiment : prev);
+    
+    if (config.params) {
+      setParams(config.params);
+      paramsRef.current = config.params;
+    }
+    
+    setRunning(prev => config.running !== undefined && config.running !== prev ? config.running : prev);
+  }, [config]);
 
   const emitSync = useCallback((updates) => {
     if (!canEdit || !onSyncConfig) return;

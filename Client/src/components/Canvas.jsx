@@ -508,12 +508,7 @@ const Canvas = forwardRef(function Canvas(
   const isSplitMode = (typeof penStyle === "string" && penStyle.startsWith("split_"))
     || (typeof hostPenStyle === "string" && hostPenStyle.startsWith("split_"));
 
-  // Exit split mode when user attempts pan (explicit pan tool or space-bar pan)
-  const exitSplitIfNeeded = useCallback(() => {
-    if (isSplitMode && onExitSplitMode) {
-      onExitSplitMode();
-    }
-  }, [isSplitMode, onExitSplitMode]);
+
 
   // Magic Pen / Gesture to Text logic (PaddleOCR — Thai + English handwriting)
   const processGestureToText = async (mode = "ai_text") => {
@@ -654,8 +649,7 @@ const Canvas = forwardRef(function Canvas(
     const isExplicitPan = !isMultiDrawMode && (effectiveTool === "pan" || activePointers.current.size >= 2);
 
     if (isExplicitPan) {
-      // Exit split mode when pan/zoom is attempted
-      exitSplitIfNeeded();
+      if (isSplitMode) return; // Prevent zooming/panning and do not exit split mode
       e.target.setPointerCapture(pId);
       activeDrawings.current.forEach((val) => {
         if (val.currentStroke && val.currentStroke.points.length > 1) onStrokeComplete(val.currentStroke);
@@ -972,8 +966,8 @@ const Canvas = forwardRef(function Canvas(
     const effectiveTool = isViewer || isSpacePressed ? "pan" : tool;
     const isExplicitPan = !isMultiDrawMode && (effectiveTool === "pan" || activePointers.current.size >= 2);
 
-    // Pan & Zoom
     if (isExplicitPan) {
+      if (isSplitMode) return;
       if (!lastPanPoint.current && activePointers.current.size > 0) {
         let cx = 0, cy = 0;
         activePointers.current.forEach(p => { cx += p.x; cy += p.y; });
@@ -1217,7 +1211,10 @@ const Canvas = forwardRef(function Canvas(
         ctx.scale(dpr, dpr);
         ctx.translate(panOffset.current.x, panOffset.current.y);
         ctx.scale(zoom.current, zoom.current);
-        if (drawState.currentStroke) drawPenStroke(ctx, drawState.currentStroke);
+        // Draw ALL active strokes (multi-touch support)
+        activeDrawings.current.forEach((ds) => {
+          if (ds.currentStroke) drawPenStroke(ctx, ds.currentStroke);
+        });
         ctx.restore();
       } else {
         drawSegmentLocal(drawState.prevX, drawState.prevY, x, y, strokeColor, strokeSize, strokeTool, effectiveStyle);
@@ -1313,8 +1310,8 @@ const Canvas = forwardRef(function Canvas(
       const isSplitActive = (typeof penStyle === "string" && penStyle.startsWith("split_"))
         || (typeof hostPenStyle === "string" && hostPenStyle.startsWith("split_"));
       if (isSplitActive) {
-        // Exit split mode on wheel zoom
-        exitSplitIfNeeded();
+        // Prevent zooming/panning in split mode
+        e.preventDefault();
         return;
       }
       const effectiveTool = userRole === "viewer" ? "pan" : tool;
@@ -1404,8 +1401,8 @@ const Canvas = forwardRef(function Canvas(
 
   // Split Slot Headers
   let activeSplitStyleForHeader = null;
-  if (tool === "pen" && typeof penStyle === "string" && penStyle.startsWith("split_")) activeSplitStyleForHeader = penStyle;
-  else if (hostTool === "pen" && typeof hostPenStyle === "string" && hostPenStyle.startsWith("split_")) activeSplitStyleForHeader = hostPenStyle;
+  if (typeof penStyle === "string" && penStyle.startsWith("split_")) activeSplitStyleForHeader = penStyle;
+  else if (typeof hostPenStyle === "string" && hostPenStyle.startsWith("split_")) activeSplitStyleForHeader = hostPenStyle;
   let numSlots = 0;
   let isHorizontalSplit = false;
   if (activeSplitStyleForHeader) {

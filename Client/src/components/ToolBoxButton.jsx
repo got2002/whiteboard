@@ -165,18 +165,7 @@ const TOOLBOX_ITEMS = [
         ),
         category: "math",
     },
-    {
-        id: "statistics",
-        label: "Data & Statistics",
-        icon: (
-            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-                <rect x="18" y="3" width="4" height="18" rx="1" />
-                <rect x="10" y="8" width="4" height="13" rx="1" />
-                <rect x="2" y="13" width="4" height="8" rx="1" />
-            </svg>
-        ),
-        category: "math",
-    },
+
     {
         id: "protractor",
         label: "Protractor",

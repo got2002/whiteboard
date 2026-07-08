@@ -53,7 +53,6 @@ import LockScreenOverlay from "../components/LockScreenOverlay";
 import AiSolutionWidget from "../components/AiSolutionWidget";
 import PhysicsLabWidget from "../components/PhysicsLabWidget";
 import StudentLabWidget from "../components/StudentLabWidget";
-import StatisticsWidget from "../components/StatisticsWidget";
 import BannerWidget, { FONT_SIZES } from "../components/BannerWidget";
 import AudioWaveform from "../components/AudioWaveform";
 
@@ -134,11 +133,25 @@ export default function MainLayout() {
   const isActive = !showNameDialog;
 
   // ════════════════════════════════════════════════════════════
+  // Hook: Permission
+  // ════════════════════════════════════════════════════════════
+  const permHook = usePermission({
+    isActive,
+    setUserRole,
+  });
+
+  // ── Permission Level ──
+  const { permissionLevel } = permHook;
+  // host = จัดการห้อง, full_access contributor = เขียนและส่งคำสั่ง, draw_only = เขียนอย่างเดียว
+  const canUseFullTools = userRole === "host" || permissionLevel === "full_access";
+
+  // ════════════════════════════════════════════════════════════
   // Hook: Drawing
   // ════════════════════════════════════════════════════════════
   const drawingHook = useDrawing({
     pages, setPages,
     userRole: userRole,
+    canUseFullTools: canUseFullTools,
     isActive: isActive,
   });
 
@@ -226,14 +239,6 @@ export default function MainLayout() {
   });
 
   // ════════════════════════════════════════════════════════════
-  // Hook: Permission
-  // ════════════════════════════════════════════════════════════
-  const permHook = usePermission({
-    isActive,
-    setUserRole,
-  });
-
-  // ════════════════════════════════════════════════════════════
   // Hook: File Operations
   // ════════════════════════════════════════════════════════════
   const fileHook = useFileOps({
@@ -293,6 +298,9 @@ export default function MainLayout() {
     };
     
     const handleInitState = (data) => {
+      if (data.users && collabHook.initUsers) {
+        collabHook.initUsers(data.users);
+      }
       if (data.webcams) {
         const others = { ...data.webcams };
         delete others[socket.id];
@@ -342,11 +350,6 @@ export default function MainLayout() {
     return () => window.removeEventListener('show-toast', handleShowToast);
   }, []);
 
-  // ── Permission Level ──
-  const { permissionLevel } = permHook;
-  // host = ทุกอย่าง, full_access contributor = เกือบทุกอย่าง, draw_only = วาดเท่านั้น
-  const canUseFullTools = userRole === "host" || permissionLevel === "full_access";
-  
   useEffect(() => {
     setCanSync(canUseFullTools);
   }, [canUseFullTools]);
@@ -414,6 +417,16 @@ export default function MainLayout() {
       document.removeEventListener("fullscreenchange", handleFullscreen);
     };
   }, []);
+
+  // Sync page when following a user
+  useEffect(() => {
+    if (collabHook.followUserId && collabHook.remoteUsers[collabHook.followUserId]) {
+      const targetPage = collabHook.remoteUsers[collabHook.followUserId].pageIndex;
+      if (targetPage !== undefined && targetPage !== currentPageIndex) {
+        pageHook.setCurrentPageIndex(targetPage);
+      }
+    }
+  }, [collabHook.followUserId, collabHook.remoteUsers, currentPageIndex, pageHook]);
 
   console.log("[MainLayout] render — showNameDialog:", showNameDialog, "username:", username, "userRole:", userRole, "permLevel:", permissionLevel);
 
@@ -518,6 +531,7 @@ export default function MainLayout() {
         onToolChange={drawingHook.handleToolChange}
         color={drawingHook.color}
         penSize={drawingHook.penSize}
+        eraserSize={drawingHook.eraserSize}
         penStyle={drawingHook.penStyle}
         mathTools={activeMathTools}
         mode={drawingHook.mode}
@@ -529,12 +543,15 @@ export default function MainLayout() {
         socket={socket}
         onCursorMove={collabHook.handleCursorMove}
         remoteCursors={collabHook.remoteCursors}
+        remoteViewports={collabHook.remoteViewports}
         laserPointers={collabHook.laserPointers}
         currentPageIndex={currentPageIndex}
         onStrokeUpdate={handleStrokeUpdate}
+        followUserId={collabHook.followUserId}
         onStrokeResize={handleStrokeResize}
         onStrokeDelete={handleDeleteStroke}
         userRole={userRole}
+        canExitSplitMode={canUseFullTools}
         onExitSplitMode={() => drawingHook.handlePenStyleChange("pen")}
         isMultiDrawMode={drawingHook.isMultiDrawMode}
         slotTitles={drawingHook.slotTitles}
@@ -632,6 +649,7 @@ export default function MainLayout() {
       {/* Tool Palette — host/contributor only */}
       {userRole !== "viewer" && showToolbars && (
         <ToolPalette
+          canUseFullTools={canUseFullTools}
           tool={drawingHook.tool}
           color={drawingHook.color}
           penSize={drawingHook.penSize}
@@ -639,6 +657,8 @@ export default function MainLayout() {
           onToolChange={drawingHook.handleToolChange}
           onPenStyleChange={drawingHook.handlePenStyleChange}
           onPenSizeChange={drawingHook.setPenSize}
+          eraserSize={drawingHook.eraserSize}
+          onEraserSizeChange={drawingHook.setEraserSize}
           onUndo={drawingHook.handleUndo}
           onRedo={drawingHook.handleRedo}
           onClear={canUseFullTools ? handleClear : undefined}
@@ -646,11 +666,12 @@ export default function MainLayout() {
           onInsertVideo={canUseFullTools ? fileHook.handleInsertVideo : undefined}
           userRole={userRole}
           permissionLevel={permissionLevel}
+          hostPenStyle={drawingHook.hostPenStyle}
         />
       )}
 
       {/* Color Sidebar — host/contributor only */}
-      {userRole !== "viewer" && canUseFullTools && showToolbars && (
+      {userRole !== "viewer" && showToolbars && (
         <ColorSidebar
           color={drawingHook.color}
           onColorChange={drawingHook.setColor}
@@ -712,8 +733,8 @@ export default function MainLayout() {
         </div>
       )}
 
-      {/* Focus Drawer Button — clients only */}
-      {userRole !== "host" && (
+      {/* Focus Drawer Button — viewers only (not host, not contributor) */}
+      {userRole === "viewer" && permissionLevel !== "write-only" && permissionLevel !== "full-access" && (
         <button
           className="focus-drawer-btn"
           onClick={() => {
@@ -1053,21 +1074,13 @@ export default function MainLayout() {
 
       {showStudentLab?.isActive && (
         <StudentLabWidget 
-          canEdit={canSync}
+          canEdit={canSync || permissionLevel === 'write_only'}
           config={showStudentLab.config || {}}
           onSyncConfig={(config) => syncWidgetToggle('studentLab', true, config)}
           onClose={() => syncWidgetToggle('studentLab', false)} 
         />
       )}
 
-      {showStatistics?.isActive && (
-        <StatisticsWidget
-          canEdit={canSync}
-          config={showStatistics.config || {}}
-          onSyncConfig={(config) => syncWidgetToggle('statistics', true, config)}
-          onClose={() => syncWidgetToggle('statistics', false)}
-        />
-      )}
 
       </div>
 

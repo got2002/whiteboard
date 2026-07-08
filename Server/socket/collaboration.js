@@ -9,6 +9,14 @@ module.exports = (io, socket) => {
       name: user?.name || "?",
       color: user?.color || "#ef4444",
       ...data,
+      pageIndex: user?.pageIndex || 0,
+    });
+  });
+
+  socket.on("viewport", (data) => {
+    socket.broadcast.emit("viewport", {
+      id: socket.id,
+      ...data
     });
   });
 

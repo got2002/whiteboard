@@ -85,7 +85,7 @@ const PEN_STYLES = [
     { id: "pen",         label: "Pen",         icon: <img src="/pen.png" alt="Pen" style={{width: "18px", height: "18px", objectFit: "contain"}} />,  desc: "ปากกาปกติ"         },
     { id: "highlighter", label: "Highlighter", icon: <img src="/highlighter.png" alt="Highlight" style={{width: "18px", height: "18px", objectFit: "contain"}} />,  desc: "ปากกาไฮไลต์"         },
     { id: "pencil",      label: "Pencil",      icon: <PenSvg><path d="M17 3a2.83 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z" /></PenSvg>,   desc: "ปากกาหัวเล็ก"             },
-    { id: "calligraphy", label: "Calligraphy", icon: <PenSvg><path d="M12 2l4 10v4a4 4 0 0 1-8 0v-4z" /><path d="M12 2v10" /><circle cx="12" cy="14" r="1" fill="currentColor" stroke="none" /></PenSvg>,  desc: "ปากกาเซ็นชื่อ"           },
+    { id: "calligraphy", label: "Calligraphy", icon: <img src="/calligraphy.png" alt="Calligraphy" style={{width: "18px", height: "18px", objectFit: "contain"}} />,  desc: "ปากกาเซ็นชื่อ"           },
     { id: "fountain",    label: "Fountain",    icon: <PenSvg><path d="M15.5 3l-1 5.5L12 12l-2.5-3.5L8.5 3" /><path d="M12 12v8" /><path d="M9 22h6" /><circle cx="12" cy="12" r="1" fill="currentColor" stroke="none" /></PenSvg>,   desc: "ปากกาหมึกซึม"     },
     { id: "neon",        label: "Neon",        icon: <img src="/neon.png" alt="Neon" style={{width: "18px", height: "18px", objectFit: "contain"}} />,  desc: "เรืองแสง" },
     { id: "dashed",      label: "Dashed",      icon: <img src="/dashed.png" alt="Dashed" style={{width: "18px", height: "18px", objectFit: "contain"}} />,  desc: "เส้นประ" },
@@ -486,6 +486,48 @@ function Toolbar({
     const currentShapeObj = SHAPES.find(s => s.id === tool) || SHAPES.find(s => s.id === "rect");
     const isShapeActive = SHAPES.some(s => s.id === tool);
 
+    const [isCollapsed, setIsCollapsed] = useState(false);
+
+    if (isCollapsed) {
+        return (
+            <div 
+                className="toolbar collapsed" 
+                style={{
+                    padding: "6px",
+                    borderRadius: "50px",
+                    minWidth: "auto",
+                    cursor: "pointer",
+                    boxShadow: "0 6px 16px rgba(0,0,0,0.15)",
+                    transition: "all 0.3s ease"
+                }}
+                onClick={() => setIsCollapsed(false)}
+                title="คลิกเพื่อขยายแถบเครื่องมือ"
+            >
+                {isPenActive ? (
+                   <button className="tool-btn active" onClick={() => setIsCollapsed(false)}>{currentPenIcon}</button>
+                ) : tool === "eraser" ? (
+                   <button className="tool-btn active" onClick={() => setIsCollapsed(false)}><img src="/eraser.png" alt="Eraser" style={{width: "24px", height: "24px"}}/></button>
+                ) : tool === "ai_pen" ? (
+                   <button className="tool-btn active" onClick={() => setIsCollapsed(false)}><img src="/magic_pen.png" alt="Magic Pen" style={{width: "28px", height: "28px", transform: "scale(1.2)"}}/></button>
+                ) : tool === "text" ? (
+                   <button className="tool-btn active" onClick={() => setIsCollapsed(false)}>🔤</button>
+                ) : tool === "laser" ? (
+                   <button className="tool-btn active laser-btn" onClick={() => setIsCollapsed(false)}>🔴</button>
+                ) : isShapeActive ? (
+                   <button className="tool-btn active" onClick={() => setIsCollapsed(false)}>{currentShapeObj?.icon}</button>
+                ) : tool === "select" ? (
+                   <button className="tool-btn active" onClick={() => setIsCollapsed(false)}>👆</button>
+                ) : tool === "pan" ? (
+                   <button className="tool-btn active" onClick={() => setIsCollapsed(false)}>🖐️</button>
+                ) : tool === "voice_text" ? (
+                   <button className="tool-btn active" onClick={() => setIsCollapsed(false)}>🎤</button>
+                ) : (
+                   <button className="tool-btn active" onClick={() => setIsCollapsed(false)}>🛠️</button>
+                )}
+            </div>
+        );
+    }
+
     return (
         <div className="toolbar">
 
@@ -637,39 +679,61 @@ function Toolbar({
                             })}
                         </div>
 
-                        {/* Split Direction Toggle */}
+                        {/* Split Direction Toggle & Cancel Button */}
                         {isSplitActive && (
-                            <div style={{
-                                display: "flex", alignItems: "center", justifyContent: "center",
-                                gap: "6px", padding: "8px 12px", margin: "8px 12px 0",
-                                background: "rgba(255,255,255,0.06)", borderRadius: "8px",
-                            }}>
-                                <span style={{ fontSize: "11px", color: "rgba(255,255,255,0.5)", marginRight: "4px" }}>ทิศทาง:</span>
+                            <>
+                                <div style={{
+                                    display: "flex", alignItems: "center", justifyContent: "center",
+                                    padding: "6px", margin: "16px 12px 0",
+                                    background: "rgba(0, 0, 0, 0.15)", borderRadius: "10px",
+                                    boxShadow: "inset 0 1px 3px rgba(0,0,0,0.2)"
+                                }}>
+                                    <span style={{ fontSize: "12px", fontWeight: 600, color: "rgba(255,255,255,0.6)", marginRight: "12px" }}>ทิศทาง:</span>
+                                    <div style={{ display: "flex", gap: "4px", background: "rgba(255,255,255,0.05)", padding: "4px", borderRadius: "8px" }}>
+                                        <button
+                                            onClick={() => { if (penStyle.startsWith("split_h_")) handleSplitDirectionToggle(); }}
+                                            style={{
+                                                padding: "6px 16px", borderRadius: "6px", border: "none",
+                                                fontSize: "12px", fontWeight: 600, cursor: "pointer",
+                                                background: !penStyle.startsWith("split_h_") ? "#6366f1" : "transparent",
+                                                color: !penStyle.startsWith("split_h_") ? "#fff" : "rgba(255,255,255,0.6)",
+                                                boxShadow: !penStyle.startsWith("split_h_") ? "0 2px 4px rgba(0,0,0,0.2)" : "none",
+                                                transition: "all 0.2s"
+                                            }}
+                                            title="แบ่งแนวตั้ง"
+                                        >
+                                            │ แนวตั้ง
+                                        </button>
+                                        <button
+                                            onClick={() => { if (!penStyle.startsWith("split_h_")) handleSplitDirectionToggle(); }}
+                                            style={{
+                                                padding: "6px 16px", borderRadius: "6px", border: "none",
+                                                fontSize: "12px", fontWeight: 600, cursor: "pointer",
+                                                background: penStyle.startsWith("split_h_") ? "#6366f1" : "transparent",
+                                                color: penStyle.startsWith("split_h_") ? "#fff" : "rgba(255,255,255,0.6)",
+                                                boxShadow: penStyle.startsWith("split_h_") ? "0 2px 4px rgba(0,0,0,0.2)" : "none",
+                                                transition: "all 0.2s"
+                                            }}
+                                            title="แบ่งแนวนอน"
+                                        >
+                                            ─ แนวนอน
+                                        </button>
+                                    </div>
+                                </div>
                                 <button
-                                    onClick={() => { if (penStyle.startsWith("split_h_")) handleSplitDirectionToggle(); }}
+                                    onClick={() => handlePenStyleSelect("pen")}
                                     style={{
-                                        padding: "4px 12px", borderRadius: "6px", border: "none",
-                                        fontSize: "11px", fontWeight: 600, cursor: "pointer",
-                                        background: !penStyle.startsWith("split_h_") ? "rgba(99, 102, 241, 0.5)" : "rgba(255,255,255,0.08)",
-                                        color: !penStyle.startsWith("split_h_") ? "#fff" : "rgba(255,255,255,0.5)",
+                                        margin: "12px 12px 0", width: "calc(100% - 24px)", padding: "8px", borderRadius: "8px",
+                                        background: "rgba(239, 68, 68, 0.15)", color: "#fca5a5", border: "1px solid rgba(239, 68, 68, 0.3)",
+                                        cursor: "pointer", fontWeight: "bold", fontSize: "12px",
+                                        transition: "all 0.2s"
                                     }}
-                                    title="แบ่งแนวตั้ง"
+                                    onMouseOver={(e) => { e.target.style.background = "rgba(239, 68, 68, 0.25)"; }}
+                                    onMouseOut={(e) => { e.target.style.background = "rgba(239, 68, 68, 0.15)"; }}
                                 >
-                                    │ แนวตั้ง
+                                    ❌ ยกเลิกการแบ่งหน้าจอ
                                 </button>
-                                <button
-                                    onClick={() => { if (!penStyle.startsWith("split_h_")) handleSplitDirectionToggle(); }}
-                                    style={{
-                                        padding: "4px 12px", borderRadius: "6px", border: "none",
-                                        fontSize: "11px", fontWeight: 600, cursor: "pointer",
-                                        background: penStyle.startsWith("split_h_") ? "rgba(99, 102, 241, 0.5)" : "rgba(255,255,255,0.08)",
-                                        color: penStyle.startsWith("split_h_") ? "#fff" : "rgba(255,255,255,0.5)",
-                                    }}
-                                    title="แบ่งแนวนอน"
-                                >
-                                    ─ แนวนอน
-                                </button>
-                            </div>
+                            </>
                         )}
 
                         {/* Preview */}

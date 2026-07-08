@@ -36,7 +36,7 @@ function createWindow() {
 
   // รอให้เซิร์ฟเวอร์พร้อม แล้วค่อยโหลดหน้าเว็บ
   setTimeout(() => {
-    mainWindow.loadURL('http://localhost:3000');
+    mainWindow.loadURL('http://localhost:3000'); 
   }, 1500);
 
   mainWindow.on('closed', () => {
