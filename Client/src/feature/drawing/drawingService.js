@@ -5,6 +5,7 @@ import { socket } from "../../core/socket";
 
 export const drawingService = {
   emitDraw: (data) => socket.emit("draw", data),
+  emitDrawBatch: (batch) => socket.emit("draw-batch", batch),
   emitStrokeComplete: (pageId, stroke) => socket.emit("stroke-complete", { pageId, stroke }),
   emitUndo: (pageId, strokeId) => socket.emit("undo", { pageId, strokeId }),
   emitDeleteStroke: (pageId, strokeId) => socket.emit("delete-stroke", { pageId, strokeId }),
@@ -16,6 +17,7 @@ export const drawingService = {
   emitHostMultiDrawModeChanged: (isMultiDrawMode) => socket.emit("host-multidraw-mode-changed", { isMultiDrawMode }),
 
   onDraw: (cb) => socket.on("draw", cb),
+  onDrawBatch: (cb) => socket.on("draw-batch", cb),
   onStrokeComplete: (cb) => socket.on("stroke-complete", cb),
   onUndo: (cb) => socket.on("undo", cb),
   onDeleteStroke: (cb) => socket.on("delete-stroke", cb),
@@ -27,6 +29,7 @@ export const drawingService = {
   onHostMultiDrawModeChanged: (cb) => socket.on("host-multidraw-mode-changed", cb),
 
   offDraw: (cb) => socket.off("draw", cb),
+  offDrawBatch: (cb) => socket.off("draw-batch", cb),
   offStrokeComplete: (cb) => socket.off("stroke-complete", cb),
   offUndo: (cb) => socket.off("undo", cb),
   offDeleteStroke: (cb) => socket.off("delete-stroke", cb),

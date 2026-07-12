@@ -34,13 +34,23 @@ module.exports = (io, socket) => {
     const colorIndex = Object.keys(store.users).length % USER_COLORS.length;
     const color = USER_COLORS[colorIndex];
 
-    // ถ้าเป็น host คนแรก → บันทึก hostSocketId
-    if (role === "host" && !store.hostSocketId) {
-      store.hostSocketId = socket.id;
+    // Anti-Spam: Truncate name to 50 characters
+    if (typeof name === 'string' && name.length > 50) {
+      name = name.substring(0, 50);
     }
-    // ถ้ามี host อยู่แล้ว แต่ขอเป็น host → บังคับเป็น viewer
-    else if (role === "host" && store.hostSocketId && store.hostSocketId !== socket.id) {
-      role = "viewer";
+
+    const clientIp = socket.handshake.address;
+    const isLocalhost = clientIp === '127.0.0.1' || clientIp === '::1' || clientIp === '::ffff:127.0.0.1';
+
+    if (isLocalhost) {
+      // Localhost ALWAYS gets Host. Override whatever they asked for.
+      role = "host";
+      store.hostSocketId = socket.id;
+    } else {
+      // External IP NEVER gets Host.
+      if (role === "host") {
+        role = "viewer"; 
+      }
     }
 
     store.users[socket.id] = { name, role, color, pageIndex: 0 };

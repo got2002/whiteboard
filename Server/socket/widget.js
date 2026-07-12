@@ -41,8 +41,8 @@ module.exports = (io, socket) => {
 
   // 4. widget:banner-update
   socket.on("widget:banner-update", ({ banner }) => {
-    // TEMPORARY FIX: Bypass hasFullAccess check for banner to fix broadcast issues
-    // if (!hasFullAccess(socket.id)) return;
+    // Security Fix: Require Full Access to update banner
+    if (!hasFullAccess(socket.id)) return;
     store.widgets.banner = banner;
     socket.broadcast.emit("widget:banner-update", { banner });
   });
@@ -94,8 +94,8 @@ module.exports = (io, socket) => {
 
   // 10. widget:math-tool-update
   socket.on("widget:math-tool-update", ({ toolId, updates }) => {
-    // TEMPORARY FIX: Bypass hasFullAccess check
-    // if (!hasFullAccess(socket.id)) return;
+    // Security Fix: Require Full Access to update math tools
+    if (!hasFullAccess(socket.id)) return;
     const tool = store.widgets.mathTools.find(t => t.id === toolId);
     if (tool) {
       Object.assign(tool, updates);

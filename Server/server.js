@@ -31,18 +31,49 @@ app.use('/api/ai', aiRoutes);
 
 
 // Serve uploads directory
-app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+const UPLOADS_DIR = path.join(__dirname, 'uploads');
+app.use('/uploads', express.static(UPLOADS_DIR));
+
+// ============================================================
+// Auto-Cleanup: Delete old files in uploads/ to prevent storage leak
+// ============================================================
+function cleanupUploads() {
+  if (!fs.existsSync(UPLOADS_DIR)) return;
+  const now = Date.now();
+  const MAX_AGE = 24 * 60 * 60 * 1000; // 24 hours
+  fs.readdir(UPLOADS_DIR, (err, files) => {
+    if (err) return console.error("Error reading uploads dir for cleanup:", err);
+    files.forEach(file => {
+      const filePath = path.join(UPLOADS_DIR, file);
+      fs.stat(filePath, (err, stats) => {
+        if (err) return;
+        if (now - stats.mtimeMs > MAX_AGE) {
+          fs.unlink(filePath, err => {
+            if (!err) console.log(`🧹 Cleaned up old file: ${file}`);
+          });
+        }
+      });
+    });
+  });
+}
+// Run cleanup every 1 hour
+setInterval(cleanupUploads, 60 * 60 * 1000);
+// Run once on startup
+setTimeout(cleanupUploads, 5000);
 
 // Upload endpoint
 app.post('/api/upload', express.raw({ type: '*/*', limit: '500mb' }), (req, res) => {
   try {
-    const ext = req.query.ext || 'mp4';
-    const filename = `video-${Date.now()}-${Math.floor(Math.random() * 10000)}.${ext}`;
-    const uploadDir = path.join(__dirname, 'uploads');
-    if (!fs.existsSync(uploadDir)) {
-      fs.mkdirSync(uploadDir, { recursive: true });
+    let ext = req.query.ext || 'mp4';
+    // Security: Sanitize extension to alphanumeric only
+    ext = ext.replace(/[^a-zA-Z0-9]/g, '');
+    if (!ext) ext = 'bin';
+
+    const filename = `media-${Date.now()}-${Math.floor(Math.random() * 10000)}.${ext}`;
+    if (!fs.existsSync(UPLOADS_DIR)) {
+      fs.mkdirSync(UPLOADS_DIR, { recursive: true });
     }
-    fs.writeFileSync(path.join(uploadDir, filename), req.body);
+    fs.writeFileSync(path.join(UPLOADS_DIR, filename), req.body);
     res.json({ url: `/uploads/${filename}` });
   } catch (error) {
     console.error("Upload error:", error);
