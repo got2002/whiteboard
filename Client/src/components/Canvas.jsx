@@ -62,6 +62,7 @@ const Canvas = forwardRef(function Canvas(
   const prevY = useRef(0);
   const shapeStart = useRef(null);
   const activeDrawings = useRef(new Map());
+  const liveDrawRafRef = useRef(null);
   const previewCanvasRef = useRef(null);
   const streamCanvasRef = useRef(null);
 
@@ -89,6 +90,7 @@ const Canvas = forwardRef(function Canvas(
   // Inline Text Editing
   const [inlineText, setInlineText] = useState(null); // { x, y, screenX, screenY, fontSize }
   const inlineTextRef = useRef(null);
+  const pageStrokesRef = useRef([]);
   const [showTextColorModal, setShowTextColorModal] = useState(false);
   const [editingStrokeId, setEditingStrokeId] = useState(null); // ID of text stroke being edited
 
@@ -380,6 +382,15 @@ const Canvas = forwardRef(function Canvas(
     if (isSplit) { redrawAll(); }
   }, [penStyle, hostPenStyle, redrawAll]);
 
+  // Cleanup requestAnimationFrame on unmount to prevent crashes
+  useEffect(() => {
+    return () => {
+      if (liveDrawRafRef.current) {
+        cancelAnimationFrame(liveDrawRafRef.current);
+      }
+    };
+  }, []);
+
   // Remote draw listener
   useEffect(() => {
     const handleRemoteDraw = (data) => {
@@ -389,7 +400,15 @@ const Canvas = forwardRef(function Canvas(
       }
     };
     socket.on("draw", handleRemoteDraw);
-    return () => socket.off("draw", handleRemoteDraw);
+    socket.on("draw-batch", (batch) => {
+      if (Array.isArray(batch)) {
+        batch.forEach(handleRemoteDraw);
+      }
+    });
+    return () => {
+      socket.off("draw", handleRemoteDraw);
+      socket.off("draw-batch");
+    };
   }, [currentPageIndex, socket, drawSegmentLocal]);
 
   // Focus method
@@ -432,7 +451,7 @@ const Canvas = forwardRef(function Canvas(
              selectedStrokeIds.forEach(id => onStrokeUpdate?.(id, { groupId: newGroupId }));
           }
         } else if (e.key === "c") {
-          const selStrokes = page?.strokes?.filter(s => selectedStrokeIds.includes(s.id)) || [];
+          const selStrokes = pageStrokesRef.current.filter(s => selectedStrokeIds.includes(s.id)) || [];
           localStorage.setItem("whiteboard-clipboard", JSON.stringify(selStrokes));
         } else if (e.key === "v") {
           try {
@@ -462,7 +481,12 @@ const Canvas = forwardRef(function Canvas(
     };
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [tool, selectedStrokeIds, page?.strokes, onStrokeDelete, onStrokeComplete]);
+  }, [tool, selectedStrokeIds, onStrokeDelete, onStrokeComplete]); // Removed page?.strokes to prevent recreating listener on every draw
+
+  // Keep pageStrokesRef up to date for the keyboard listener
+  useEffect(() => {
+    pageStrokesRef.current = page?.strokes || [];
+  }, [page?.strokes]);
 
   useEffect(() => {
     if (tool !== "select" && tool !== "lasso") {
@@ -473,17 +497,17 @@ const Canvas = forwardRef(function Canvas(
 
   // Sync selection with page strokes (clear if strokes were deleted externally, e.g. via Clear button)
   useEffect(() => {
-    if (selectedStrokeIds.length > 0 && page?.strokes) {
-      const allExist = selectedStrokeIds.every(id => page.strokes.some(s => s.id === id));
+    if (selectedStrokeIds.length > 0 && pageStrokesRef.current) {
+      const allExist = selectedStrokeIds.every(id => pageStrokesRef.current.some(s => s.id === id));
       if (!allExist) {
-        const validIds = selectedStrokeIds.filter(id => page.strokes.some(s => s.id === id));
+        const validIds = selectedStrokeIds.filter(id => pageStrokesRef.current.some(s => s.id === id));
         setSelectedStrokeIds(validIds);
         if (validIds.length === 0) {
           setActiveLassoPath(null);
         }
       }
     }
-  }, [page?.strokes, selectedStrokeIds, tool]);
+  }, [page?.strokes]);
 
   // Auto-select newly inserted images
   useEffect(() => {
@@ -1202,20 +1226,26 @@ const Canvas = forwardRef(function Canvas(
       const needsFullRedrawMove = drawState.tool !== "eraser" && FULL_REDRAW_STYLES_MOVE.includes(effectiveStyle);
 
       if (needsFullRedrawMove) {
-        const ctx = ctxRef.current;
-        const dpr = window.devicePixelRatio || 1;
-        ctx.save();
-        ctx.setTransform(1, 0, 0, 1, 0, 0);
-        ctx.clearRect(0, 0, canvasRef.current.width, canvasRef.current.height);
-        ctx.drawImage(previewCanvasRef.current, 0, 0);
-        ctx.scale(dpr, dpr);
-        ctx.translate(panOffset.current.x, panOffset.current.y);
-        ctx.scale(zoom.current, zoom.current);
-        // Draw ALL active strokes (multi-touch support)
-        activeDrawings.current.forEach((ds) => {
-          if (ds.currentStroke) drawPenStroke(ctx, ds.currentStroke);
-        });
-        ctx.restore();
+        if (!liveDrawRafRef.current) {
+          liveDrawRafRef.current = requestAnimationFrame(() => {
+            liveDrawRafRef.current = null;
+            const ctx = ctxRef.current;
+            if (!ctx || !canvasRef.current || !previewCanvasRef.current) return;
+            const dpr = window.devicePixelRatio || 1;
+            ctx.save();
+            ctx.setTransform(1, 0, 0, 1, 0, 0);
+            ctx.clearRect(0, 0, canvasRef.current.width, canvasRef.current.height);
+            ctx.drawImage(previewCanvasRef.current, 0, 0);
+            ctx.scale(dpr, dpr);
+            ctx.translate(panOffset.current.x, panOffset.current.y);
+            ctx.scale(zoom.current, zoom.current);
+            // Draw ALL active strokes (multi-touch support)
+            activeDrawings.current.forEach((ds) => {
+              if (ds.currentStroke) drawPenStroke(ctx, ds.currentStroke);
+            });
+            ctx.restore();
+          });
+        }
       } else {
         drawSegmentLocal(drawState.prevX, drawState.prevY, x, y, strokeColor, strokeSize, strokeTool, effectiveStyle);
       }

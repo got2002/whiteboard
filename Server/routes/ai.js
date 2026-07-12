@@ -24,6 +24,20 @@ function checkRateLimit(ip) {
   return true;
 }
 
+// Auto-Cleanup: Remove expired IPs from memory every 5 minutes
+setInterval(() => {
+  const now = Date.now();
+  const windowMs = 60000;
+  for (const [ip, timestamps] of rateLimitMap.entries()) {
+    const validTimestamps = timestamps.filter((t) => now - t < windowMs);
+    if (validTimestamps.length === 0) {
+      rateLimitMap.delete(ip);
+    } else {
+      rateLimitMap.set(ip, validTimestamps);
+    }
+  }
+}, 5 * 60 * 1000);
+
 // ============================================================
 // Helper - สร้าง Gemini model instance
 // ============================================================

@@ -33,12 +33,13 @@ export function useDrawing({ pages, setPages, userRole, canUseFullTools, isActiv
 
   // ── Last draw ref (for focus feature) ──
   const lastDrawRef = useRef(null);
+  const drawBatchQueue = useRef([]);
 
   // ── Socket listeners สำหรับรับข้อมูลการวาดจากคนอื่น ──
   useEffect(() => {
     if (!isActive) return;
 
-    const handleDraw = (data) => { lastDrawRef.current = data; };
+    const handleRemoteDraw = (data) => { lastDrawRef.current = data; };
     const handleStrokeComplete = ({ pageId, stroke }) => {
       setPages(prev => prev.map(p =>
         p.id === pageId ? { ...p, strokes: [...p.strokes, stroke] } : p
@@ -89,7 +90,7 @@ export function useDrawing({ pages, setPages, userRole, canUseFullTools, isActiv
     };
     const handleHostMultiDrawModeChanged = ({ isMultiDrawMode }) => setIsMultiDrawMode(isMultiDrawMode);
 
-    drawingService.onDraw(handleDraw);
+    drawingService.onDraw(handleRemoteDraw);
     drawingService.onStrokeComplete(handleStrokeComplete);
     drawingService.onUndo(handleUndo);
     drawingService.onRedo(handleRedo);
@@ -101,8 +102,18 @@ export function useDrawing({ pages, setPages, userRole, canUseFullTools, isActiv
     drawingService.onHostMultiDrawModeChanged(handleHostMultiDrawModeChanged);
     socket.on("update-slot-titles", handleUpdateSlotTitles);
 
+    const handleRemoteDrawBatch = (batch) => {
+      if (Array.isArray(batch)) {
+        // Just store the last one for focus purposes if needed, 
+        // the canvas will process them via its own listener
+        lastDrawRef.current = batch[batch.length - 1];
+      }
+    };
+    drawingService.onDrawBatch?.(handleRemoteDrawBatch);
+
     return () => {
-      drawingService.offDraw(handleDraw);
+      drawingService.offDraw(handleRemoteDraw);
+      drawingService.offDrawBatch?.(handleRemoteDrawBatch);
       drawingService.offStrokeComplete(handleStrokeComplete);
       drawingService.offUndo(handleUndo);
       drawingService.offRedo(handleRedo);
@@ -120,17 +131,29 @@ export function useDrawing({ pages, setPages, userRole, canUseFullTools, isActiv
   // (Removed host tool sync effect)
 
   // ── Handlers ──
-  const handleStrokeComplete = useCallback((stroke, pageId) => {
+  const handleStrokeComplete = useCallback((strokeObj, pageId) => {
+    const stroke = { ...strokeObj, authorId: socket.id }; // Security: Inject authorId
     setPages(prev => prev.map(p =>
       p.id === pageId ? { ...p, strokes: [...p.strokes, stroke] } : p
     ));
-    setUndoStack(prev => [...prev, { type: "add", pageId, stroke }]);
+    setUndoStack(prev => [...prev, { type: "add", pageId, stroke }].slice(-50));
     setRedoStack([]);
     drawingService.emitStrokeComplete(pageId, stroke);
   }, [setPages]);
 
   const handleDraw = useCallback((data, currentPageIndex) => {
-    drawingService.emitDraw({ ...data, pageIndex: currentPageIndex });
+    drawBatchQueue.current.push({ ...data, pageIndex: currentPageIndex });
+  }, []);
+
+  // Flush the draw queue periodically
+  useEffect(() => {
+    const interval = setInterval(() => {
+      if (drawBatchQueue.current.length > 0) {
+        drawingService.emitDrawBatch(drawBatchQueue.current);
+        drawBatchQueue.current = [];
+      }
+    }, 40); // 40ms batching ~ 25fps for network transmission
+    return () => clearInterval(interval);
   }, []);
 
   const handleTextRequest = useCallback((x, y, pageId) => {
@@ -162,7 +185,7 @@ export function useDrawing({ pages, setPages, userRole, canUseFullTools, isActiv
     if (undoStack.length === 0) return;
     const last = undoStack[undoStack.length - 1];
     setUndoStack(prev => prev.slice(0, -1));
-    setRedoStack(prev => [...prev, last]);
+    setRedoStack(prev => [...prev, last].slice(-50));
 
     if (last.type === "delete") {
       setPages(prev => prev.map(p =>
@@ -186,7 +209,7 @@ export function useDrawing({ pages, setPages, userRole, canUseFullTools, isActiv
     if (redoStack.length === 0) return;
     const last = redoStack[redoStack.length - 1];
     setRedoStack(prev => prev.slice(0, -1));
-    setUndoStack(prev => [...prev, last]);
+    setUndoStack(prev => [...prev, last].slice(-50));
 
     if (last.type === "delete") {
       setPages(prev => prev.map(p =>
@@ -215,7 +238,7 @@ export function useDrawing({ pages, setPages, userRole, canUseFullTools, isActiv
       p.id === pageId ? { ...p, strokes: p.strokes.filter(s => s.id !== strokeId) } : p
     ));
     if (strokeObj) {
-      setUndoStack(prev => [...prev, { type: "delete", pageId, stroke: strokeObj }]);
+      setUndoStack(prev => [...prev, { type: "delete", pageId, stroke: strokeObj }].slice(-50));
       setRedoStack([]);
     }
     drawingService.emitDeleteStroke(pageId, strokeId);
@@ -224,7 +247,7 @@ export function useDrawing({ pages, setPages, userRole, canUseFullTools, isActiv
   const handleClear = useCallback((pageId) => {
     const page = pages.find(p => p.id === pageId);
     if (page && page.strokes.length > 0) {
-      setUndoStack(prev => [...prev, { type: "clear", pageId, strokes: [...page.strokes] }]);
+      setUndoStack(prev => [...prev, { type: "clear", pageId, strokes: [...page.strokes] }].slice(-50));
       setRedoStack([]);
     }
     setPages(prev => prev.map(p =>

@@ -21,6 +21,11 @@ module.exports = (io, socket) => {
     socket.broadcast.emit("draw", data);
   });
 
+  socket.on("draw-batch", (batch) => {
+    if (!hasPermission(socket.id, "contributor")) return;
+    socket.broadcast.emit("draw-batch", batch);
+  });
+
   socket.on("stroke-complete", ({ pageId, stroke }) => {
     if (!hasPermission(socket.id, "contributor")) return;
     const page = store.pages.find((p) => p.id === pageId);
@@ -31,15 +36,25 @@ module.exports = (io, socket) => {
   socket.on("undo", ({ pageId, strokeId }) => {
     if (!hasPermission(socket.id, "contributor")) return;
     const page = store.pages.find((p) => p.id === pageId);
-    if (page) page.strokes = page.strokes.filter((s) => s.id !== strokeId);
-    socket.broadcast.emit("undo", { pageId, strokeId });
+    if (page) {
+      const stroke = page.strokes.find((s) => s.id === strokeId);
+      if (stroke && (canSyncHostTools(socket.id) || stroke.authorId === socket.id)) {
+        page.strokes = page.strokes.filter((s) => s.id !== strokeId);
+        socket.broadcast.emit("undo", { pageId, strokeId });
+      }
+    }
   });
 
   socket.on("delete-stroke", ({ pageId, strokeId }) => {
     if (!hasPermission(socket.id, "contributor")) return;
     const page = store.pages.find((p) => p.id === pageId);
-    if (page) page.strokes = page.strokes.filter((s) => s.id !== strokeId);
-    socket.broadcast.emit("delete-stroke", { pageId, strokeId });
+    if (page) {
+      const stroke = page.strokes.find((s) => s.id === strokeId);
+      if (stroke && (canSyncHostTools(socket.id) || stroke.authorId === socket.id)) {
+        page.strokes = page.strokes.filter((s) => s.id !== strokeId);
+        socket.broadcast.emit("delete-stroke", { pageId, strokeId });
+      }
+    }
   });
 
   socket.on("redo", ({ pageId, stroke }) => {
@@ -50,7 +65,7 @@ module.exports = (io, socket) => {
   });
 
   socket.on("clear-page", ({ pageId }) => {
-    if (!hasPermission(socket.id, "contributor")) return;
+    if (!canSyncHostTools(socket.id)) return; // Security fix: Only Host or Full Access can clear page
     const page = store.pages.find((p) => p.id === pageId);
     if (page) page.strokes = [];
     socket.broadcast.emit("clear-page", { pageId });
