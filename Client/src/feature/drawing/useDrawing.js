@@ -55,10 +55,12 @@ export function useDrawing({ pages, setPages, userRole, canUseFullTools, isActiv
         p.id === pageId ? { ...p, strokes: [...p.strokes, stroke] } : p
       ));
     };
-    const handleClearPage = ({ pageId }) => {
-      setPages(prev => prev.map(p =>
-        p.id === pageId ? { ...p, strokes: [] } : p
-      ));
+    const handleClearPage = ({ pageId, clearAll, authorId }) => {
+      setPages(prev => prev.map(p => {
+        if (p.id !== pageId) return p;
+        if (clearAll) return { ...p, strokes: [] };
+        return { ...p, strokes: p.strokes.filter(s => s.authorId !== authorId) };
+      }));
     };
     const handleStrokeUpdate = ({ pageId, strokeId, changes }) => {
       setPages(prev => prev.map(p =>
@@ -246,15 +248,22 @@ export function useDrawing({ pages, setPages, userRole, canUseFullTools, isActiv
 
   const handleClear = useCallback((pageId) => {
     const page = pages.find(p => p.id === pageId);
-    if (page && page.strokes.length > 0) {
+    if (!page || page.strokes.length === 0) return;
+
+    if (userRole === "host") {
       setUndoStack(prev => [...prev, { type: "clear", pageId, strokes: [...page.strokes] }].slice(-50));
       setRedoStack([]);
+      setPages(prev => prev.map(p => p.id === pageId ? { ...p, strokes: [] } : p));
+      drawingService.emitClearPage(pageId, { clearAll: true });
+    } else {
+      const myStrokes = page.strokes.filter(s => s.authorId === socket.id);
+      if (myStrokes.length === 0) return; // Nothing to clear
+      setUndoStack(prev => [...prev, { type: "clear", pageId, strokes: [...myStrokes] }].slice(-50));
+      setRedoStack([]);
+      setPages(prev => prev.map(p => p.id === pageId ? { ...p, strokes: p.strokes.filter(s => s.authorId !== socket.id) } : p));
+      drawingService.emitClearPage(pageId, { clearAll: false, authorId: socket.id });
     }
-    setPages(prev => prev.map(p =>
-      p.id === pageId ? { ...p, strokes: [] } : p
-    ));
-    drawingService.emitClearPage(pageId);
-  }, [pages, setPages]);
+  }, [pages, setPages, userRole]);
 
   // ── Tool changes (with host sync) ──
   const handleToolChange = useCallback((t) => {

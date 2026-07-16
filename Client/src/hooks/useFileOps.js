@@ -227,7 +227,7 @@ export function useFileOps({ pages, setPages, setCurrentPageIndex, canvasRef, cu
       img.src = dataUrl;
     };
 
-    if (typeof inputDataUrl === "string" && inputDataUrl.startsWith("data:image")) {
+    if (typeof inputDataUrl === "string" && (inputDataUrl.startsWith("data:image") || inputDataUrl.startsWith("/"))) {
       processImageDataUrl(inputDataUrl);
       return;
     }

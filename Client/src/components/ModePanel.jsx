@@ -38,6 +38,15 @@ const SCIENCE_STAMPS = [
     { emoji: "⚡", label: "ไฟฟ้า" },
     { emoji: "🌍", label: "โลก" },
     { emoji: "☀️", label: "ดวงอาทิตย์" },
+    { emoji: "🪐", label: "วงแหวนดาวเสาร์" },
+    { emoji: "👤", label: "หุ่นคน (Person)" },
+    { emoji: "❤️", label: "หัวใจ (Heart)" },
+    { emoji: "⭐", label: "ดาว (Star)" },
+    { emoji: "✅", label: "ถูกต้อง (Correct)" },
+    { emoji: "❌", label: "ผิด (Wrong)" },
+    { emoji: "💡", label: "ไอเดีย (Idea)" },
+    { emoji: "💯", label: "เต็มร้อย (100)" },
+    { emoji: "🏆", label: "ถ้วยรางวัล (Trophy)" },
     { emoji: "🌙", label: "ดวงจันทร์" },
     { emoji: "💧", label: "หยดน้ำ" },
     { emoji: "🔥", label: "ไฟ" },
@@ -226,7 +235,7 @@ function ProtractorOverlay() {
 //  mode          → โหมดปัจจุบัน ("standard" | "math" | "science" | "language")
 //  activeStamp   → emoji stamp ที่เลือกไว้ (หรือ null)
 //  onStampSelect → callback เมื่อเลือก stamp
-function ModePanel({ mode, activeStamp, onStampSelect }) {
+function ModePanel({ mode, activeStamp, onStampSelect, onInsertImage }) {
     const [showPeriodicTable, setShowPeriodicTable] = useState(false); // แสดงตารางธาตุ?
     const [showRuler, setShowRuler] = useState(false);                   // แสดงไม้บรรทัด?
     const [showProtractor, setShowProtractor] = useState(false);         // แสดงโปรแทรกเตอร์?
@@ -272,7 +281,7 @@ function ModePanel({ mode, activeStamp, onStampSelect }) {
                     <div className="mode-floating-bar science-bar">
                         <span className="mode-label">🔬 Science</span>
 
-                        {/* จาน Stamp: เลือก emoji อุปกรณ์วิทย์ */}
+                        {/* เลือก Stamp: ไอคอน emoji */}
                         <div className="stamp-grid">
                             {SCIENCE_STAMPS.map((s) => (
                                 <button

@@ -493,6 +493,8 @@ export default function MainLayout() {
     }
   };
 
+
+
   const bannerPos = showBanner?.position || "bottom";
 
   return (
@@ -505,7 +507,7 @@ export default function MainLayout() {
         className={`app bg-${currentPage.background} ${isOnScreen || isViewerSeeingScreen ? "on-screen" : ""} ${isWindowMaximized ? "is-maximized" : ""}`}
         style={{ flex: 1, minHeight: 0, height: 0, width: "100%", overflow: "hidden", position: "relative", transform: "translateZ(0)" }}
       >
-      {/* Remote Screen Background (สำหรับ Viewer) */}
+        {/* Remote Screen Background (สำหรับ Viewer) */}
       {isViewerSeeingScreen && (
         <img
           src={remoteScreen}
@@ -621,6 +623,16 @@ export default function MainLayout() {
             if (toolId === 'lock_screen') setShowLockScreen(v => !v);
             if (toolId === 'physics_lab') syncWidgetToggle('physicsLab', !showPhysicsLab?.isActive);
             if (toolId === 'student_lab') syncWidgetToggle('studentLab', !showStudentLab?.isActive);
+            if (toolId === 'anatomy_model') fileHook.handleInsertImage("/teaching_stickers/human_anatomy.png");
+            if (toolId === 'heart_model') fileHook.handleInsertImage("/teaching_stickers/real_heart.png");
+            if (toolId === 'brain_model') fileHook.handleInsertImage("/teaching_stickers/brain.png");
+            if (toolId === 'cell_model') fileHook.handleInsertImage("/teaching_stickers/plant_cell.png");
+            if (toolId === 'earth_layers') fileHook.handleInsertImage("/teaching_stickers/earth_layers.png");
+            if (toolId === 'clouds_atmosphere') fileHook.handleInsertImage("/teaching_stickers/clouds_atmosphere.png");
+            if (toolId === 'human_eye') fileHook.handleInsertImage("/teaching_stickers/human_eye.png");
+            if (toolId === 'water_cycle') fileHook.handleInsertImage("/teaching_stickers/water_cycle.png");
+            if (toolId === 'photosynthesis') fileHook.handleInsertImage("/teaching_stickers/photosynthesis.png");
+            if (toolId === 'human_evolution') fileHook.handleInsertImage("/teaching_stickers/human_evolution.png");
             if (toolId === 'banner') {
               if (showBanner?.isShowing) {
                 setLocalShowBanner(false);
@@ -661,7 +673,7 @@ export default function MainLayout() {
           onEraserSizeChange={drawingHook.setEraserSize}
           onUndo={drawingHook.handleUndo}
           onRedo={drawingHook.handleRedo}
-          onClear={canUseFullTools ? handleClear : undefined}
+          onClear={handleClear}
           onInsertImage={canUseFullTools ? fileHook.handleInsertImage : undefined}
           onInsertVideo={canUseFullTools ? fileHook.handleInsertVideo : undefined}
           userRole={userRole}
@@ -689,6 +701,7 @@ export default function MainLayout() {
           mode={drawingHook.mode}
           activeStamp={drawingHook.activeStamp}
           onStampSelect={drawingHook.handleStampSelect}
+          onInsertImage={fileHook.handleInsertImage}
         />
       )}
 

@@ -90,9 +90,7 @@ function NameDialog({ onSubmit, hostExists, waitingForAck }) {
             {/* ── Window Title Bar ── */}
             <div className="login-titlebar">
                 <div className="login-titlebar-drag">
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ opacity: 0.4, marginRight: 8 }}>
-                        <rect x="3" y="3" width="18" height="18" rx="2" /><path d="M3 9h18" /><path d="M9 21V9" />
-                    </svg>
+                    <img src="/proedu1-logo.png" alt="ProEdu1" style={{ height: 16, marginRight: 8, opacity: 0.9, objectFit: 'contain' }} />
                     <span className="login-titlebar-label">ProEdu1 Whiteboard</span>
                 </div>
                 <div className="login-titlebar-controls">
@@ -125,19 +123,10 @@ function NameDialog({ onSubmit, hostExists, waitingForAck }) {
             <div className="login-container">
 
                 {/* ── Left: Branding ── */}
-                <div className="login-branding">
+                <div className="login-branding" style={{ marginTop: '-80px' }}>
                     {/* Logo */}
-                    <div className="login-logo-wrap">
-                        <div className="login-logo-icon">
-                            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                                <rect x="3" y="3" width="18" height="18" rx="2" />
-                                <path d="M3 9h18" />
-                                <path d="M9 21V9" />
-                            </svg>
-                        </div>
-                        <h1 className="login-logo-name">
-                            ProEdu1<span style={{ color: '#a78bfa' }}>Whiteboard</span>
-                        </h1>
+                    <div className="login-logo-wrap" style={{ marginBottom: '-80px', display: 'flex', justifyContent: 'flex-start' }}>
+                        <img src="/proedu1-logo.png" alt="ProEdu1 Logo" style={{ width: '100%', maxWidth: '480px', height: 'auto', objectFit: 'contain', filter: 'drop-shadow(0px 4px 12px rgba(0,0,0,0.4))' }} />
                     </div>
 
                     {/* Minimal Description */}
