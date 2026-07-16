@@ -1223,7 +1223,7 @@ const Canvas = forwardRef(function Canvas(
       drawState.currentStroke?.points.push({ x, y, pressure });
 
       const FULL_REDRAW_STYLES_MOVE = ["pen","highlighter","dashed","dotted","crayon","brush","calligraphy","neon","pencil","marker","chalk","watercolor","fountain"];
-      const needsFullRedrawMove = drawState.tool !== "eraser" && FULL_REDRAW_STYLES_MOVE.includes(effectiveStyle);
+      const needsFullRedrawMove = strokeTool !== "eraser" && FULL_REDRAW_STYLES_MOVE.includes(effectiveStyle);
 
       if (needsFullRedrawMove) {
         if (!liveDrawRafRef.current) {

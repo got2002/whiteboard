@@ -18,7 +18,8 @@
     },
     "win": {
       "target": ["nsis"],
-      "artifactName": "ProEdu1.exe"
+      "artifactName": "ProEdu1.exe",
+      "icon": "build/icon_256.png"
     },
     "files": [
       "electron/**/*",

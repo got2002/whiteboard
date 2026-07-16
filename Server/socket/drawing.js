@@ -64,11 +64,19 @@ module.exports = (io, socket) => {
     socket.broadcast.emit("redo", { pageId, stroke });
   });
 
-  socket.on("clear-page", ({ pageId }) => {
-    if (!canSyncHostTools(socket.id)) return; // Security fix: Only Host or Full Access can clear page
+  socket.on("clear-page", ({ pageId, clearAll, authorId }) => {
+    if (!hasPermission(socket.id, "contributor")) return;
     const page = store.pages.find((p) => p.id === pageId);
-    if (page) page.strokes = [];
-    socket.broadcast.emit("clear-page", { pageId });
+    if (!page) return;
+
+    if (clearAll && canSyncHostTools(socket.id)) {
+      page.strokes = [];
+      socket.broadcast.emit("clear-page", { pageId, clearAll: true });
+    } else {
+      const idToClear = socket.id;
+      page.strokes = page.strokes.filter((s) => s.authorId !== idToClear);
+      socket.broadcast.emit("clear-page", { pageId, clearAll: false, authorId: idToClear });
+    }
   });
 
   socket.on("host-multidraw-mode-changed", ({ isMultiDrawMode }) => {

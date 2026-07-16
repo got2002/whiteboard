@@ -85,7 +85,6 @@ const PEN_STYLES = [
     { id: "pen",         label: "Pen",         icon: <img src="/pen.png" alt="Pen" style={{width: "18px", height: "18px", objectFit: "contain"}} />,  desc: "ปากกาปกติ"         },
     { id: "highlighter", label: "Highlighter", icon: <img src="/highlighter.png" alt="Highlight" style={{width: "18px", height: "18px", objectFit: "contain"}} />,  desc: "ปากกาไฮไลต์"         },
     { id: "pencil",      label: "Pencil",      icon: <PenSvg><path d="M17 3a2.83 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z" /></PenSvg>,   desc: "ปากกาหัวเล็ก"             },
-    { id: "calligraphy", label: "Calligraphy", icon: <img src="/calligraphy.png" alt="Calligraphy" style={{width: "18px", height: "18px", objectFit: "contain"}} />,  desc: "ปากกาเซ็นชื่อ"           },
     { id: "fountain",    label: "Fountain",    icon: <PenSvg><path d="M15.5 3l-1 5.5L12 12l-2.5-3.5L8.5 3" /><path d="M12 12v8" /><path d="M9 22h6" /><circle cx="12" cy="12" r="1" fill="currentColor" stroke="none" /></PenSvg>,   desc: "ปากกาหมึกซึม"     },
     { id: "neon",        label: "Neon",        icon: <img src="/neon.png" alt="Neon" style={{width: "18px", height: "18px", objectFit: "contain"}} />,  desc: "เรืองแสง" },
     { id: "dashed",      label: "Dashed",      icon: <img src="/dashed.png" alt="Dashed" style={{width: "18px", height: "18px", objectFit: "contain"}} />,  desc: "เส้นประ" },
