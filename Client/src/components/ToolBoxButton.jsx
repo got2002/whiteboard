@@ -413,128 +413,81 @@ const TOOLBOX_ITEMS = [
         id: "anatomy_model",
         label: "Anatomy",
         icon: (
-            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-                <circle cx="12" cy="5" r="2" />
-                <path d="M12 7v8" />
-                <path d="M8 10l4-2 4 2" />
-                <path d="M10 21l2-6 2 6" />
-                <circle cx="12" cy="9" r="1" fill="rgba(239,68,68,0.5)" stroke="none" />
-            </svg>
+            <img src="/teaching_stickers/human_anatomy.png" alt="Anatomy" style={{ width: 28, height: 28, objectFit: 'contain' }} />
         ),
-        category: "science",
+        category: "stickers",
     },
     {
         id: "heart_model",
         label: "Heart",
         icon: (
-            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" fill="rgba(239,68,68,0.2)" />
-            </svg>
+            <img src="/teaching_stickers/real_heart.png" alt="Heart" style={{ width: 28, height: 28, objectFit: 'contain' }} />
         ),
-        category: "science",
+        category: "stickers",
     },
     {
         id: "brain_model",
         label: "Brain",
         icon: (
-            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M9.5 20a2.5 2.5 0 0 1-2.5-2.5V17a4 4 0 0 1 4-4h.5a4 4 0 0 1 4 4v.5a2.5 2.5 0 0 1-2.5 2.5h-3.5z" />
-                <path d="M12 13a4 4 0 0 0 4-4V8.5a2.5 2.5 0 0 0-2.5-2.5h-3A2.5 2.5 0 0 0 8 8.5V9a4 4 0 0 0 4 4z" fill="rgba(168,85,247,0.2)" />
-            </svg>
+            <img src="/teaching_stickers/brain.png" alt="Brain" style={{ width: 28, height: 28, objectFit: 'contain' }} />
         ),
-        category: "science",
+        category: "stickers",
     },
     {
         id: "cell_model",
         label: "Plant Cell",
         icon: (
-            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-                <rect x="4" y="4" width="16" height="16" rx="2" fill="rgba(34,197,94,0.2)" />
-                <circle cx="12" cy="12" r="3" fill="rgba(59,130,246,0.5)" stroke="none" />
-                <path d="M7 8h2M15 16h2M8 15v2M16 8v2" />
-            </svg>
+            <img src="/teaching_stickers/plant_cell.png" alt="Plant Cell" style={{ width: 28, height: 28, objectFit: 'contain' }} />
         ),
-        category: "science",
+        category: "stickers",
     },
     {
         id: "earth_layers",
         label: "Earth Layers",
         icon: (
-            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-                <circle cx="12" cy="12" r="8" fill="rgba(59,130,246,0.1)" stroke="currentColor" />
-                <path d="M12 4v8h8" strokeDasharray="2 2" opacity="0.7" />
-                <circle cx="12" cy="12" r="3" fill="rgba(239,68,68,0.5)" stroke="none" />
-                <circle cx="12" cy="12" r="1.5" fill="rgba(251,191,36,0.8)" stroke="none" />
-            </svg>
+            <img src="/teaching_stickers/earth_layers.png" alt="Earth Layers" style={{ width: 28, height: 28, objectFit: 'contain' }} />
         ),
-        category: "science",
+        category: "stickers",
     },
     {
         id: "clouds_atmosphere",
         label: "Atmosphere & Clouds",
         icon: (
-            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M17 18a5 5 0 0 0-10 0" />
-                <path d="M6 14a4 4 0 0 1 8 0" />
-                <path d="M12 10a3 3 0 0 1 6 0" />
-                <path d="M4 20h16" strokeDasharray="2 2" />
-            </svg>
+            <img src="/teaching_stickers/clouds_atmosphere.png" alt="Atmosphere" style={{ width: 28, height: 28, objectFit: 'contain' }} />
         ),
-        category: "science",
+        category: "stickers",
     },
     {
         id: "human_eye",
         label: "Eye Anatomy",
         icon: (
-            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" stroke="currentColor" />
-                <circle cx="12" cy="12" r="3" fill="rgba(59,130,246,0.3)" stroke="currentColor" />
-            </svg>
+            <img src="/teaching_stickers/human_eye.png" alt="Eye Anatomy" style={{ width: 28, height: 28, objectFit: 'contain' }} />
         ),
-        category: "science",
+        category: "stickers",
     },
     {
         id: "water_cycle",
         label: "Water Cycle",
         icon: (
-            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M16 4h4v4M20 4L15.5 8.5" />
-                <path d="M4 16h4v4M4 20l4.5-4.5" />
-                <path d="M20 16v4h-4M20 20l-4.5-4.5" />
-                <path d="M4 8V4h4M4 4l4.5 4.5" />
-                <circle cx="12" cy="12" r="3" fill="rgba(14,165,233,0.3)" />
-            </svg>
+            <img src="/teaching_stickers/water_cycle.png" alt="Water Cycle" style={{ width: 28, height: 28, objectFit: 'contain' }} />
         ),
-        category: "science",
+        category: "stickers",
     },
     {
         id: "photosynthesis",
         label: "Photosynthesis",
         icon: (
-            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M12 21v-8" stroke="rgba(34,197,94,1)" />
-                <path d="M12 16c-3-2-6-1-6 3" stroke="rgba(34,197,94,1)" fill="rgba(34,197,94,0.2)" />
-                <path d="M12 14c3-2 6-1 6 3" stroke="rgba(34,197,94,1)" fill="rgba(34,197,94,0.2)" />
-                <circle cx="6" cy="6" r="3" fill="rgba(250,204,21,0.5)" stroke="none" />
-                <path d="M6 2v1M6 10v1M2 6h1M10 6h1" stroke="rgba(250,204,21,1)" />
-            </svg>
+            <img src="/teaching_stickers/photosynthesis.png" alt="Photosynthesis" style={{ width: 28, height: 28, objectFit: 'contain' }} />
         ),
-        category: "science",
+        category: "stickers",
     },
     {
         id: "human_evolution",
         label: "Human Evolution",
         icon: (
-            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-                <circle cx="6" cy="10" r="1.5" />
-                <path d="M6 11.5v4l-1.5 3M6 15.5l1.5 3M6 13l-2 1M6 13l2 1" opacity="0.4" />
-                <circle cx="12" cy="8" r="1.5" />
-                <path d="M12 9.5v5l-1.5 3.5M12 14.5l1.5 3.5M12 11l-2 1.5M12 11l2 1.5" opacity="0.7" />
-                <circle cx="18" cy="6" r="1.5" />
-                <path d="M18 7.5v6l-1.5 4.5M18 13.5l1.5 4.5M18 9.5l-2 2M18 9.5l2 2" />
-            </svg>
+            <img src="/teaching_stickers/human_evolution.png" alt="Human Evolution" style={{ width: 28, height: 28, objectFit: 'contain' }} />
         ),
-        category: "science",
+        category: "stickers",
     }
 ];
 
@@ -542,6 +495,7 @@ const CATEGORIES = [
     { id: "gadgets", label: "Gadgets" },
     { id: "math", label: "Math Tools" },
     { id: "science", label: "🔬 Science" },
+    { id: "stickers", label: "🌟 Stickers" },
 ];
 
 export default function ToolBoxButton({ onToolSelect, activeTools = {} }) {
@@ -578,7 +532,7 @@ export default function ToolBoxButton({ onToolSelect, activeTools = {} }) {
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                     <path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z" />
                 </svg>
-                <span className="toolbox-label">ToolBox</span>
+                <span className="toolbox-label header-btn-text">ToolBox</span>
             </button>
 
             {/* ── Panel Popup ── */}

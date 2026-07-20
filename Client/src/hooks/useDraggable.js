@@ -80,7 +80,7 @@ export function useDraggable({ storageKey, defaultPosition = null } = {}) {
             const maxX = Math.max(0, window.innerWidth - elemW - 10);
             const maxY = Math.max(0, window.innerHeight - elemH - 10);
             const minY = 55; // Prevent dragging behind top bar (height ~48px)
-            const minX = 10; // Left padding
+            const minX = 0; // Left padding
 
             const newX = Math.max(minX, Math.min(dragStartRef.current.elemX + deltaX, maxX));
             const newY = Math.max(minY, Math.min(dragStartRef.current.elemY + deltaY, maxY));
@@ -133,7 +133,7 @@ export function useDraggable({ storageKey, defaultPosition = null } = {}) {
                 const maxX = Math.max(0, window.innerWidth - elemW - 10);
                 const maxY = Math.max(0, window.innerHeight - elemH - 10);
                 const minY = 55;
-                const minX = 10;
+                const minX = 0;
 
                 setPosition((prevPos) => {
                     if (!prevPos) return prevPos;
@@ -193,17 +193,21 @@ export function useDraggable({ storageKey, defaultPosition = null } = {}) {
         }
     }, [storageKey]);
 
+    const isDockedLeft = position && position.x <= 5;
+
     // Style to apply to the draggable container
     const dragStyle = position
         ? {
             position: "fixed",
-            left: position.x + "px",
-            top: position.y + "px",
+            left: isDockedLeft ? "0px" : position.x + "px",
+            top: isDockedLeft ? "0px" : position.y + "px",
             // Override CSS transforms that were used for centering
             transform: "none",
             right: "auto",
-            bottom: "auto",
-            transition: isDragging ? "none" : "box-shadow 0.2s ease",
+            bottom: isDockedLeft ? "0px" : "auto",
+            height: isDockedLeft ? "100vh" : "auto",
+            borderRadius: isDockedLeft ? "0" : undefined,
+            transition: isDragging ? "none" : "box-shadow 0.2s ease, left 0.2s, top 0.2s, height 0.2s",
         }
         : {};
 
@@ -214,5 +218,6 @@ export function useDraggable({ storageKey, defaultPosition = null } = {}) {
         position,
         resetPosition,
         handlePointerDown,
+        dockedEdge: isDockedLeft ? 'left' : null
     };
 }

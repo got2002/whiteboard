@@ -246,6 +246,8 @@ ipcMain.handle('capture-window', async (event, windowId) => {
 
 // ── App Lifecycle ──
 
+app.commandLine.appendSwitch('autoplay-policy', 'no-user-gesture-required');
+
 app.whenReady().then(() => {
   createWindow();
 

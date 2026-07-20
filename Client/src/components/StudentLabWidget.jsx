@@ -4,6 +4,7 @@ import CustomCircuitLab from "./CustomCircuitLab";
 import CustomSolarSystemLab from "./CustomSolarSystemLab";
 import CustomProjectileMotionLab from "./CustomProjectileMotionLab";
 import CustomBalanceLab from "./CustomBalanceLab";
+import CustomPHLab from "./CustomPHLab";
 
 // ============================================================
 // StudentLabWidget Component - Virtual Student Laboratory
@@ -174,6 +175,34 @@ export default function StudentLabWidget({ canEdit = true, config = {}, onSyncCo
       );
   }
 
+  if (activeLab === 'ph') {
+      return (
+          <div
+            className="student-lab-widget"
+            data-draggable="true"
+            ref={handleRef}
+            style={{
+                ...dragStyle,
+                position: "fixed",
+                zIndex: 9999,
+                width: customSize ? `${customSize.width}px` : "1000px",
+                height: customSize ? `${customSize.height}px` : "700px",
+                transition: (isDragging || customSize) ? "none" : "width 0.3s ease, height 0.3s ease",
+            }}
+          >
+              <div onPointerDown={handlePointerDown} style={{ height: '30px', background: '#0f172a', width: '100%', cursor: 'grab', position: 'absolute', top: 0, left: 0, zIndex: 10001, display: 'flex', alignItems: 'center', padding: '0 10px', color: 'white' }}>
+                  <span style={{ fontSize: '12px' }}>Student Lab Window - Drag to move</span>
+              </div>
+              <div style={{ paddingTop: '30px', height: '100%', position: 'relative' }}>
+                <CustomPHLab onClose={() => setActiveLab(null)} />
+              </div>
+              <div onPointerDown={handleResizePointerDown} style={{ position: 'absolute', right: 0, bottom: 0, width: '20px', height: '20px', cursor: 'nwse-resize', zIndex: 10002 }}>
+                <svg viewBox="0 0 24 24" fill="none" stroke="#64748b" strokeWidth="2" style={{ position: 'absolute', right: 2, bottom: 2, width: 14, height: 14 }}><path d="M22 22L12 12M22 16v6h-6M16 22l6-6"/></svg>
+              </div>
+          </div>
+      );
+  }
+
   return (
     <div
       className="student-lab-widget"
@@ -268,6 +297,20 @@ export default function StudentLabWidget({ canEdit = true, config = {}, onSyncCo
               <div>
                 <div style={{ fontWeight: 'bold', fontSize: '18px', color: '#1e293b' }}>Levers & Balance Lab</div>
                 <div style={{ fontSize: '14px', color: '#64748b', marginTop: '5px' }}>Experiment with balance, forces, and torque by placing weights on a lever.</div>
+              </div>
+            </button>
+
+            <button
+              className="student-lab-card"
+              onClick={() => setActiveLab('ph')}
+              style={{ background: '#fff', border: '2px solid #ec4899', borderRadius: '12px', padding: '20px', cursor: 'pointer', textAlign: 'left', display: 'flex', alignItems: 'center', gap: '20px', transition: 'all 0.2s', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)' }}
+              onMouseOver={(e) => e.currentTarget.style.transform = 'translateY(-2px)'}
+              onMouseOut={(e) => e.currentTarget.style.transform = 'translateY(0)'}
+            >
+              <div style={{ fontSize: '40px' }}>🧪</div>
+              <div>
+                <div style={{ fontWeight: 'bold', fontSize: '18px', color: '#1e293b' }}>pH Scale & Acid-Base Lab</div>
+                <div style={{ fontSize: '14px', color: '#64748b', marginTop: '5px' }}>Mix strong acids and bases to observe pH changes and universal indicator colors.</div>
               </div>
             </button>
         </div>
