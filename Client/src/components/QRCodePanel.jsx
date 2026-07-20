@@ -66,7 +66,8 @@ export default function QRCodePanel({ joinUrl, onClose }) {
         width: panelWidth + "px",
         height: "auto", // Automatically adjust height based on content
         overflow: "hidden",
-        paddingBottom: "16px" // Reset padding since we removed the weird resizer
+        paddingBottom: "16px", // Reset padding since we removed the weird resizer
+        zIndex: 99999
       }}
     >
       <div 

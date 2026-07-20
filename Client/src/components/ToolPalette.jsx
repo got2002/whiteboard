@@ -257,7 +257,7 @@ function ToolPalette({
     };
 
     return (
-        <div className={`tool-palette ${isDragging ? "is-dragging" : ""}`} data-draggable style={dragStyle}>
+        <div className={`tool-palette ${isDragging ? "is-dragging" : ""}`} data-draggable style={{ ...dragStyle, zIndex: 90 }}>
             {/* ── Drag Handle ── */}
             <div
                 className="tp-drag-handle"

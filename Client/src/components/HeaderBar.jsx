@@ -216,7 +216,10 @@ function HeaderBar({
                             title="ผู้ช่วย AI (สร้างเนื้อหา & แปลภาษา)"
                             style={{ width: 'auto', padding: '0 10px', gap: '6px' }}
                         >
-                            <span style={{ fontSize: '11px', whiteSpace: 'nowrap', fontWeight: '600' }}>ผู้ช่วย AI</span>
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                <path d="M9.937 15.5A2 2 0 0 0 8.5 14.063l-6.135-1.582a.5.5 0 0 1 0-.962L8.5 9.936A2 2 0 0 0 9.937 8.5l1.582-6.135a.5.5 0 0 1 .963 0L14.063 8.5A2 2 0 0 0 15.5 9.937l6.135 1.581a.5.5 0 0 1 0 .964L15.5 14.063a2 2 0 0 0-1.437 1.437l-1.582 6.135a.5.5 0 0 1-.963 0z"/>
+                            </svg>
+                            <span className="header-btn-text" style={{ fontSize: '11px', whiteSpace: 'nowrap', fontWeight: '600' }}>ผู้ช่วย AI</span>
                         </button>
                     </>
                 )}
@@ -236,7 +239,7 @@ function HeaderBar({
                                 <polygon points="10,7 16,10 10,13" fill="currentColor" stroke="none" />
                                 <path d="M8 21h8M12 17v4" />
                             </svg>
-                            <span style={{ fontSize: '11px', whiteSpace: 'nowrap', fontWeight: '600' }}>Present</span>
+                            <span className="header-btn-text" style={{ fontSize: '11px', whiteSpace: 'nowrap', fontWeight: '600' }}>Present</span>
                         </button>
                     </>
                 )}
@@ -257,7 +260,7 @@ function HeaderBar({
                                 <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
                                 <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
                             </svg>
-                            <span style={{ fontSize: '11px', whiteSpace: 'nowrap', fontWeight: '600' }}>Multi-Draw</span>
+                            <span className="header-btn-text" style={{ fontSize: '11px', whiteSpace: 'nowrap', fontWeight: '600' }}>Multi-Draw</span>
                         </button>
                     </>
                 )}
@@ -286,7 +289,7 @@ function HeaderBar({
                             <rect x="2" y="3" width="20" height="14" rx="2" /><path d="M8 21h8" /><path d="M12 17v4" />
                             {isOnScreen && <path d="M7 10l5-4 5 4" strokeWidth="2.5" />}
                         </svg>
-                        <span style={{ fontSize: "11px", whiteSpace: "nowrap", fontWeight: "600" }}>On Screen</span>
+                        <span className="header-btn-text" style={{ fontSize: "11px", whiteSpace: "nowrap", fontWeight: "600" }}>On Screen</span>
                     </button>
 
                     <button
@@ -312,7 +315,7 @@ function HeaderBar({
                                 <path d="M8 3H5a2 2 0 0 0-2 2v3" /><path d="M21 8V5a2 2 0 0 0-2-2h-3" /><path d="M3 16v3a2 2 0 0 0 2 2h3" /><path d="M16 21h3a2 2 0 0 0 2-2v-3" />
                             </svg>
                         )}
-                        <span style={{ fontSize: "11px", whiteSpace: "nowrap", fontWeight: "600" }}>Fullscreen</span>
+                        <span className="header-btn-text" style={{ fontSize: "11px", whiteSpace: "nowrap", fontWeight: "600" }}>Fullscreen</span>
                     </button>
 
                     <div className="header-divider" />
@@ -517,7 +520,7 @@ function HeaderBar({
                                 <polyline points="16 17 21 12 16 7" />
                                 <line x1="21" y1="12" x2="9" y2="12" />
                             </svg>
-                            <span style={{ fontSize: "11px", whiteSpace: "nowrap", fontWeight: "600" }}>ออก</span>
+                            <span className="header-btn-text" style={{ fontSize: "11px", whiteSpace: "nowrap", fontWeight: "600" }}>ออก</span>
                         </button>
                     </>
                 )}

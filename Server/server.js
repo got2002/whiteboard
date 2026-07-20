@@ -25,6 +25,14 @@ app.use(express.json({ limit: '500mb' }));
 const server = http.createServer(app);
 const io = new Server(server, { cors: { origin: "*" }, maxHttpBufferSize: 5e8 });
 
+// Setup PeerJS Server
+const { ExpressPeerServer } = require("peer");
+const peerServer = ExpressPeerServer(server, {
+  path: "/app",
+  allow_discovery: true,
+});
+app.use("/peerjs", peerServer);
+
 // AI Solution routes
 app.use('/api/ai', aiRoutes);
 

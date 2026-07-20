@@ -33,7 +33,7 @@ import PermissionPanel from "../components/PermissionPanel";
 import PermissionButton from "../components/PermissionButton";
 import NameDialog from "../components/NameDialog";
 import VideoPlayerModal from "../components/VideoPlayerModal";
-import WebcamWidget from "../components/WebcamWidget";
+import CameraGalleryWidget from "../components/CameraGalleryWidget";
 import ScreenshotOverlay from "../components/ScreenshotOverlay";
 import ScreenshotMenu from "../components/ScreenshotMenu";
 import QRCodePanel from "../components/QRCodePanel";
@@ -505,7 +505,7 @@ export default function MainLayout() {
 
       <div
         className={`app bg-${currentPage.background} ${isOnScreen || isViewerSeeingScreen ? "on-screen" : ""} ${isWindowMaximized ? "is-maximized" : ""}`}
-        style={{ flex: 1, minHeight: 0, height: 0, width: "100%", overflow: "hidden", position: "relative", transform: "translateZ(0)" }}
+        style={{ flex: 1, minHeight: 0, height: 0, width: "100%", overflow: "visible", position: "relative" }}
       >
         {/* Remote Screen Background (สำหรับ Viewer) */}
       {isViewerSeeingScreen && (
@@ -733,6 +733,15 @@ export default function MainLayout() {
         onFollow={collabHook.handleFollow}
       />
 
+      {/* Camera Gallery Widget — Replaces individual floating Webcams */}
+      <CameraGalleryWidget
+        socket={socket}
+        username={username}
+        showWebcam={showWebcam}
+        setShowWebcam={setShowWebcam}
+        remoteWebcams={remoteWebcams}
+      />
+
       {/* Follow Indicator */}
       {collabHook.followUserId && collabHook.remoteUsers[collabHook.followUserId] && (
         <div className="follow-indicator">
@@ -821,31 +830,6 @@ export default function MainLayout() {
           onDownload={recHook.handleDownloadVideo}
         />
       )}
-
-      {/* Webcam Widget — Local User */}
-      {showWebcam && (
-        <WebcamWidget
-          key={`local-${socket.id}`}
-          isLocal={true}
-          socket={socket}
-          ownerName={username}
-          ownerId={socket.id}
-          initialPosition={{ x: 20, y: 80 }}
-          onClose={() => setShowWebcam(false)}
-        />
-      )}
-
-      {/* Webcam Widget — Remote Users */}
-      {Object.entries(remoteWebcams).map(([id, cam], index) => (
-        <WebcamWidget
-          key={`remote-${id}`}
-          isLocal={false}
-          socket={socket}
-          ownerName={cam.name}
-          ownerId={id}
-          initialPosition={{ x: 20 + ((index + 1) * 30), y: 80 + ((index + 1) * 30) }}
-        />
-      ))}
 
       {/* Screenshot Selection Overlay */}
       {/* Calculator Widget — ทุก Role ใช้ได้ */}
