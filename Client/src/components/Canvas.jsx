@@ -600,6 +600,8 @@ const Canvas = forwardRef(function Canvas(
       
       const promptStr = mode === "ai_pen"
         ? "จงอ่านคำถามหรือสมการคณิตศาสตร์ที่เขียนด้วยลายมือในรูปภาพนี้ และให้คำตอบพร้อมคำอธิบายที่สั้น กระชับ ชัดเจน ตอบเป็นภาษาเดียวกับคำถาม (ส่วนใหญ่เป็นภาษาไทย) ห้ามมีคำพูดเกริ่นนำ"
+        : mode === "smart_sketch"
+        ? "You are an intelligent drawing assistant. Analyze this rough sketch and guess what the user is trying to draw. Reply with EXACTLY ONE single Emoji character that best represents the drawing. Do not add any text. For example, if it's a cat, reply 🐱. If it's a car, reply 🚗. If it's a house, reply 🏠."
         : "Extract the handwritten text from this image. Output only the transcribed text without any formatting, quotes, or markdown. The text may be in Thai or English.";
 
       const res = await fetch(`${serverUrl}/api/ai/generate`, {
@@ -622,8 +624,8 @@ const Canvas = forwardRef(function Canvas(
       console.log("[Gemini AI] Recognized text:", text);
       
       if (text) {
-        if (mode === "ai_text") {
-          // Delete original strokes only if replacing text
+        if (mode === "ai_text" || mode === "smart_sketch") {
+          // Delete original strokes only if replacing text or replacing sketch
           strokesToProcess.forEach(s => {
             onStrokeDelete?.(s.id);
           });
@@ -634,10 +636,10 @@ const Canvas = forwardRef(function Canvas(
           id: Date.now().toString(36) + Math.random().toString(36).substr(2),
           type: "text",
           text: text,
-          x: mode === "ai_pen" ? bounds.x + bounds.width + 20 : bounds.x,
-          y: mode === "ai_pen" ? bounds.y : bounds.y,
-          fontSize: mode === "ai_pen" ? 24 : 32, // slightly smaller font for answers
-          color: mode === "ai_pen" ? "#0369a1" : (color || "#000"), // blueish color for AI answers
+          x: mode === "ai_pen" ? bounds.x + bounds.width + 20 : (mode === "smart_sketch" ? bounds.x + bounds.width / 2 - 60 : bounds.x),
+          y: mode === "ai_pen" ? bounds.y : (mode === "smart_sketch" ? bounds.y + bounds.height / 2 - 60 : bounds.y),
+          fontSize: mode === "smart_sketch" ? 120 : (mode === "ai_pen" ? 24 : 32),
+          color: mode === "smart_sketch" ? "#000" : (mode === "ai_pen" ? "#0369a1" : (color || "#000")),
         };
         onStrokeComplete(newTextStroke);
       } else {
@@ -905,10 +907,10 @@ const Canvas = forwardRef(function Canvas(
     }
 
     const isShapeTool = SHAPE_TOOLS.includes(tool);
-    const isPenLike = tool === "pen" || tool === "eraser" || tool === "highlighter" || tool === "ai_text" || tool === "ai_pen";
+    const isPenLike = tool === "pen" || tool === "eraser" || tool === "highlighter" || tool === "ai_text" || tool === "ai_pen" || tool === "smart_sketch";
     if (!isShapeTool && !isPenLike) return;
 
-    if (tool === "ai_text" || tool === "ai_pen") {
+    if (tool === "ai_text" || tool === "ai_pen" || tool === "smart_sketch") {
       if (gestureTimeoutRef.current) clearTimeout(gestureTimeoutRef.current);
     }
 
@@ -929,7 +931,7 @@ const Canvas = forwardRef(function Canvas(
     const drawState = { isDrawing: true, currentStroke: null, prevX: x, prevY: y, shapeStart: null };
     activeDrawings.current.set(pId, drawState);
 
-    const effectivePenStyle = (tool === "ai_pen" || tool === "ai_text") ? "pen" : (tool === "highlighter") ? "highlighter" : (tool === "eraser" ? "pen" : penStyle);
+    const effectivePenStyle = (tool === "ai_pen" || tool === "ai_text" || tool === "smart_sketch") ? "pen" : (tool === "highlighter") ? "highlighter" : (tool === "eraser" ? "pen" : penStyle);
     const FULL_REDRAW_STYLES = ["pen","highlighter","dashed","dotted","crayon","brush","calligraphy","neon","pencil","marker","chalk","watercolor","fountain"];
     const needsFullRedraw = tool !== "eraser" && FULL_REDRAW_STYLES.includes(effectivePenStyle);
 
@@ -1203,7 +1205,7 @@ const Canvas = forwardRef(function Canvas(
       const strokeTool = drawState.currentStroke ? drawState.currentStroke.tool : tool;
       const strokeSize = drawState.currentStroke ? drawState.currentStroke.size : penSize;
       const strokeColor = drawState.currentStroke ? drawState.currentStroke.color : (strokeTool === "eraser" ? "#000" : color);
-      const effectiveStyle = (strokeTool === "ai_pen" || strokeTool === "ai_text") ? "pen" : (strokeTool === "highlighter") ? "highlighter" : (strokeTool === "eraser" ? "pen" : penStyle);
+      const effectiveStyle = (strokeTool === "ai_pen" || strokeTool === "ai_text" || strokeTool === "smart_sketch") ? "pen" : (strokeTool === "highlighter") ? "highlighter" : (strokeTool === "eraser" ? "pen" : penStyle);
       
       const dx = x - drawState.prevX;
       const dy = y - drawState.prevY;
@@ -1310,8 +1312,8 @@ const Canvas = forwardRef(function Canvas(
       if (drawState.currentStroke && drawState.currentStroke.points.length > 1) {
         onStrokeComplete(drawState.currentStroke);
         
-        // Trigger Gesture to Text timeout if magic pen is used
-        if (tool === "ai_text" || tool === "ai_pen") {
+        // Trigger Gesture to Text/Emoji timeout if magic pen is used
+        if (tool === "ai_text" || tool === "ai_pen" || tool === "smart_sketch") {
            gestureStrokesRef.current.push(drawState.currentStroke);
            if (gestureTimeoutRef.current) clearTimeout(gestureTimeoutRef.current);
            gestureTimeoutRef.current = setTimeout(() => {

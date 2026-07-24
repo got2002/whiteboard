@@ -433,8 +433,11 @@ function ToolPalette({
 
                 {canUseFullTools && (
                     <>
-                        <button className={`tp-btn ${tool === "ai_pen" ? "active" : ""}`} onClick={() => { onToolChange("ai_pen"); setShowPenPopup(false); setShowEraserPopup(false); }} title="AI Pen (วาดภาพอัจฉริยะ)">
+                        <button className={`tp-btn ${tool === "ai_pen" ? "active" : ""}`} onClick={() => { onToolChange("ai_pen"); setShowPenPopup(false); setShowEraserPopup(false); }} title="AI Pen (แปลงลายเส้นเป็นข้อความ)">
                             <img src="/ai-pen.png" className="tall-tool-img scale-1-2" alt="AI Pen" />
+                        </button>
+                        <button className={`tp-btn ${tool === "smart_sketch" ? "active" : ""}`} onClick={() => { onToolChange("smart_sketch"); setShowPenPopup(false); setShowEraserPopup(false); }} title="Smart Sketch (วาดแล้วแปลงเป็นภาพ)">
+                            <span style={{ fontSize: "20px" }}>🪄</span>
                         </button>
                         <button className={`tp-btn ${tool === "ai_text" ? "active" : ""}`} onClick={() => { onToolChange("ai_text"); setShowPenPopup(false); setShowEraserPopup(false); }} title="Magic Pen">
                             <img src="/magic_pen.png" className="tall-tool-img scale-1-3" alt="Magic Pen" />

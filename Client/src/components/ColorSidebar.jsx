@@ -88,7 +88,7 @@ function ColorSidebar({
     };
 
     return (
-        <div className={`color-sidebar ${isDragging ? "is-dragging" : ""}`} data-draggable style={{ ...dragStyle, zIndex: 9999 }}>
+        <div className={`color-sidebar ${isDragging ? "is-dragging" : ""}`} data-draggable style={{ ...dragStyle, zIndex: 90 }}>
             {/* ── Drag Handle ── */}
             <div
                 className="cs-drag-handle"
