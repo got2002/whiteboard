@@ -69,6 +69,17 @@ export function useDrawing({ pages, setPages, userRole, canUseFullTools, isActiv
         } : p
       ));
     };
+    const handleReorderStrokeRemote = ({ pageId, strokeId, newIndex }) => {
+      setPages(prev => prev.map(p => {
+        if (p.id !== pageId) return p;
+        const idx = p.strokes.findIndex(s => s.id === strokeId);
+        if (idx === -1) return p;
+        const newStrokes = [...p.strokes];
+        const [stroke] = newStrokes.splice(idx, 1);
+        newStrokes.splice(newIndex, 0, stroke);
+        return { ...p, strokes: newStrokes };
+      }));
+    };
     const handleDeleteStroke = ({ pageId, strokeId }) => {
       setPages(prev => prev.map(p =>
         p.id === pageId ? { ...p, strokes: p.strokes.filter(s => s.id !== strokeId) } : p
@@ -99,6 +110,7 @@ export function useDrawing({ pages, setPages, userRole, canUseFullTools, isActiv
     drawingService.onClearPage(handleClearPage);
     drawingService.onStrokeUpdate(handleStrokeUpdate);
     drawingService.onDeleteStroke(handleDeleteStroke);
+    drawingService.onReorderStroke(handleReorderStrokeRemote);
     drawingService.onHostToolChanged(handleHostToolChanged);
     drawingService.onHostPenStyleChanged(handleHostPenStyleChanged);
     drawingService.onHostMultiDrawModeChanged(handleHostMultiDrawModeChanged);
@@ -122,6 +134,7 @@ export function useDrawing({ pages, setPages, userRole, canUseFullTools, isActiv
       drawingService.offClearPage(handleClearPage);
       drawingService.offStrokeUpdate(handleStrokeUpdate);
       drawingService.offDeleteStroke(handleDeleteStroke);
+      drawingService.offReorderStroke(handleReorderStrokeRemote);
       drawingService.offHostToolChanged(handleHostToolChanged);
       drawingService.offHostPenStyleChanged(handleHostPenStyleChanged);
       drawingService.offHostMultiDrawModeChanged(handleHostMultiDrawModeChanged);
@@ -231,6 +244,19 @@ export function useDrawing({ pages, setPages, userRole, canUseFullTools, isActiv
     }
   }, [redoStack, setPages]);
 
+  const handleReorderStroke = useCallback((strokeId, pageId, newIndex) => {
+    setPages(prev => prev.map(p => {
+      if (p.id !== pageId) return p;
+      const idx = p.strokes.findIndex(s => s.id === strokeId);
+      if (idx === -1) return p;
+      const newStrokes = [...p.strokes];
+      const [stroke] = newStrokes.splice(idx, 1);
+      newStrokes.splice(newIndex, 0, stroke);
+      return { ...p, strokes: newStrokes };
+    }));
+    drawingService.emitReorderStroke(pageId, strokeId, newIndex);
+  }, [pages, setPages]);
+
   const handleDeleteStroke = useCallback((strokeId, pageId) => {
     const page = pages.find(p => p.id === pageId);
     if (!page) return;
@@ -313,9 +339,10 @@ export function useDrawing({ pages, setPages, userRole, canUseFullTools, isActiv
     slotTitles, setSlotTitles,
     // Handlers
     handleStrokeComplete, handleDraw, handleTextRequest,
-    handleStrokeUpdate, handleStrokeResize, handleDeleteStroke,
+    handleStrokeUpdate, handleStrokeResize, handleDeleteStroke, handleReorderStroke,
     handleUndo, handleRedo, handleClear,
     handleToolChange, handlePenStyleChange,
     handleModeChange, handleStampSelect, handleToggleMultiDrawMode,
   };
 }
+

@@ -28,7 +28,7 @@ body,
   height: 100%;
   position: relative;
   overflow: hidden;
-  border-radius: 10px;
+  border-radius: 0;
 }
 
 /* เมื่อ Fullscreen ให้ไม่มีมุมโค้ง */
@@ -387,7 +387,7 @@ html.on-screen-mode #root {
   border-bottom: 1px solid rgba(99, 102, 241, 0.12);
   box-shadow: 0 2px 16px rgba(0, 0, 0, 0.35), 0 1px 0 rgba(99, 102, 241, 0.06) inset;
   z-index: 100;
-  border-radius: 10px 10px 0 0;
+  border-radius: 0;
   -webkit-app-region: drag;
 }
 
@@ -1144,6 +1144,7 @@ html.on-screen-mode #root {
 /* Background Picker */
 .cs-backgrounds {
   margin-top: 2px;
+  position: relative;
 }
 
 .cs-bg-popup {
@@ -1177,7 +1178,7 @@ html.on-screen-mode #root {
 }
 
 .cs-bg-popup-scroll {
-  max-height: 60vh;
+  max-height: 75vh;
   overflow-y: auto;
   scrollbar-width: thin;
   scrollbar-color: rgba(255, 255, 255, 0.1) transparent;
@@ -1185,6 +1186,7 @@ html.on-screen-mode #root {
   flex-direction: column;
   gap: 6px;
   padding-right: 2px;
+  padding-bottom: 16px;
 }
 
 .cs-bg-popup-scroll::-webkit-scrollbar {
@@ -1263,6 +1265,22 @@ html.on-screen-mode #root {
   box-shadow:
     0 0 10px rgba(99, 102, 241, 0.15),
     inset 0 1px 0 rgba(255, 255, 255, 0.04);
+}
+
+.cs-bgcolor-custom {
+  width: 32px;
+  height: 32px;
+  font-size: 18px;
+  background: rgba(255, 255, 255, 0.1) !important;
+  border: 1.5px dashed rgba(255, 255, 255, 0.25) !important;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.cs-bgcolor-custom:hover {
+  background: rgba(255, 255, 255, 0.2) !important;
+  border-color: rgba(99, 102, 241, 0.5) !important;
+  transform: scale(1.1);
 }
 
 /* ============================================================
@@ -9420,7 +9438,7 @@ body.gallery-docked-left .app {
 
 /* Fix header bar border radius when docked left */
 body.gallery-docked-left .header-bar {
-  border-radius: 0 10px 0 0 !important;
+  border-radius: 0 !important;
 }
 
 
@@ -9429,7 +9447,7 @@ body.gallery-docked-left .header-bar {
 /* When docked, shift the fixed top bar and tool palette */
 body.gallery-docked-left .header-bar {
   left: var(--gallery-dock-width, 200px) !important;
-  border-radius: 0 10px 0 0 !important;
+  border-radius: 0 !important;
 }
 
 body.gallery-docked-left .tool-palette {
@@ -9451,3 +9469,185 @@ body.gallery-docked-left .tool-palette {
     padding: 0 6px !important;
   }
 }
+/* --- Layer Panel --- */
+.layer-panel {
+    position: absolute;
+    top: 56px;
+    right: 16px;
+    width: 260px;
+    max-height: calc(100vh - 80px);
+    background: #ffffff;
+    border-radius: 12px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.18), 0 2px 8px rgba(0,0,0,0.06);
+    display: flex;
+    flex-direction: column;
+    z-index: 1000;
+    overflow: hidden;
+    border: 1px solid rgba(0,0,0,0.06);
+    user-select: none;
+}
+.layer-panel-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 14px;
+    background: linear-gradient(135deg, #f8fafc, #eef2ff);
+    border-bottom: 1px solid #e2e8f0;
+}
+.layer-panel-title {
+    font-size: 13px;
+    color: #1e293b;
+    font-weight: 700;
+    letter-spacing: 0.3px;
+}
+.layer-close-btn {
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: #94a3b8;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: 24px;
+    border-radius: 6px;
+    transition: all 0.15s;
+}
+.layer-close-btn:hover {
+    color: #ef4444;
+    background: #fee2e2;
+}
+.layer-panel-body {
+    flex: 1;
+    overflow-y: auto;
+    padding: 6px;
+}
+.layer-panel-body::-webkit-scrollbar { width: 4px; }
+.layer-panel-body::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+
+/* ── Layer Item ── */
+.layer-item {
+    display: flex;
+    align-items: center;
+    padding: 6px 8px;
+    cursor: pointer;
+    border-radius: 8px;
+    margin-bottom: 2px;
+    transition: all 0.15s;
+    gap: 8px;
+    position: relative;
+}
+.layer-item:hover {
+    background: #f1f5f9;
+}
+.layer-item.active {
+    background: #eff6ff;
+    box-shadow: inset 0 0 0 1.5px #3b82f6;
+}
+.layer-item.dragging {
+    opacity: 0.5;
+    background: #e0e7ff;
+    box-shadow: 0 4px 12px rgba(59,130,246,0.3);
+    transform: scale(0.97);
+}
+.layer-item.drag-over {
+    box-shadow: inset 0 -2px 0 0 #3b82f6;
+}
+
+/* ── Grip Handle ── */
+.layer-grip {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0.4;
+    cursor: grab;
+    flex-shrink: 0;
+    padding: 2px;
+    transition: opacity 0.15s;
+}
+.layer-item:hover .layer-grip { opacity: 0.8; }
+.layer-item.dragging .layer-grip { cursor: grabbing; }
+
+/* ── Thumbnail ── */
+.layer-thumb {
+    width: 40px;
+    height: 40px;
+    border-radius: 6px;
+    overflow: hidden;
+    flex-shrink: 0;
+    background: #f1f5f9;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid rgba(0,0,0,0.06);
+}
+.layer-thumb img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    pointer-events: none;
+}
+.layer-thumb-stamp {
+    font-size: 22px;
+    background: #fefce8;
+}
+.layer-thumb-text {
+    font-size: 12px;
+    font-weight: 700;
+    background: #f0fdf4;
+    padding: 2px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    line-height: 1.2;
+}
+.layer-thumb-shape {
+    background: #faf5ff;
+    padding: 4px;
+}
+
+/* ── Label ── */
+.layer-label {
+    flex: 1;
+    font-size: 12px;
+    color: #475569;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    font-weight: 500;
+}
+
+/* ── Delete Button ── */
+.layer-delete-btn {
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: #cbd5e1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    border-radius: 6px;
+    flex-shrink: 0;
+    opacity: 0;
+    transition: all 0.15s;
+}
+.layer-item:hover .layer-delete-btn { opacity: 1; }
+.layer-delete-btn:hover {
+    background: #fee2e2;
+    color: #ef4444;
+}
+
+/* ── Empty State ── */
+.layer-empty {
+    padding: 32px 16px;
+    text-align: center;
+    color: #94a3b8;
+    font-size: 12px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+}
+

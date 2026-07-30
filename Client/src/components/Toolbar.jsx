@@ -508,8 +508,6 @@ function Toolbar({
                    <button className="tool-btn active" onClick={() => setIsCollapsed(false)}><img src="/eraser.png" alt="Eraser" style={{width: "24px", height: "24px"}}/></button>
                 ) : tool === "ai_pen" ? (
                    <button className="tool-btn active" onClick={() => setIsCollapsed(false)}><img src="/magic_pen.png" alt="Magic Pen" style={{width: "28px", height: "28px", transform: "scale(1.2)"}}/></button>
-                ) : tool === "smart_sketch" ? (
-                   <button className="tool-btn active" onClick={() => setIsCollapsed(false)}>🪄</button>
                 ) : tool === "text" ? (
                    <button className="tool-btn active" onClick={() => setIsCollapsed(false)}>🔤</button>
                 ) : tool === "laser" ? (
@@ -772,7 +770,6 @@ function Toolbar({
 
                 <button className={`tool-btn ${tool === "eraser" ? "active" : ""}`} onClick={() => { onToolChange("eraser"); setShowPenPopup(false); }} title="ยางลบ (E)"><img src="/eraser.png" alt="Eraser" style={{width: "24px", height: "24px"}}/></button>
                 <button className={`tool-btn ${tool === "ai_pen" ? "active" : ""}`} onClick={() => { onToolChange("ai_pen"); setShowPenPopup(false); }} title="Magic Pen"><img src="/magic_pen.png" alt="Magic Pen" style={{width: "28px", height: "28px", transform: "scale(1.2)"}}/></button>
-                <button className={`tool-btn ${tool === "smart_sketch" ? "active" : ""}`} onClick={() => { onToolChange("smart_sketch"); setShowPenPopup(false); }} title="Smart Sketch (วาดแล้วแปลงเป็นภาพ)">🪄</button>
                 <button className={`tool-btn ${tool === "text" ? "active" : ""}`} onClick={() => { onToolChange("text"); setShowPenPopup(false); }} title="ข้อความ (T)">🔤</button>
                 {/* Laser Pointer */}
                 <button className={`tool-btn ${tool === "laser" ? "active laser-btn" : ""}`} onClick={() => { onToolChange("laser"); setShowPenPopup(false); }} title="เลเซอร์ชี้">🔴</button>

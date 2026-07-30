@@ -57,6 +57,19 @@ module.exports = (io, socket) => {
     }
   });
 
+  socket.on("reorder-stroke", ({ pageId, strokeId, newIndex }) => {
+    if (!hasPermission(socket.id, "contributor")) return;
+    const page = store.pages.find((p) => p.id === pageId);
+    if (page) {
+      const idx = page.strokes.findIndex((s) => s.id === strokeId);
+      if (idx > -1 && (canSyncHostTools(socket.id) || page.strokes[idx].authorId === socket.id)) {
+        const [stroke] = page.strokes.splice(idx, 1);
+        page.strokes.splice(newIndex, 0, stroke);
+        socket.broadcast.emit("reorder-stroke", { pageId, strokeId, newIndex });
+      }
+    }
+  });
+
   socket.on("redo", ({ pageId, stroke }) => {
     if (!hasPermission(socket.id, "contributor")) return;
     const page = store.pages.find((p) => p.id === pageId);
