@@ -25,6 +25,7 @@ function HeaderBar({
     onPrevPage,
     onNextPage,
     onTogglePages,
+
     onAddPage,
     // Menu actions
     onNewBoard,
@@ -165,6 +166,7 @@ function HeaderBar({
 
                 {/* Divider */}
                 {isHost && <div className="header-divider" />}
+
 
                 {/* Page Navigation */}
                 <div className="header-pages">
@@ -553,3 +555,4 @@ function HeaderBar({
 }
 
 export default HeaderBar;
+

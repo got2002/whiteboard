@@ -175,6 +175,7 @@ function ToolPalette({
     eraserSize = 10, onEraserSizeChange,
     onUndo, onRedo, onClear, onInsertImage, onInsertVideo,
     userRole,
+    showLayerPanel, onToggleLayers,
     hostPenStyle,
 }) {
     const [showPenPopup, setShowPenPopup] = useState(false);
@@ -436,9 +437,6 @@ function ToolPalette({
                         <button className={`tp-btn ${tool === "ai_pen" ? "active" : ""}`} onClick={() => { onToolChange("ai_pen"); setShowPenPopup(false); setShowEraserPopup(false); }} title="AI Pen (แปลงลายเส้นเป็นข้อความ)">
                             <img src="/ai-pen.png" className="tall-tool-img scale-1-2" alt="AI Pen" />
                         </button>
-                        <button className={`tp-btn ${tool === "smart_sketch" ? "active" : ""}`} onClick={() => { onToolChange("smart_sketch"); setShowPenPopup(false); setShowEraserPopup(false); }} title="Smart Sketch (วาดแล้วแปลงเป็นภาพ)">
-                            <span style={{ fontSize: "20px" }}>🪄</span>
-                        </button>
                         <button className={`tp-btn ${tool === "ai_text" ? "active" : ""}`} onClick={() => { onToolChange("ai_text"); setShowPenPopup(false); setShowEraserPopup(false); }} title="Magic Pen">
                             <img src="/magic_pen.png" className="tall-tool-img scale-1-3" alt="Magic Pen" />
                         </button>
@@ -569,6 +567,13 @@ function ToolPalette({
                         <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2" />
                         <line x1="10" y1="11" x2="10" y2="17" />
                         <line x1="14" y1="11" x2="14" y2="17" />
+                    </svg>
+                </button>
+                <button className={`tp-btn ${showLayerPanel ? 'tp-active' : ''}`} onClick={onToggleLayers} title="เลเยอร์ (Layers)">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <polygon points="12 2 2 7 12 12 22 7 12 2" />
+                        <polyline points="2 17 12 22 22 17" />
+                        <polyline points="2 12 12 17 22 12" />
                     </svg>
                 </button>
             </div>

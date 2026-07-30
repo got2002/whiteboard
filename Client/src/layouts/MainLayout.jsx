@@ -55,6 +55,7 @@ import PhysicsLabWidget from "../components/PhysicsLabWidget";
 import StudentLabWidget from "../components/StudentLabWidget";
 import BannerWidget, { FONT_SIZES } from "../components/BannerWidget";
 import AudioWaveform from "../components/AudioWaveform";
+import LayerPanel from "../components/LayerPanel";
 
 // ============================================================
 // MainLayout Component
@@ -83,6 +84,7 @@ export default function MainLayout() {
   const [canvasVideos, setCanvasVideos] = useState([]);
   const [showSketchpad, setShowSketchpad] = useState(false);
   const [showLockScreen, setShowLockScreen] = useState(false);
+  const [showLayerPanel, setShowLayerPanel] = useState(false);
   const [showAiSolution, setShowAiSolution] = useState(false);
   const [aiScreenshotMode, setAiScreenshotMode] = useState(false);
   const [aiScreenshotImage, setAiScreenshotImage] = useState(null);
@@ -679,6 +681,8 @@ export default function MainLayout() {
           userRole={userRole}
           permissionLevel={permissionLevel}
           hostPenStyle={drawingHook.hostPenStyle}
+          showLayerPanel={showLayerPanel}
+          onToggleLayers={() => setShowLayerPanel(!showLayerPanel)}
         />
       )}
 
@@ -702,6 +706,18 @@ export default function MainLayout() {
           activeStamp={drawingHook.activeStamp}
           onStampSelect={drawingHook.handleStampSelect}
           onInsertImage={fileHook.handleInsertImage}
+        />
+      )}
+
+      {/* Layer Panel */}
+      {showLayerPanel && (
+        <LayerPanel
+          strokes={currentPage?.strokes || []}
+          selectedStrokeIds={drawingHook.selectedStrokeIds || []}
+          onSelect={(id) => window.dispatchEvent(new CustomEvent('select-layer-stroke', { detail: { strokeId: id } }))}
+          onReorder={(id, oldIdx, newIdx) => drawingHook.handleReorderStroke(id, currentPage.id, newIdx)}
+          onDelete={(id) => drawingHook.handleDeleteStroke(id, currentPage.id)}
+          onClose={() => setShowLayerPanel(false)}
         />
       )}
 
@@ -1133,3 +1149,5 @@ export default function MainLayout() {
     </div>
   );
 }
+
+

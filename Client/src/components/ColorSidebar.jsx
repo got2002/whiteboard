@@ -209,7 +209,7 @@ function ColorSidebar({
                                                     <button
                                                         key={bg.id}
                                                         className={`cs-bg-btn ${background === bg.id ? "active" : ""}`}
-                                                        onClick={() => { onBackgroundChange(bg.id); setShowBgPopup(false); }}
+                                                        onClick={() => { onBackgroundChange(bg.id); }}
                                                         title={bg.title}
                                                     >
                                                         {bg.label}
@@ -231,7 +231,7 @@ function ColorSidebar({
                                                 key={c}
                                                 className={`cs-bg-btn cs-bgcolor-btn ${background === `color-${c}` ? "active" : ""}`}
                                                 style={{ backgroundColor: c }}
-                                                onClick={() => { onBackgroundChange(`color-${c}`); setShowBgPopup(false); }}
+                                                onClick={() => { onBackgroundChange(`color-${c}`); }}
                                                 title={`พื้นสี ${c}`}
                                             />
                                         ))}

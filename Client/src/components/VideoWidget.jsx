@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { SERVER_URL } from "../core/socket";
 
-export default function VideoWidget({ video: incomingVideo, onUpdate, onDelete, onCaptureFrame, tool, zoom = 1, panOffset = { x: 0, y: 0 }, userRole }) {
+export default function VideoWidget({ video: incomingVideo, onUpdate, onDelete, onCaptureFrame, tool, zoom = 1, panOffset = { x: 0, y: 0 }, userRole, layerIndex = 0 }) {
   const canEdit = userRole !== "viewer";
   const [localState, setLocalState] = useState(null);
   const video = localState || incomingVideo;
@@ -201,7 +201,7 @@ export default function VideoWidget({ video: incomingVideo, onUpdate, onDelete, 
 
   return (
     <div ref={containerRef}
-      style={{ position: "absolute", left: sx, top: sy, width: sw, height: sh, zIndex: 0, pointerEvents: "auto" }}
+      style={{ position: "absolute", left: sx, top: sy, width: sw, height: sh, zIndex: layerIndex + 1, pointerEvents: "auto" }}
       onMouseEnter={onEnter} onMouseLeave={onLeave}
       onPointerDown={(e) => { 
         if (tool === "select" || tool === "lasso") {
