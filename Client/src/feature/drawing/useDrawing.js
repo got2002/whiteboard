@@ -2,6 +2,7 @@
 // ============================================================
 // useDrawing.js — Hook ระบบวาดรูป + Undo/Redo + Tool sync
 // ============================================================
+import { useI18n } from "../../i18n/i18n";
 import { useState, useEffect, useCallback, useRef } from "react";
 import { socket } from "../../core/socket";
 import { drawingService } from "./drawingService";
@@ -12,6 +13,7 @@ const RANDOM_COLORS = [
 ];
 
 export function useDrawing({ pages, setPages, userRole, canUseFullTools, isActive }) {
+  const { t } = useI18n();
   // 🎨 Tool State 🎨
   const [tool, setTool] = useState("pen");
   const [color, setColor] = useState("#000000");
@@ -172,9 +174,9 @@ export function useDrawing({ pages, setPages, userRole, canUseFullTools, isActiv
   }, []);
 
   const handleTextRequest = useCallback((x, y, pageId) => {
-    const text = prompt("ข้อความ:");
+    const text = prompt(t("deepCleanup.aiPromptText"));
     if (!text) return;
-    const fontSize = parseInt(prompt("ขนาดตัวอักษร (px):", "20")) || 20;
+    const fontSize = parseInt(prompt(t("deepCleanup.aiPromptSize"), "20")) || 20;
     const stroke = {
       id: `text-${Date.now()}`,
       type: "text",

@@ -40,6 +40,10 @@ function createWindow() {
     mainWindow.loadURL('http://localhost:3000'); 
   }, 1500);
 
+  mainWindow.webContents.on('console-message', (event, level, message, line, sourceId) => {
+    console.log(`[Renderer] ${message} (${sourceId}:${line})`);
+  });
+
   mainWindow.on('closed', () => {
     mainWindow = null;
   });

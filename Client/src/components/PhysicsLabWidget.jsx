@@ -5,6 +5,7 @@
 // Professional UI/UX with real-time Canvas 2D physics
 // ============================================================
 
+import { useI18n } from "../i18n/i18n";
 import { useState, useRef, useEffect, useCallback } from "react";
 import { useDraggable } from "../hooks/useDraggable";
 
@@ -446,7 +447,7 @@ function renderSpring(ctx, w, h, sim, params) {
   ctx.lineTo(anchorX + 60, anchorY + restLen);
   ctx.stroke(); ctx.setLineDash([]);
   ctx.fillStyle = "rgba(59,130,246,0.3)"; ctx.font = "8px 'Inter',sans-serif";
-  ctx.fillText("สมดุล (x=0)", anchorX + 64, anchorY + restLen + 3);
+  ctx.fillText(t("deepCleanup.physEquilibrium") + " (x=0)", anchorX + 64, anchorY + restLen + 3);
 
   // Spring coils (zig-zag)
   const springTop = anchorY + 8;
@@ -777,7 +778,7 @@ function renderLens(ctx, w, h, sim, params) {
     ctx.beginPath(); ctx.moveTo(objX, axisY); ctx.lineTo(objX, axisY - objH); ctx.stroke();
     drawArrow(ctx, objX, axisY - 5, objX, axisY - objH, "#22c55e", 3);
     ctx.fillStyle = "#22c55e"; ctx.font = "bold 10px 'Inter',sans-serif";
-    ctx.fillText("วัตถุ", objX - 12, axisY + 18);
+    ctx.fillText(t("deepCleanup.physObject"), objX - 12, axisY + 18);
   }
 
   // Image calculation: 1/v = 1/f - 1/u → v = uf/(u-f)
@@ -838,16 +839,16 @@ function renderLens(ctx, w, h, sim, params) {
         v > 0 ? "rgba(168,85,247,0.8)" : "rgba(168,85,247,0.4)", 3);
       ctx.setLineDash([]);
       ctx.fillStyle = "#a78bfa"; ctx.font = "bold 10px 'Inter',sans-serif";
-      ctx.fillText(v > 0 ? "ภาพจริง" : "ภาพเสมือน", imgX - 16, axisY + imgDir * imgH + imgDir * 16);
+      ctx.fillText(v > 0 ? t("deepCleanup.physRealImage") : t("deepCleanup.physVirtualImage"), imgX - 16, axisY + imgDir * imgH + imgDir * 16);
     }
   }
 
   // Lens label
   ctx.fillStyle = "#93c5fd"; ctx.font = "9px 'Inter',sans-serif"; ctx.textAlign = "center";
-  ctx.fillText(type === 1 ? "เลนส์นูน (Convex)" : "เลนส์เว้า (Concave)", lensX, 20);
+  ctx.fillText(type === 1 ? "{t('physicsLab.param_lensType_convex')} (Convex)" : "{t('physicsLab.param_lensType_concave')} (Concave)", lensX, 20);
   ctx.textAlign = "start";
 
-  return { v: v.toFixed(1), m: m.toFixed(2), imgType: v > 0 ? "จริง" : "เสมือน", f: fEff };
+  return { v: v.toFixed(1), m: m.toFixed(2), imgType: v > 0 ? t("deepCleanup.physRealImage") : t("deepCleanup.physVirtualImage"), f: fEff };
 }
 
 function renderPrism(ctx, w, h, sim, params) {
@@ -889,7 +890,7 @@ function renderPrism(ctx, w, h, sim, params) {
   ctx.strokeStyle = "rgba(255,255,255,0.8)"; ctx.lineWidth = 3;
   ctx.beginPath(); ctx.moveTo(inStartX, inStartY); ctx.lineTo(entryX, entryY); ctx.stroke();
   ctx.fillStyle = "rgba(255,255,255,0.6)"; ctx.font = "9px 'Inter',sans-serif";
-  ctx.fillText("แสงขาว", inStartX, inStartY - 8);
+  ctx.fillText(t("deepCleanup.physWhiteLight"), inStartX, inStartY - 8);
 
   // Dispersion — exit rays in rainbow colors
   const colors = [
@@ -966,7 +967,7 @@ function renderSnellLaw(ctx, w, h, sim, params) {
   ctx.beginPath(); ctx.moveTo(cx, cy - 130); ctx.lineTo(cx, cy + 130); ctx.stroke();
   ctx.setLineDash([]);
   ctx.fillStyle = "rgba(148,163,184,0.4)"; ctx.font = "9px 'Inter',sans-serif";
-  ctx.fillText("เส้นปกติ (Normal)", cx + 6, cy - 120);
+  ctx.fillText(t("deepCleanup.physNormalLine"), cx + 6, cy - 120);
 
   // Incident ray
   const rayLen = 120;
@@ -990,7 +991,7 @@ function renderSnellLaw(ctx, w, h, sim, params) {
     drawArrow(ctx, cx, cy, refX, refY, "#ef4444", 2.5);
 
     ctx.fillStyle = "#ef4444"; ctx.font = "bold 11px 'Inter',sans-serif"; ctx.textAlign = "center";
-    ctx.fillText("⚠ สะท้อนกลับหมด (Total Internal Reflection)", cx, cy + 130);
+    ctx.fillText(t("deepCleanup.physTotalReflection"), cx, cy + 130);
     ctx.textAlign = "start";
   } else {
     // Refracted ray
@@ -1650,7 +1651,7 @@ function renderVernier(ctx, w, h, sim, params) {
   
   ctx.fillStyle = "#f8fafc"; ctx.font = "bold 13px 'Inter',sans-serif";
   ctx.shadowColor = "rgba(0,0,0,0.8)"; ctx.shadowBlur = 4;
-  ctx.fillText("🔍 แว่นขยาย (Zoom)", zoomX, zoomY + zR + 25);
+  ctx.fillText(t("deepCleanup.physZoom"), zoomX, zoomY + zR + 25);
   ctx.shadowColor = "transparent";
 
   const mainReading = Math.floor(length);
@@ -1854,7 +1855,7 @@ function renderMicrometer(ctx, w, h, sim, params) {
   
   ctx.fillStyle = "#f8fafc"; ctx.font = "bold 13px 'Inter',sans-serif";
   ctx.shadowColor = "rgba(0,0,0,0.8)"; ctx.shadowBlur = 4;
-  ctx.fillText("🔍 แว่นขยาย (Zoom)", zoomX, zoomY + zR + 25);
+  ctx.fillText(t("deepCleanup.physZoom"), zoomX, zoomY + zR + 25);
   ctx.shadowColor = "transparent";
 
   const mainReading = Math.floor(length * 2) / 2;
@@ -1866,6 +1867,7 @@ function renderMicrometer(ctx, w, h, sim, params) {
 // Main Component
 // ============================================================
 export default function PhysicsLabWidget({ canEdit = true, config = {}, onSyncConfig, onClose }) {
+  const { t } = useI18n();
   const [category, setCategory] = useState(config?.category || "motion");
   const [experiment, setExperiment] = useState(config?.experiment || "freefall");
   const [params, setParams] = useState(config?.params || { ...DEFAULT_PARAMS.freefall });
@@ -2199,7 +2201,7 @@ export default function PhysicsLabWidget({ canEdit = true, config = {}, onSyncCo
       case "lens": return [
         { label: "ระยะภาพ (v)", val: `${info.v || 0} px`, color: "#a78bfa" },
         { label: "กำลังขยาย (m)", val: `${info.m || 0}`, color: "#60a5fa" },
-        { label: "ชนิดภาพ", val: info.imgType || "-", color: info.imgType === "จริง" ? "#34d399" : "#fbbf24" },
+        { label: "ชนิดภาพ", val: info.imgType || "-", color: info.imgType === t("deepCleanup.physRealImage") ? "#34d399" : "#fbbf24" },
         { label: "ความยาวโฟกัส (f)", val: `${info.f || 0} px`, color: "#f87171" },
       ];
       case "prism": return [
@@ -2212,7 +2214,7 @@ export default function PhysicsLabWidget({ canEdit = true, config = {}, onSyncCo
         { label: "มุมหักเห (θ₂)", val: info.theta2 !== "TIR" ? `${Number(info.theta2 || 0).toFixed(0)}°` : "TIR", color: info.tir ? "#ef4444" : "#a78bfa" },
         { label: "sin(θ₁)", val: `${Number(info.sinTheta1 || 0).toFixed(2)}`, color: "#fbbf24" },
         { label: "sin(θ₂)", val: `${Number(info.sinTheta2 || 0).toFixed(2)}`, color: "#60a5fa" },
-        { label: "สถานะ", val: info.tir ? "สะท้อนกลับหมด" : "หักเหปกติ", color: info.tir ? "#ef4444" : "#34d399" },
+        { label: "สถานะ", val: info.tir ? t("deepCleanup.physTotalReflection") : (language === "th" ? "หักเหปกติ" : "Refraction"), color: info.tir ? "#ef4444" : "#34d399" },
       ];
       case "transverse": return [
         { label: "ความเร็ว (v)", val: `${Number(info.v || 0).toFixed(0)} px/s`, color: "#34d399" },
@@ -2247,7 +2249,7 @@ export default function PhysicsLabWidget({ canEdit = true, config = {}, onSyncCo
         { label: "โมเมนต์ทวน (τ₁)", val: `${info.t1 !== undefined ? Number(info.t1).toFixed(1) : 0} N·m`, color: "#60a5fa" },
         { label: "โมเมนต์ตาม (τ₂)", val: `${info.t2 !== undefined ? Number(info.t2).toFixed(1) : 0} N·m`, color: "#f87171" },
         { label: "โมเมนต์ลัพธ์ (Στ)", val: `${info.netTorque !== undefined ? Number(info.netTorque).toFixed(1) : 0} N·m`, color: "#a78bfa" },
-        { label: "สถานะ", val: info.netTorque === 0 ? "สมดุล" : "ไม่สมดุล", color: info.netTorque === 0 ? "#34d399" : "#ef4444" },
+        { label: "สถานะ", val: info.info.netTorque === 0 ? t("deepCleanup.physEquilibrium") : (language === "th" ? "ไม่สมดุล" : "Not Equilibrium"), color: info.netTorque === 0 ? "#34d399" : "#ef4444" },
       ];
       case "vernier": return [
         { label: "สเกลหลัก (Main)", val: `${Number(info.main || 0).toFixed(0)} mm`, color: "#60a5fa" },
@@ -2316,7 +2318,7 @@ export default function PhysicsLabWidget({ canEdit = true, config = {}, onSyncCo
           {CATEGORIES.map(cat => {
             const active = category === cat.id;
             return (
-              <button key={cat.id} onClick={() => selectCategory(cat.id)} title={cat.label} style={{
+              <button key={cat.id} onClick={() => selectCategory(cat.id)} title={t(`physicsLab.cat_${cat.id}`)} style={{
                 display: "flex", flexDirection: "column", alignItems: "center", gap: 3,
                 padding: "10px 4px", border: "none", cursor: "pointer", borderRadius: 8,
                 margin: "0 6px", fontSize: 20, lineHeight: 1, position: "relative",
@@ -2326,7 +2328,7 @@ export default function PhysicsLabWidget({ canEdit = true, config = {}, onSyncCo
                 borderLeft: active ? "3px solid #3b82f6" : "3px solid transparent",
               }}>
                 <span>{cat.icon}</span>
-                <span style={{ fontSize: 7.5, fontWeight: 600, letterSpacing: -0.3, color: active ? "#93c5fd" : "#64748b" }}>{cat.label}</span>
+                <span style={{ fontSize: 7.5, fontWeight: 600, letterSpacing: -0.3, color: active ? "#93c5fd" : "#64748b" }}>{t(`physicsLab.cat_${cat.id}`)}</span>
               </button>
             );
           })}
@@ -2355,7 +2357,7 @@ export default function PhysicsLabWidget({ canEdit = true, config = {}, onSyncCo
                   transition: "all 0.2s",
                   opacity: disabled ? 0.5 : 1,
                 }}>
-                  {exp.icon} {exp.label}
+                  {exp.icon} {t(`physicsLab.exp_${exp.id}`)}
                 </button>
               );
             })}
@@ -2364,7 +2366,7 @@ export default function PhysicsLabWidget({ canEdit = true, config = {}, onSyncCo
           {experiment === "coming_soon" ? (
             <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", color: "#475569", fontSize: 14, gap: 8, flexDirection: "column" }}>
               <span style={{ fontSize: 40 }}>🔜</span>
-              <span>อยู่ระหว่างพัฒนา — เร็วๆ นี้</span>
+              <span>{t("phys.comingSoon") || "อยู่ระหว่างพัฒนา — เร็วๆ นี้"}</span>
             </div>
           ) : (
             <>
@@ -2399,7 +2401,7 @@ export default function PhysicsLabWidget({ canEdit = true, config = {}, onSyncCo
                         background: "linear-gradient(135deg, rgba(239,68,68,0.25), rgba(239,68,68,0.15))",
                         color: "#f87171", border: "1px solid rgba(239,68,68,0.3)",
                       }}>
-                        ⏸ หยุด
+                        ⏸ {t("phys.pause") || "หยุด"}
                       </button>
                     ) : (
                       <button className="phy-btn phy-btn-play" onClick={() => {
@@ -2412,7 +2414,7 @@ export default function PhysicsLabWidget({ canEdit = true, config = {}, onSyncCo
                         background: "linear-gradient(135deg, rgba(34,197,94,0.25), rgba(34,197,94,0.15))",
                         color: "#4ade80", border: "1px solid rgba(34,197,94,0.3)",
                       }}>
-                        ▶ เริ่มจำลอง
+                        ▶ {t("phys.startSim") || "เริ่มจำลอง"}
                       </button>
                     )
                   )}
@@ -2429,7 +2431,7 @@ export default function PhysicsLabWidget({ canEdit = true, config = {}, onSyncCo
                       color: "#fbbf24", transition: "all 0.2s",
                     }}
                   >
-                    🔄 รีเซ็ต
+                    🔄 {t("phys.reset") || "รีเซ็ต"}
                   </button>
                 </div>
 

@@ -7,6 +7,7 @@
 
 import { useRef, useState, useCallback, useEffect } from "react";
 import { socket } from "../core/socket";
+import { useI18n } from "../i18n/i18n";
 
 // ── Feature Hooks (ตาม feature/ ของพี่ตุล) ──
 import { useUser } from "../feature/users/useUser";
@@ -61,6 +62,7 @@ import LayerPanel from "../components/LayerPanel";
 // MainLayout Component
 // ============================================================
 export default function MainLayout() {
+  const { t } = useI18n();
   // ── Refs ──
   const canvasRef = useRef(null);
 
@@ -761,12 +763,12 @@ export default function MainLayout() {
       {/* Follow Indicator */}
       {collabHook.followUserId && collabHook.remoteUsers[collabHook.followUserId] && (
         <div className="follow-indicator">
-          <span>👁️ กำลังตามดู: {collabHook.remoteUsers[collabHook.followUserId].name}</span>
+          <span>👁️ {t("panel.followingUser")}: {collabHook.remoteUsers[collabHook.followUserId].name}</span>
           <button
             className="follow-stop-btn"
             onClick={() => { collabHook.setFollowUserId(null); collabHook.followUserIdRef.current = null; }}
           >
-            ✕ หยุด
+            ✕ {t("panel.stop")}
           </button>
         </div>
       )}
@@ -785,9 +787,9 @@ export default function MainLayout() {
               }
             }
           }}
-          title="ไปที่จุดที่มีคนกำลังเขียน"
+          title={t("panel.goToWritingPoint")}
         >
-          🎯 โฟกัส
+          🎯 {t("panel.focus")}
         </button>
       )}
 
@@ -795,7 +797,7 @@ export default function MainLayout() {
       {userRole === "viewer" && (
         <>
           <div className="viewer-mode-indicator">
-            <span>👁️ โหมดดูอย่างเดียว (View Only)</span>
+            <span>👁️ {t("panel.viewOnlyMode")}</span>
           </div>
           <PermissionButton
             requestStatus={permHook.requestStatus}
@@ -959,7 +961,7 @@ export default function MainLayout() {
         <button
           className="toggle-toolbars-btn"
           onClick={() => setShowToolbars(v => !v)}
-          title={showToolbars ? "ซ่อนเครื่องมือ" : "แสดงเครื่องมือ"}
+          title={showToolbars ? t("panel.hideToolbar") : t("panel.showToolbar")}
           style={{
             position: "fixed", bottom: "16px", right: "16px", zIndex: 1000,
             display: "flex", alignItems: "center", gap: "6px",
@@ -974,14 +976,14 @@ export default function MainLayout() {
               <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                 <path d="M18 15l-6-6-6 6M18 9l-6-6-6 6" />
               </svg>
-              ซ่อนเครื่องมือ
+              {t("panel.hideToolbar")}
             </>
           ) : (
             <>
               <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                 <path d="M6 9l6 6 6-6M6 15l6-6 6 6" />
               </svg>
-              แสดงเครื่องมือ
+              {t("panel.showToolbar")}
             </>
           )}
         </button>
@@ -990,8 +992,8 @@ export default function MainLayout() {
       {/* Custom Confirm Dialog */}
       <ConfirmDialog
         open={fileHook.showNewBoardConfirm}
-        title="สร้างกระดานใหม่"
-        message="กระดานปัจจุบันจะถูกลบทั้งหมด คุณต้องการดำเนินการต่อหรือไม่?"
+        title={t("dialog.newBoardTitle")}
+        message={t("dialog.newBoardMsg")}
         onConfirm={fileHook.confirmNewBoard}
         onCancel={fileHook.cancelNewBoard}
       />
@@ -1071,7 +1073,7 @@ export default function MainLayout() {
             setAiScreenshotMode(false);
             setShowAiSolution(true); // Restore widget with image
           }}
-          confirmText="ส่งให้ AI วิเคราะห์"
+          confirmText={t("panel.sendToAI")}
         />
       )}
 

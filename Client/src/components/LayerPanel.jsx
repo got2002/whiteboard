@@ -1,9 +1,12 @@
 import React, { useState, useRef, useCallback } from 'react';
+import { useI18n } from "../i18n/i18n";
 
 const LAYER_TYPES = ["text", "image", "shape", "stamp"];
 
 // ── Shape mini-previews ──
 function ShapePreview({ shapeType, color }) {
+    const { t } = useI18n();
+
     const c = color || "#3b82f6";
     const svgProps = { width: "100%", height: "100%", viewBox: "0 0 40 40" };
     switch (shapeType) {
@@ -18,6 +21,8 @@ function ShapePreview({ shapeType, color }) {
 
 // ── Thumbnail for each layer type ──
 function LayerThumbnail({ stroke }) {
+    const { t } = useI18n();
+
     if (stroke.type === "image" && stroke.dataURL) {
         return (
             <div className="layer-thumb">
@@ -50,11 +55,11 @@ function LayerThumbnail({ stroke }) {
 }
 
 // ── Label for each layer type ──
-function getLabel(stroke) {
-    if (stroke.type === 'text') return stroke.text ? stroke.text.substring(0, 20) : 'ข้อความ';
-    if (stroke.type === 'shape') return `${stroke.shapeType || 'รูปทรง'}`;
-    if (stroke.type === 'image') return 'รูปภาพ';
-    if (stroke.type === 'stamp') return stroke.stamp || 'สติกเกอร์';
+function getLabel(stroke, t) {
+    if (stroke.type === 'text') return stroke.text ? stroke.text.substring(0, 20) : t('panel.text');
+    if (stroke.type === 'shape') return `${stroke.shapeType || t('panel.shape')}`;
+    if (stroke.type === 'image') return t('panel.image');
+    if (stroke.type === 'stamp') return stroke.stamp || t('panel.sticker');
     return 'Object';
 }
 
@@ -121,7 +126,7 @@ export default function LayerPanel({
     return (
         <div className="layer-panel" onPointerUp={handlePointerUp} onPointerLeave={handlePointerCancel}>
             <div className="layer-panel-header">
-                <span className="layer-panel-title">เลเยอร์</span>
+                <span className="layer-panel-title">{t("panel.layers")}</span>
                 <button className="layer-close-btn" onClick={onClose}>
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg>
                 </button>
@@ -134,7 +139,7 @@ export default function LayerPanel({
                             <polyline points="2 17 12 22 22 17" />
                             <polyline points="2 12 12 17 22 12" />
                         </svg>
-                        <span>ยังไม่มีวัตถุในหน้านี้</span>
+                        <span>{t("panel.noObjects")}</span>
                     </div>
                 ) : (
                     layers.map((layer, idx) => {
@@ -159,10 +164,10 @@ export default function LayerPanel({
                                     </svg>
                                 </div>
                                 <LayerThumbnail stroke={layer} />
-                                <div className="layer-label">{getLabel(layer)}</div>
+                                <div className="layer-label">{getLabel(layer, t)}</div>
                                 <button 
                                     className="layer-delete-btn" 
-                                    title="ลบ"
+                                    title={t("panel.delete")}
                                     onClick={(e) => { e.stopPropagation(); onDelete(layer.id); }}
                                 >
                                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">

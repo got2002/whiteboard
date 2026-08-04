@@ -1,3 +1,4 @@
+import { useI18n } from "../i18n/i18n";
 // ============================================================
 // SpotlightOverlay.jsx — Spotlight (ไฟฉายส่องจุด)
 // ============================================================
@@ -18,6 +19,7 @@ export default function SpotlightOverlay({
   socket,
   isHost,
 }) {
+    const { t } = useI18n();
   const [mousePos, setMousePos] = useState({ x: window.innerWidth / 2, y: window.innerHeight / 2 });
   const [radius, setRadius] = useState(DEFAULT_RADIUS);
   const [opacity, setOpacity] = useState(DEFAULT_OPACITY);
@@ -301,7 +303,7 @@ export default function SpotlightOverlay({
           <button
             className={`spotlight-ctrl-btn ${sh === "circle" ? "active" : ""}`}
             onClick={(e) => { e.stopPropagation(); setShape("circle"); }}
-            title="วงกลม"
+            title={t("overlay.circle")}
           >
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
               <circle cx="12" cy="12" r="9" />
@@ -310,7 +312,7 @@ export default function SpotlightOverlay({
           <button
             className={`spotlight-ctrl-btn ${sh === "rect" ? "active" : ""}`}
             onClick={(e) => { e.stopPropagation(); setShape("rect"); }}
-            title="สี่เหลี่ยม"
+            title={t("overlay.square")}
           >
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
               <rect x="3" y="5" width="18" height="14" rx="2" />
@@ -334,7 +336,7 @@ export default function SpotlightOverlay({
             value={r}
             onChange={(e) => { e.stopPropagation(); setRadius(Number(e.target.value)); }}
             onPointerDown={(e) => e.stopPropagation()}
-            title={`ขนาด: ${r}px`}
+            title={`${t("overlay.sizePrefix")} ${r}px`}
           />
 
           <div className="spotlight-ctrl-divider" />
@@ -353,7 +355,7 @@ export default function SpotlightOverlay({
             value={Math.round(op * 100)}
             onChange={(e) => { e.stopPropagation(); setOpacity(Number(e.target.value) / 100); }}
             onPointerDown={(e) => e.stopPropagation()}
-            title={`ความมืด: ${Math.round(op * 100)}%`}
+            title={`${t("overlay.darknessPrefix")} ${Math.round(op * 100)}%`}
           />
 
           <div className="spotlight-ctrl-divider" />
@@ -366,7 +368,7 @@ export default function SpotlightOverlay({
               emitSpotlight({ active: false });
               onClose?.();
             }}
-            title="ปิด Spotlight (ESC)"
+            title={t("overlay.closeSpotlight")}
           >
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
               <path d="M18 6L6 18M6 6l12 12" />

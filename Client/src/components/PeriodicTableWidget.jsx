@@ -1,10 +1,12 @@
 // ============================================================
 // PeriodicTableWidget.jsx — ตารางธาตุแบบครบ 118 ธาตุ
 // ============================================================
+import { useI18n } from "../i18n/i18n";
 import { useState, useRef, useEffect, useCallback } from "react";
 import { ELEMENTS, CATEGORIES } from "./periodicData";
 
 export default function PeriodicTableWidget({ canEdit = true, config = {}, onSyncConfig, onClose }) {
+  const { t } = useI18n();
   const [selected, setSelected] = useState(null);
   const [showLegend, setShowLegend] = useState(true);
   const [dragOffset, setDragOffset] = useState(null);
@@ -92,10 +94,10 @@ export default function PeriodicTableWidget({ canEdit = true, config = {}, onSyn
     >
       {/* Titlebar */}
       <div className="periodic-titlebar">
-        <span className="periodic-title">⚛ Periodic Table of Elements</span>
+        <span className="periodic-title">{t('periodicTable.title')}</span>
         <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
           <button className="periodic-legend-btn" onClick={() => setShowLegend(v => !v)}>
-            {showLegend ? "Hide" : "Show"} Legend
+            {showLegend ? t("periodicTable.hideLegend") : t("periodicTable.showLegend")}
           </button>
           {canEdit && <button className="periodic-close" onClick={onClose}>✕</button>}
         </div>
@@ -127,7 +129,7 @@ export default function PeriodicTableWidget({ canEdit = true, config = {}, onSyn
 
       {/* Lanthanide/Actinide rows */}
       <div className="periodic-extra">
-        <div className="periodic-extra-label" style={{ color: CATEGORIES.LN.color }}>Lanthanides</div>
+        <div className="periodic-extra-label" style={{ color: CATEGORIES.LN.color }}>{t('periodicTable.lanthanides')}</div>
         <div className="periodic-extra-grid">
           {lanthanides.map(el => (
             <button
@@ -144,7 +146,7 @@ export default function PeriodicTableWidget({ canEdit = true, config = {}, onSyn
             </button>
           ))}
         </div>
-        <div className="periodic-extra-label" style={{ color: CATEGORIES.AC.color, marginTop: 4 }}>Actinides</div>
+        <div className="periodic-extra-label" style={{ color: CATEGORIES.AC.color, marginTop: 4 }}>{t('periodicTable.actinides')}</div>
         <div className="periodic-extra-grid">
           {actinides.map(el => (
             <button
@@ -174,13 +176,13 @@ export default function PeriodicTableWidget({ canEdit = true, config = {}, onSyn
               <span className="periodic-detail-mass">{selected.mass}</span>
             </div>
             <div className="periodic-detail-body">
-              <div className="periodic-detail-row"><span>Category</span><span style={{ color: CATEGORIES[selected.category]?.color }}>{CATEGORIES[selected.category]?.label}</span></div>
-              <div className="periodic-detail-row"><span>Electron Config</span><span>{selected.electronConfig}</span></div>
-              <div className="periodic-detail-row"><span>State (RT)</span><span>{selected.state}</span></div>
-              <div className="periodic-detail-row"><span>Melting Point</span><span>{selected.melt !== null ? `${selected.melt} °C` : "N/A"}</span></div>
-              <div className="periodic-detail-row"><span>Boiling Point</span><span>{selected.boil !== null ? `${selected.boil} °C` : "N/A"}</span></div>
+              <div className="periodic-detail-row"><span>{t("periodicTable.category")}</span><span style={{ color: CATEGORIES[selected.category]?.color }}>{CATEGORIES[selected.category]?.label}</span></div>
+              <div className="periodic-detail-row"><span>{t("periodicTable.electronConfig")}</span><span>{selected.electronConfig}</span></div>
+              <div className="periodic-detail-row"><span>{t("periodicTable.stateRT")}</span><span>{selected.state}</span></div>
+              <div className="periodic-detail-row"><span>{t("periodicTable.meltingPoint")}</span><span>{selected.melt !== null ? `${selected.melt} °C` : "N/A"}</span></div>
+              <div className="periodic-detail-row"><span>{t("periodicTable.boilingPoint")}</span><span>{selected.boil !== null ? `${selected.boil} °C` : "N/A"}</span></div>
             </div>
-            <button className="periodic-detail-close" onClick={() => handleElementClick(selected)}>Close</button>
+            <button className="periodic-detail-close" onClick={() => handleElementClick(selected)}>{t("periodicTable.close")}</button>
           </div>
         </div>
       )}

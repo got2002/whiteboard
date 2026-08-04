@@ -1,4 +1,5 @@
 import React, { useState, useCallback, useEffect, useMemo, useRef } from 'react';
+import { useI18n } from "../i18n/i18n";
 import {
   ReactFlow,
   MiniMap,

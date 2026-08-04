@@ -10,9 +10,11 @@
 //
 // ============================================================
 
+import { useI18n } from "../i18n/i18n";
 import { useState } from "react";
 
 function SideToolbar({ onScreenshot }) {
+  const { t } = useI18n();
     const [showInfo, setShowInfo] = useState(false);
 
     return (
@@ -21,7 +23,7 @@ function SideToolbar({ onScreenshot }) {
             <button
                 className="side-btn"
                 onClick={() => setShowInfo((v) => !v)}
-                title="ช่วยเหลือ"
+                title={t("deepCleanup.tooltipHelp")}
             >
                 ℹ️
             </button>
@@ -30,7 +32,7 @@ function SideToolbar({ onScreenshot }) {
             <button
                 className="side-btn"
                 onClick={onScreenshot}
-                title="บันทึกหน้าจอ"
+                title={t("deepCleanup.tooltipRecordStart")}
             >
                 📷
             </button>
@@ -39,23 +41,23 @@ function SideToolbar({ onScreenshot }) {
             {showInfo && (
                 <div className="side-info-popup">
                     <div className="side-info-header">
-                        <span>📌 คีย์ลัด</span>
+                        <span>📌 {t("deepCleanup.shortcuts") || "คีย์ลัด"}</span>
                         <button onClick={() => setShowInfo(false)}>✕</button>
                     </div>
                     <ul className="side-info-list">
-                        <li><kbd>B</kbd> ปากกา</li>
-                        <li><kbd>H</kbd> ปากกาเน้น</li>
-                        <li><kbd>E</kbd> ยางลบ</li>
-                        <li><kbd>T</kbd> ข้อความ</li>
-                        <li><kbd>V</kbd> เลือก/ย้าย</li>
-                        <li><kbd>L</kbd> เส้นตรง</li>
-                        <li><kbd>R</kbd> สี่เหลี่ยม</li>
-                        <li><kbd>C</kbd> วงกลม</li>
-                        <li><kbd>P</kbd> เลเซอร์</li>
-                        <li><kbd>Ctrl+Z</kbd> เลิกทำ</li>
-                        <li><kbd>Ctrl+Y</kbd> ทำซ้ำ</li>
-                        <li><kbd>Ctrl+S</kbd> บันทึก</li>
-                        <li><kbd>Ctrl+O</kbd> เปิดไฟล์</li>
+                        <li><kbd>B</kbd> {t("deepCleanup.tooltipPen")}</li>
+                        <li><kbd>H</kbd> {t("deepCleanup.tooltipHighlighter")}</li>
+                        <li><kbd>E</kbd> {t("deepCleanup.tooltipEraser")}</li>
+                        <li><kbd>T</kbd> {t("deepCleanup.tooltipText")}</li>
+                        <li><kbd>V</kbd> {t("deepCleanup.tooltipSelect")}</li>
+                        <li><kbd>L</kbd> {t("deepCleanup.tooltipLine")}</li>
+                        <li><kbd>R</kbd> {t("deepCleanup.tooltipRect")}</li>
+                        <li><kbd>C</kbd> {t("deepCleanup.tooltipCircle")}</li>
+                        <li><kbd>P</kbd> {t("deepCleanup.tooltipLaser")}</li>
+                        <li><kbd>Ctrl+Z</kbd> {t("deepCleanup.tooltipUndo")}</li>
+                        <li><kbd>Ctrl+Y</kbd> {t("deepCleanup.tooltipRedo")}</li>
+                        <li><kbd>Ctrl+S</kbd> {t("deepCleanup.tooltipSave")}</li>
+                        <li><kbd>Ctrl+O</kbd> {t("deepCleanup.tooltipOpen")}</li>
                     </ul>
                 </div>
             )}

@@ -1,78 +1,10 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { useI18n } from "../i18n/i18n";
 
 // ==========================================
 // Constants & Labels
 // ==========================================
-const LABELS = {
-  TH: {
-    title: 'ห้องทดลองคานและสมดุล',
-    mode_free: '🎮 โหมดอิสระ',
-    mode_challenge: '🎯 โหมดท้าทาย',
-    supports: 'เสาค้ำยัน',
-    showSupports: 'แสดงเสาค้ำ',
-    hideSupports: 'ดึงเสาค้ำออก',
-    forces: 'แรงจากวัตถุ',
-    showForces: 'แสดงลูกศรแรง',
-    hideForces: 'ซ่อนลูกศรแรง',
-    mass: 'น้ำหนัก (มวล)',
-    showMass: 'แสดงน้ำหนัก',
-    hideMass: 'ซ่อนน้ำหนัก',
-    reset: '🔄 รีเซ็ตคาน',
-    close: 'ปิด',
-    toolbox: 'กล่องเครื่องมือ',
-    weights: 'ตุ้มน้ำหนักมาตรฐาน',
-    mystery: 'วัตถุปริศนา',
-    level: 'ระดับ',
-    check: '✅ ตรวจคำตอบ',
-    nextLevel: 'ด่านต่อไป ➡️',
-    congrats: 'ยอดเยี่ยม! สมดุลแล้ว 🎉',
-    wrong: 'ยังไม่สมดุล! ลองปรับน้ำหนักหรือระยะดูนะ 😅',
-    instruction: 'ลากวัตถุจากกล่องด้านซ้ายไปวางบนคานงัดเพื่อทำให้คานสมดุล!',
-    showCalc: 'แสดงการคำนวณ',
-    hideCalc: 'ซ่อนการคำนวณ',
-    calcTitle: '🧮 การคำนวณโมเมนต์',
-    leftSide: 'ฝั่งซ้าย (ทวนเข็ม)',
-    rightSide: 'ฝั่งขวา (ตามเข็ม)',
-    formula: 'โมเมนต์ = มวล × ระยะทาง',
-    balanced_msg: 'สมดุล',
-    tiltLeft: 'เอียงซ้าย',
-    tiltRight: 'เอียงขวา',
-  },
-  EN: {
-    title: 'Levers & Balance Lab',
-    mode_free: '🎮 Free Mode',
-    mode_challenge: '🎯 Challenge Mode',
-    supports: 'Supports',
-    showSupports: 'Show Supports',
-    hideSupports: 'Remove Supports',
-    forces: 'Forces',
-    showForces: 'Show Forces',
-    hideForces: 'Hide Forces',
-    mass: 'Mass Labels',
-    showMass: 'Show Mass',
-    hideMass: 'Hide Mass',
-    reset: '🔄 Reset Beam',
-    close: 'Close',
-    toolbox: 'Toolbox',
-    weights: 'Standard Weights',
-    mystery: 'Mystery Objects',
-    level: 'Level',
-    check: '✅ Check Balance',
-    nextLevel: 'Next Level ➡️',
-    congrats: 'Excellent! It is balanced 🎉',
-    wrong: 'Not balanced! Adjust weight or distance 😅',
-    instruction: 'Drag objects from the toolbox onto the beam to balance it!',
-    showCalc: 'Show Calculation',
-    hideCalc: 'Hide Calculation',
-    calcTitle: '🧮 Moment Calculation',
-    leftSide: 'Left Side (CCW)',
-    rightSide: 'Right Side (CW)',
-    formula: 'Moment = Mass × Distance',
-    balanced_msg: 'Balanced',
-    tiltLeft: 'Tilts Left',
-    tiltRight: 'Tilts Right',
-  },
-};
+
 
 const ITEMS = [
   { type: 'weight', mass: 5, color: '#3b82f6', width: 40, height: 40, label: '5kg' },
@@ -92,7 +24,7 @@ const TICK_SPACING = 45; // pixels per unit
 // Main Component
 // ==========================================
 export default function CustomBalanceLab({ onClose }) {
-  const [lang, setLang] = useState('TH');
+  const { t } = useI18n();
   const [mode, setMode] = useState('free');
   const [showForces, setShowForces] = useState(false);
   const [showMass, setShowMass] = useState(true);
@@ -369,9 +301,7 @@ export default function CustomBalanceLab({ onClose }) {
           </div>
         </div>
         <div style={{ display: 'flex', gap: 10 }}>
-          <button onClick={() => setLang(lang === 'TH' ? 'EN' : 'TH')} style={{ background: '#334155', border: 'none', color: 'white', padding: '6px 12px', borderRadius: 16, cursor: 'pointer', fontSize: 12, fontWeight: 'bold' }}>
-            {lang === 'TH' ? 'TH → EN' : 'EN → TH'}
-          </button>
+          
           <button onClick={onClose} style={{ background: '#ef4444', border: 'none', color: 'white', padding: '6px 12px', borderRadius: 16, cursor: 'pointer', fontSize: 12, fontWeight: 'bold' }}>
             {L.close}
           </button>
@@ -599,7 +529,7 @@ export default function CustomBalanceLab({ onClose }) {
           {/* Trash area hint when dragging */}
           {draggingId && (
             <div style={{ position: 'absolute', left: 0, top: 0, bottom: 0, width: 250, background: 'rgba(239,68,68,0.2)', borderRight: '2px dashed #ef4444', pointerEvents: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <div style={{ background: 'rgba(239,68,68,0.9)', color: 'white', padding: '8px 16px', borderRadius: 20, fontWeight: 'bold' }}>🗑️ ปล่อยเพื่อลบทิ้ง</div>
+              <div style={{ background: 'rgba(239,68,68,0.9)', color: 'white', padding: '8px 16px', borderRadius: 20, fontWeight: 'bold' }}>🗑️ {t("lab.releaseToDelete") || "ปล่อยเพื่อลบทิ้ง"}</div>
             </div>
           )}
         </div>

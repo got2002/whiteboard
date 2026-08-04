@@ -12,9 +12,10 @@
 // ============================================================
 
 import { useState, useRef, useEffect, useCallback } from "react";
+import { useI18n } from "../i18n/i18n";
 import { drawPenStroke, drawTextOnCtx, drawStampOnCtx, drawImageOnCtx } from "../utils/strokeRenderer";
 import { drawShapeOnCtx } from "../utils/shapeRenderer";
-import { TRANSITIONS } from "./PresentationMode";
+import { getTransitions } from "./PresentationMode";
 
 // ── Thumbnail dimensions ──
 const THUMB_W = 192;
@@ -27,6 +28,7 @@ const thumbImageCache = {};
  * Draw a single stroke onto a thumbnail canvas context (already scaled)
  */
 function drawStrokeOnThumb(ctx, stroke) {
+    
   if (stroke.type === "shape") {
     drawShapeOnCtx(ctx, stroke);
   } else if (stroke.type === "text") {
@@ -58,6 +60,7 @@ function drawStrokeOnThumb(ctx, stroke) {
  * Get background color string for a page
  */
 function getBgColor(bg) {
+    
   if (bg === "black") return "#1a1a2e";
   if (bg === "lined") return "#fefcf3";
   if (bg === "labnotebook") return "#fefcf3";
@@ -75,6 +78,7 @@ function getBgColor(bg) {
  * Draw grid/lined background pattern on thumbnail
  */
 function drawBgPattern(ctx, bg, w, h) {
+    
   if (bg === "grid") {
     ctx.strokeStyle = "rgba(0,0,0,0.08)";
     ctx.lineWidth = 0.5;
@@ -102,6 +106,7 @@ function drawBgPattern(ctx, bg, w, h) {
 // PageThumbnail — renders a single page preview
 // ============================================================
 function PageThumbnail({ page, isActive, width, height }) {
+    
   const canvasRef = useRef(null);
   const animFrameRef = useRef(null);
 
@@ -245,6 +250,7 @@ function PagePanel({
     onTransitionDurationChange,
     onPresent,
 }) {
+    const { t } = useI18n();
     // State ควบคุม Drag and Drop
     const [draggedIndex, setDraggedIndex] = useState(null);
     const [dragOverIndex, setDragOverIndex] = useState(null);
@@ -292,7 +298,7 @@ function PagePanel({
 
                 {/* ─── Header: ชื่อ + ปุ่มปิด ─── */}
                 <div className="page-panel-header">
-                    <h3>📄 หน้ากระดาน</h3>
+                    <h3>{t("panel.pages")}</h3>
                     <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
                         <button
                             className="pres-start-btn"
@@ -317,7 +323,7 @@ function PagePanel({
                         // Transition data สำหรับ zone ระหว่างหน้านี้กับหน้าถัดไป
                         const nextPage = pages[index + 1];
                         const transitionId = nextPage?.transition || "fade";
-                        const transObj = TRANSITIONS.find(t => t.id === transitionId) || TRANSITIONS[1];
+                        const transObj = getTransitions(t).find(t => t.id === transitionId) || getTransitions(t)[1];
 
                         return (
                             <div key={page.id}>
@@ -330,7 +336,7 @@ function PagePanel({
                                     onDragEnd={handleDragEnd}
                                     onDrop={(e) => handleDrop(e, index)}
                                     onClick={() => onSelectPage(index)}
-                                    title="ลากเพื่อสลับตำแหน่ง หรือคลิกเพื่อเปิดหน้า"
+                                    title={t("panel.dragToReorder")}
                                 >
                                     {/* Thumbnail: แสดง preview ของหน้า */}
                                     <div className="page-thumb-wrapper">
@@ -351,7 +357,7 @@ function PagePanel({
                                                 e.stopPropagation();
                                                 onDeletePage(page.id);
                                             }}
-                                            title="ลบหน้านี้"
+                                            title={t("panel.deletePage")}
                                         >×</button>
                                     )}
                                 </div>
@@ -381,11 +387,11 @@ function PagePanel({
                                                 <div className="trans-picker-backdrop" onClick={() => setTransPickerIndex(null)} />
                                                 <div className="trans-picker-popup">
                                                     <div className="trans-picker-header">
-                                                        <span>Transition: Page {index + 1} → {index + 2}</span>
+                                                        <span>Transition: {t("panel.page")} {index + 1} → {index + 2}</span>
                                                         <button className="trans-picker-close" onClick={() => setTransPickerIndex(null)}>✕</button>
                                                     </div>
                                                     <div className="trans-picker-grid">
-                                                        {TRANSITIONS.map(t => (
+                                                        {getTransitions(t).map(t => (
                                                             <button
                                                                 key={t.id}
                                                                 className={`trans-picker-item ${transitionId === t.id ? "active" : ""}`}
@@ -402,7 +408,7 @@ function PagePanel({
 
                                                     <div className="trans-duration-selector" style={{ flexDirection: 'column', alignItems: 'stretch' }}>
                                                         <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
-                                                            <span className="trans-duration-label">ความเร็ว (วินาที):</span>
+                                                            <span className="trans-duration-label">{t("panel.speedSeconds")}</span>
                                                             <span className="trans-duration-value" style={{ fontSize: '11px', color: '#818cf8', fontWeight: 'bold' }}>
                                                                 {typeof nextPage.transitionDuration === 'number' ? nextPage.transitionDuration : 0.6}s
                                                             </span>
@@ -431,7 +437,7 @@ function PagePanel({
 
                 {/* ─── ปุ่มเพิ่มหน้าใหม่ ─── */}
                 <button className="add-page-btn" onClick={onAddPage}>
-                    + เพิ่มหน้า
+                    + {t("panel.addPage")}
                 </button>
             </div>
         </>

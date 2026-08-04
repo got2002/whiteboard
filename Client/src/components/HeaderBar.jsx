@@ -10,6 +10,7 @@
 
 import { useState, useRef, useEffect } from "react";
 import ToolBoxButton from "./ToolBoxButton";
+import { useI18n } from "../i18n/i18n";
 
 const MODES = [
     { id: "standard", label: "🎨", title: "Standard" },
@@ -83,7 +84,9 @@ function HeaderBar({
     isWindowMaximized = false,
 }) {
     const isHost = userRole === "host";
+    const { t, language, changeLanguage, langs } = useI18n();
     const [showMainMenu, setShowMainMenu] = useState(false);
+    const [showLangMenu, setShowLangMenu] = useState(false);
     const [showScreenshotMenu, setShowScreenshotMenu] = useState(false);
     const [showMediaMenu, setShowMediaMenu] = useState(false);
     const screenshotMenuRef = useRef(null);
@@ -101,7 +104,7 @@ function HeaderBar({
                         <button
                             className="header-btn header-menu-trigger"
                             onClick={() => setShowMainMenu((v) => !v)}
-                            title="เมนูหลัก"
+                            title={t('header.mainMenu')}
                         >
                             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
                                 <path d="M3 6h18M3 12h18M3 18h18" />
@@ -110,40 +113,40 @@ function HeaderBar({
 
                         {showMainMenu && (
                             <>
-                                <div className="header-menu-backdrop" onClick={() => setShowMainMenu(false)} />
-                                <div className="header-dropdown">
+                                <div className="header-menu-backdrop" onClick={() => { setShowMainMenu(false); setShowLangMenu(false); }} />
+                                <div className="header-dropdown" style={{ display: 'block', maxHeight: 'calc(100vh - 60px)', overflowY: 'auto', overflowX: 'hidden' }}>
                                     <button className="header-dropdown-item" onClick={() => { onNewBoard(); setShowMainMenu(false); }}>
-                                        <span className="hdi-icon">📄</span><span>New Board</span>
+                                        <span className="hdi-icon">📄</span><span>{t('header.newBoard')}</span>
                                     </button>
                                     <button className="header-dropdown-item" onClick={() => { onLoadProject(); setShowMainMenu(false); }}>
-                                        <span className="hdi-icon">📂</span><span>Open</span>
+                                        <span className="hdi-icon">📂</span><span>{t('header.open')}</span>
                                     </button>
                                     <button className="header-dropdown-item" onClick={() => { onSaveProject(); setShowMainMenu(false); }}>
-                                        <span className="hdi-icon">💾</span><span>Save</span>
+                                        <span className="hdi-icon">💾</span><span>{t('header.save')}</span>
                                     </button>
                                     <button className="header-dropdown-item" onClick={() => { onSaveIWB(); setShowMainMenu(false); }}>
-                                        <span className="hdi-icon">📤</span><span>Save IWB</span>
+                                        <span className="hdi-icon">📤</span><span>{t('header.saveIWB')}</span>
                                     </button>
                                     <button className="header-dropdown-item" onClick={() => { onSavePD1(); setShowMainMenu(false); }}>
-                                        <span className="hdi-icon">📤</span><span>Save PD1</span>
+                                        <span className="hdi-icon">📤</span><span>{t('header.savePD1')}</span>
                                     </button>
                                     <button className="header-dropdown-item" onClick={() => { onExport(); setShowMainMenu(false); }}>
-                                        <span className="hdi-icon">📸</span><span>Screenshot</span>
+                                        <span className="hdi-icon">📸</span><span>{t('header.screenshot')}</span>
                                     </button>
                                     <button className="header-dropdown-item" onClick={() => { onExportAll(); setShowMainMenu(false); }}>
-                                        <span className="hdi-icon">📸</span><span>Screenshot All</span>
+                                        <span className="hdi-icon">📸</span><span>{t('header.screenshotAll')}</span>
                                     </button>
                                     <button className={`header-dropdown-item ${autoSave ? "active" : ""}`} onClick={onToggleAutoSave}>
-                                        <span className="hdi-icon">🔄</span><span>Auto Save {autoSave ? "✓" : ""}</span>
+                                        <span className="hdi-icon">🔄</span><span>{t('header.autoSave')} {autoSave ? "✓" : ""}</span>
                                     </button>
                                     <button className="header-dropdown-item" onClick={() => { onInsertImage(); setShowMainMenu(false); }}>
-                                        <span className="hdi-icon">🖼️</span><span>Insert Image</span>
+                                        <span className="hdi-icon">🖼️</span><span>{t('header.insertImage')}</span>
                                     </button>
                                     <button className="header-dropdown-item" onClick={() => { onInsertVideo(); setShowMainMenu(false); }}>
-                                        <span className="hdi-icon">🎬</span><span>Insert Video</span>
+                                        <span className="hdi-icon">🎬</span><span>{t('header.insertVideo')}</span>
                                     </button>
                                     <div className="header-dropdown-divider" />
-                                    <div className="header-dropdown-label">Mode</div>
+                                    <div className="header-dropdown-label">{t('header.mode')}</div>
                                     {MODES.map((m) => (
                                         <button
                                             key={m.id}
@@ -153,10 +156,44 @@ function HeaderBar({
                                             <span className="hdi-icon">{m.label}</span><span>{m.title}</span>
                                         </button>
                                     ))}
+                                    {/* Language Switcher */}
+                                    <div className="header-dropdown-divider" />
+                                    <div 
+                                        className="header-dropdown-item" 
+                                        style={{ position: 'relative', cursor: 'pointer' }}
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            setShowLangMenu(!showLangMenu);
+                                        }}
+                                    >
+                                        <span className="hdi-icon">🌐</span>
+                                        <span style={{ flex: 1, textAlign: 'left' }}>Language / ภาษา</span>
+                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ opacity: 0.5, transform: showLangMenu ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s' }}><polyline points="6 9 12 15 18 9"></polyline></svg>
+                                    </div>
+                                    
+                                    {showLangMenu && (
+                                        <div style={{ background: 'rgba(255,255,255,0.05)', margin: '4px 8px', borderRadius: '8px', padding: '4px 0', overflow: 'hidden' }}>
+                                            {langs?.map(l => (
+                                                <button 
+                                                    key={l.code}
+                                                    className={`header-dropdown-item ${language === l.code ? "active" : ""}`} 
+                                                    style={{ paddingLeft: '24px', background: 'transparent' }}
+                                                    onClick={(e) => { 
+                                                        e.stopPropagation();
+                                                        changeLanguage(l.code); 
+                                                        setShowLangMenu(false);
+                                                        setShowMainMenu(false); 
+                                                    }}
+                                                >
+                                                    <span className="hdi-icon">{l.flag}</span><span>{l.label}</span>
+                                                </button>
+                                            ))}
+                                        </div>
+                                    )}
                                     {/* Logout */}
                                     <div className="header-dropdown-divider" />
                                     <button className="header-dropdown-item logout-item" onClick={() => { if (onLogout) onLogout(); setShowMainMenu(false); }}>
-                                        <span className="hdi-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" /><polyline points="16 17 21 12 16 7" /><line x1="21" y1="12" x2="9" y2="12" /></svg></span><span>ออกจากระบบ</span>
+                                        <span className="hdi-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" /><polyline points="16 17 21 12 16 7" /><line x1="21" y1="12" x2="9" y2="12" /></svg></span><span>{t('header.logout')}</span>
                                     </button>
                                 </div>
                             </>
@@ -171,25 +208,25 @@ function HeaderBar({
                 {/* Page Navigation */}
                 <div className="header-pages">
                     {isHost && (
-                        <button className="header-btn" onClick={onTogglePages} title="จัดการหน้า">
+                        <button className="header-btn" onClick={onTogglePages} title={t('header.managePages')}>
                             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                                 <rect x="2" y="3" width="20" height="14" rx="2" /><path d="M8 21h8M12 17v4" />
                             </svg>
                         </button>
                     )}
-                    <button className="header-btn header-nav-btn" onClick={onPrevPage} disabled={currentPageIndex <= 0} title="หน้าก่อนหน้า">
+                    <button className="header-btn header-nav-btn" onClick={onPrevPage} disabled={currentPageIndex <= 0} title={t('header.prevPage')}>
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                             <path d="M15 18l-6-6 6-6" />
                         </svg>
                     </button>
                     <span className="header-page-indicator">{currentPageIndex + 1} / {totalPages}</span>
-                    <button className="header-btn header-nav-btn" onClick={onNextPage} disabled={currentPageIndex >= totalPages - 1} title="หน้าถัดไป">
+                    <button className="header-btn header-nav-btn" onClick={onNextPage} disabled={currentPageIndex >= totalPages - 1} title={t('header.nextPage')}>
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                             <path d="M9 18l6-6-6-6" />
                         </svg>
                     </button>
                     {isHost && (
-                        <button className="header-btn header-add-page-btn" onClick={onAddPage} title="เพิ่มหน้าใหม่">
+                        <button className="header-btn header-add-page-btn" onClick={onAddPage} title={t('header.addPage')}>
                             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                                 <path d="M12 5v14M5 12h14" />
                             </svg>
@@ -215,13 +252,13 @@ function HeaderBar({
                         <button
                             className={`header-btn ${showAI ? "header-btn-active" : ""}`}
                             onClick={onToggleAI}
-                            title="ผู้ช่วย AI (สร้างเนื้อหา & แปลภาษา)"
+                            title={t('header.aiAssistantTitle')}
                             style={{ width: 'auto', padding: '0 10px', gap: '6px' }}
                         >
                             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                                 <path d="M9.937 15.5A2 2 0 0 0 8.5 14.063l-6.135-1.582a.5.5 0 0 1 0-.962L8.5 9.936A2 2 0 0 0 9.937 8.5l1.582-6.135a.5.5 0 0 1 .963 0L14.063 8.5A2 2 0 0 0 15.5 9.937l6.135 1.581a.5.5 0 0 1 0 .964L15.5 14.063a2 2 0 0 0-1.437 1.437l-1.582 6.135a.5.5 0 0 1-.963 0z"/>
                             </svg>
-                            <span className="header-btn-text" style={{ fontSize: '11px', whiteSpace: 'nowrap', fontWeight: '600' }}>ผู้ช่วย AI</span>
+                            <span className="header-btn-text" style={{ fontSize: '11px', whiteSpace: 'nowrap', fontWeight: '600' }}>{t('header.aiAssistant')}</span>
                         </button>
                     </>
                 )}
@@ -233,7 +270,7 @@ function HeaderBar({
                         <button
                             className={`header-btn header-present-btn ${isPresenting ? "is-active" : ""}`}
                             onClick={onPresent}
-                            title="โหมดพรีเซ้น (Presentation)"
+                            title={t('header.presentTitle')}
                             style={{ width: 'auto', padding: '0 10px', gap: '6px' }}
                         >
                             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -241,7 +278,7 @@ function HeaderBar({
                                 <polygon points="10,7 16,10 10,13" fill="currentColor" stroke="none" />
                                 <path d="M8 21h8M12 17v4" />
                             </svg>
-                            <span className="header-btn-text" style={{ fontSize: '11px', whiteSpace: 'nowrap', fontWeight: '600' }}>Present</span>
+                            <span className="header-btn-text" style={{ fontSize: '11px', whiteSpace: 'nowrap', fontWeight: '600' }}>{t('header.present')}</span>
                         </button>
                     </>
                 )}
@@ -253,7 +290,7 @@ function HeaderBar({
                         <button
                             className={`header-btn ${isMultiDrawMode ? "header-btn-active" : ""}`}
                             onClick={onToggleMultiDrawMode}
-                            title="โหมดหลายคนเขียนพร้อมกัน (Multi-Draw)"
+                            title={t('header.multiDrawTitle')}
                             style={{ width: 'auto', padding: '0 10px', gap: '6px' }}
                         >
                             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -262,7 +299,7 @@ function HeaderBar({
                                 <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
                                 <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
                             </svg>
-                            <span className="header-btn-text" style={{ fontSize: '11px', whiteSpace: 'nowrap', fontWeight: '600' }}>Multi-Draw</span>
+                            <span className="header-btn-text" style={{ fontSize: '11px', whiteSpace: 'nowrap', fontWeight: '600' }}>{t('header.multiDraw')}</span>
                         </button>
                     </>
                 )}
@@ -282,16 +319,16 @@ function HeaderBar({
                                 setIsOnScreen(next);
                                 if (onToggleOnScreen) onToggleOnScreen(next);
                             } else {
-                                alert("โหมดโปร่งใส (On Screen) จะใช้งานได้เมื่อรันผ่านโปรแกรม (ProEdu1.exe) เท่านั้นครับ");
+                                alert(t('header.onScreenAlert'));
                             }
                         }}
-                        title="On Screen (เขียนบนหน้าจอ)"
+                        title={t('header.onScreenTitle')}
                     >
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
                             <rect x="2" y="3" width="20" height="14" rx="2" /><path d="M8 21h8" /><path d="M12 17v4" />
                             {isOnScreen && <path d="M7 10l5-4 5 4" strokeWidth="2.5" />}
                         </svg>
-                        <span className="header-btn-text" style={{ fontSize: "11px", whiteSpace: "nowrap", fontWeight: "600" }}>On Screen</span>
+                        <span className="header-btn-text" style={{ fontSize: "11px", whiteSpace: "nowrap", fontWeight: "600" }}>{t('header.onScreen')}</span>
                     </button>
 
                     <button
@@ -303,10 +340,10 @@ function HeaderBar({
                                 const result = await window.electronAPI.toggleFullscreen(next);
                                 setIsFullScreen(result);
                             } else {
-                                alert("โหมดเต็มจอ (Fullscreen) กรุณากด F11 บนคีย์บอร์ดแทนเมื่อเปิดผ่านเบราว์เซอร์ครับ");
+                                alert(t('header.fullscreenAlert'));
                             }
                         }}
-                        title="Fullscreen"
+                        title={t('header.fullscreen')}
                     >
                         {isFullScreen ? (
                             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
@@ -317,7 +354,7 @@ function HeaderBar({
                                 <path d="M8 3H5a2 2 0 0 0-2 2v3" /><path d="M21 8V5a2 2 0 0 0-2-2h-3" /><path d="M3 16v3a2 2 0 0 0 2 2h3" /><path d="M16 21h3a2 2 0 0 0 2-2v-3" />
                             </svg>
                         )}
-                        <span className="header-btn-text" style={{ fontSize: "11px", whiteSpace: "nowrap", fontWeight: "600" }}>Fullscreen</span>
+                        <span className="header-btn-text" style={{ fontSize: "11px", whiteSpace: "nowrap", fontWeight: "600" }}>{t('header.fullscreen')}</span>
                     </button>
 
                     <div className="header-divider" />
@@ -331,7 +368,7 @@ function HeaderBar({
                                 className={`header-btn ${showScreenshotMenu ? "header-btn-active" : ""}`}
                                 style={{ width: "auto", padding: "0 6px", gap: "2px" }}
                                 onClick={() => setShowScreenshotMenu(v => !v)}
-                                title="แคปหน้าจอ (Screenshot)"
+                                title={t('header.screenshotTitle')}
                             >
                                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                                     <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path>
@@ -355,7 +392,7 @@ function HeaderBar({
                                                         <path d="M18 22l4-4" /><path d="M22 22l-4-4" />
                                                     </svg>
                                                 </span>
-                                                <span>Selection</span>
+                                                <span>{t('header.selection')}</span>
                                             </button>
                                         )}
                                         <button className="header-dropdown-item" onClick={() => { onExport(); setShowScreenshotMenu(false); }}>
@@ -364,7 +401,7 @@ function HeaderBar({
                                                     <rect x="2" y="3" width="20" height="14" rx="2" /><path d="M8 21h8" /><path d="M12 17v4" />
                                                 </svg>
                                             </span>
-                                            <span>Capture Board</span>
+                                            <span>{t('header.captureBoard')}</span>
                                         </button>
                                     </div>
                                 </>
@@ -375,7 +412,7 @@ function HeaderBar({
                         <button
                             className={`header-btn ${isRecording ? "header-btn-recording" : ""}`}
                             onClick={isRecording ? onStopRecord : onStartRecord}
-                            title={isRecording ? "หยุดบันทึก" : "บันทึกวิดีโอหน้าจอ"}
+                            title={isRecording ? t('header.stopRecord') : t('header.startRecord')}
                         >
                             {isRecording ? (
                                 <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="6" width="12" height="12" rx="2" /></svg>
@@ -388,7 +425,7 @@ function HeaderBar({
                         <button
                             className={`header-btn ${showWebcam ? "header-btn-active" : ""}`}
                             onClick={onToggleWebcam}
-                            title="เปิด/ปิดกล้อง"
+                            title={t('header.toggleWebcam')}
                         >
                             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                                 <path d="M23 7l-7 5 7 5V7z" /><rect x="1" y="5" width="15" height="14" rx="2" />
@@ -401,7 +438,7 @@ function HeaderBar({
                         <button
                             className={`header-btn ${showMediaMenu || isRecording || showWebcam ? "header-btn-active" : ""} ${isRecording ? "header-btn-recording" : ""}`}
                             onClick={() => setShowMediaMenu(v => !v)}
-                            title="เครื่องมือสื่อ (Media Tools)"
+                            title={t('header.mediaTools')}
                             style={{ width: "auto", padding: "0 6px", gap: "4px" }}
                         >
                             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -427,7 +464,7 @@ function HeaderBar({
                                                     <path d="M18 22l4-4" /><path d="M22 22l-4-4" />
                                                 </svg>
                                             </span>
-                                            <span>Screenshot Selection</span>
+                                            <span>{t('header.screenshotSelection')}</span>
                                         </button>
                                     )}
                                     <button className="header-dropdown-item" onClick={() => { onExport(); setShowMediaMenu(false); }}>
@@ -436,7 +473,7 @@ function HeaderBar({
                                                 <rect x="2" y="3" width="20" height="14" rx="2" /><path d="M8 21h8" /><path d="M12 17v4" />
                                             </svg>
                                         </span>
-                                        <span>Capture Board</span>
+                                        <span>{t('header.captureBoard')}</span>
                                     </button>
                                     {canUseFullTools && (
                                         <>
@@ -449,7 +486,7 @@ function HeaderBar({
                                                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="8" /><circle cx="12" cy="12" r="3" fill="currentColor" /></svg>
                                                     )}
                                                 </span>
-                                                <span>{isRecording ? "Stop Recording" : "Start Recording"}</span>
+                                                <span>{isRecording ? t('header.stopRecordingMenu') : t('header.startRecordingMenu')}</span>
                                             </button>
                                         </>
                                     )}
@@ -459,7 +496,7 @@ function HeaderBar({
                                                 <path d="M23 7l-7 5 7 5V7z" /><rect x="1" y="5" width="15" height="14" rx="2" />
                                             </svg>
                                         </span>
-                                        <span>{showWebcam ? "Close Webcam" : "Open Webcam"}</span>
+                                        <span>{showWebcam ? t('header.closeWebcam') : t('header.openWebcam')}</span>
                                     </button>
                                 </div>
                             </>
@@ -474,7 +511,7 @@ function HeaderBar({
                     <button
                         className="header-btn header-btn-permission"
                         onClick={onTogglePermissionPanel}
-                        title="จัดการสิทธิ์"
+                        title={t('header.managePermissions')}
                     >
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                             <rect x="3" y="11" width="18" height="11" rx="2" /><path d="M7 11V7a5 5 0 0 1 10 0v4" />
@@ -486,7 +523,12 @@ function HeaderBar({
                 )}
 
                 {/* User Panel */}
-                <button className="header-btn" onClick={onToggleUserPanel} title="ผู้ใช้ออนไลน์">
+                <button 
+                    className="header-btn" 
+                    onClick={onToggleUserPanel} 
+                    title={t('header.onlineUsers')}
+                    style={{ width: "auto", padding: "0 10px", gap: "6px" }}
+                >
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                         <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /><path d="M23 21v-2a4 4 0 0 0-3-3.87" /><path d="M16 3.13a4 4 0 0 1 0 7.75" />
                     </svg>
@@ -500,7 +542,7 @@ function HeaderBar({
                 <button
                     className={`header-btn ${showQR ? "header-btn-active" : ""}`}
                     onClick={onToggleQR}
-                    title="แชร์ QR Code"
+                    title={t('header.shareQR')}
                 >
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                         <rect x="2" y="2" width="8" height="8" rx="1" /><rect x="14" y="2" width="8" height="8" rx="1" /><rect x="2" y="14" width="8" height="8" rx="1" /><rect x="14" y="14" width="4" height="4" /><path d="M22 14h-4v4" /><path d="M22 22h-4" /><path d="M18 18h4v4" />
@@ -515,14 +557,14 @@ function HeaderBar({
                             className="header-btn"
                             style={{ color: "#f59e0b", width: "auto", padding: "0 10px", gap: "6px" }}
                             onClick={onLogout}
-                            title="ออกจากระบบ"
+                            title={t('header.logout')}
                         >
                             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                                 <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
                                 <polyline points="16 17 21 12 16 7" />
                                 <line x1="21" y1="12" x2="9" y2="12" />
                             </svg>
-                            <span className="header-btn-text" style={{ fontSize: "11px", whiteSpace: "nowrap", fontWeight: "600" }}>ออก</span>
+                            <span className="header-btn-text" style={{ fontSize: "11px", whiteSpace: "nowrap", fontWeight: "600" }}>{t('header.exit')}</span>
                         </button>
                     </>
                 )}
@@ -538,10 +580,10 @@ function HeaderBar({
                                 if (typeof window !== "undefined" && window.electronAPI?.isElectron) {
                                     window.electronAPI.close();
                                 } else {
-                                    alert("ปุ่มปิดโปรแกรมใช้งานได้เฉพาะเมื่อรันผ่าน ProEdu1.exe เท่านั้น หากใช้งานบนเบราว์เซอร์ให้กากบาทแท็บทิ้งได้เลยครับ");
+                                    alert(t('header.exitAlert'));
                                 }
                             }}
-                            title="ปิดโปรแกรม (Exit App)"
+                            title={t('header.exitApp')}
                         >
                             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                                 <path d="M18.36 6.64a9 9 0 1 1-12.73 0" /><line x1="12" y1="2" x2="12" y2="12" />

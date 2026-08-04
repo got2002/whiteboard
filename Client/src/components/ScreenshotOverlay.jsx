@@ -1,3 +1,4 @@
+import { useI18n } from "../i18n/i18n";
 // ============================================================
 // ScreenshotOverlay.jsx — Selection Screenshot Overlay
 // ============================================================
@@ -7,7 +8,8 @@
 
 import { useState, useRef, useCallback, useEffect } from "react";
 
-function ScreenshotOverlay({ canvasRef, pages, currentPageIndex, onClose, bgImage, onAddToBoard, onConfirm, confirmText = "ยืนยัน", initialPreview }) {
+function ScreenshotOverlay({ canvasRef, pages, currentPageIndex, onClose, bgImage, onAddToBoard, onConfirm, confirmText = "Confirm", initialPreview }) {
+    const { t } = useI18n();
   const overlayRef = useRef(null);
   const imgRef = useRef(null);
   const [isDragging, setIsDragging] = useState(false);
@@ -209,13 +211,13 @@ function ScreenshotOverlay({ canvasRef, pages, currentPageIndex, onClose, bgImag
 
           <div className="screenshot-preview-actions" style={{ display: 'flex', gap: '8px' }}>
             <button className="screenshot-action-btn screenshot-btn-retry" onClick={handleRetry} style={{ background: "#475569" }}>
-              เลือกใหม่
+              {t("deepCleanup.screenshotRetake")}
             </button>
             <button className="screenshot-action-btn screenshot-btn-save" onClick={handleSave} style={{ background: "#3b82f6" }}>
-              บันทึกลงเครื่อง
+              {t("deepCleanup.screenshotSave")}
             </button>
             <button className="screenshot-action-btn screenshot-btn-save" onClick={handleAddToBoard} style={{ background: onConfirm ? "#8b5cf6" : "#10b981", flex: 2 }}>
-              {onConfirm ? confirmText : "เพิ่มลงกระดาน"}
+              {onConfirm ? confirmText : t("overlay.addToBoard")}
             </button>
           </div>
         </div>
@@ -257,8 +259,8 @@ function ScreenshotOverlay({ canvasRef, pages, currentPageIndex, onClose, bgImag
             <path d="M6 2L2 6M2 2l4 4" /><path d="M18 2l4 4M22 2l-4 4" />
             <path d="M6 22l-4-4M2 22l4-4" /><path d="M18 22l4-4M22 22l-4-4" />
           </svg>
-          <span>ลากเพื่อเลือกพื้นที่ที่ต้องการ Screenshot</span>
-          <span className="screenshot-instruction-sub">กด ESC เพื่อยกเลิก</span>
+          <span>{t("overlay.dragToSelect")}</span>
+          <span className="screenshot-instruction-sub">{t("overlay.pressEscToCancel")}</span>
         </div>
       )}
 
@@ -300,7 +302,7 @@ function ScreenshotOverlay({ canvasRef, pages, currentPageIndex, onClose, bgImag
 
       {/* Cancel button */}
       <button className="screenshot-cancel-btn" onClick={onClose} style={{ zIndex: 10003 }}>
-        ✕ ยกเลิก
+        {t("deepCleanup.screenshotCancel")}
       </button>
     </div>
   );

@@ -1,3 +1,4 @@
+import { useI18n } from "../i18n/i18n";
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useDraggable } from "../hooks/useDraggable";
 import CustomCircuitLab from "./CustomCircuitLab";
@@ -10,6 +11,7 @@ import CustomPHLab from "./CustomPHLab";
 // StudentLabWidget Component - Virtual Student Laboratory
 // ============================================================
 export default function StudentLabWidget({ canEdit = true, config = {}, onSyncConfig, onClose }) {
+  const { t } = useI18n();
   const [activeLab, setActiveLab] = useState(config?.activeLab || null);
   const [customSize, setCustomSize] = useState(null);
   const isRemoteUpdateRef = useRef(false);
@@ -79,7 +81,7 @@ export default function StudentLabWidget({ canEdit = true, config = {}, onSyncCo
             }}
           >
               <div onPointerDown={handlePointerDown} style={{ height: '30px', background: '#0f172a', width: '100%', cursor: 'grab', position: 'absolute', top: 0, left: 0, zIndex: 10001, display: 'flex', alignItems: 'center', padding: '0 10px', color: 'white' }}>
-                  <span style={{ fontSize: '12px' }}>Student Lab Window - Drag to move</span>
+                  <span style={{ fontSize: '12px' }}>{t('studentLab.title')}</span>
               </div>
               <div style={{ paddingTop: '30px', height: '100%', position: 'relative' }}>
                 <CustomCircuitLab onClose={() => setActiveLab(null)} />
@@ -107,7 +109,7 @@ export default function StudentLabWidget({ canEdit = true, config = {}, onSyncCo
             }}
           >
               <div onPointerDown={handlePointerDown} style={{ height: '30px', background: '#0f172a', width: '100%', cursor: 'grab', position: 'absolute', top: 0, left: 0, zIndex: 10001, display: 'flex', alignItems: 'center', padding: '0 10px', color: 'white' }}>
-                  <span style={{ fontSize: '12px' }}>Student Lab Window - Drag to move</span>
+                  <span style={{ fontSize: '12px' }}>{t('studentLab.title')}</span>
               </div>
               <div style={{ paddingTop: '30px', height: '100%', position: 'relative' }}>
                 <CustomSolarSystemLab onClose={() => setActiveLab(null)} />
@@ -135,7 +137,7 @@ export default function StudentLabWidget({ canEdit = true, config = {}, onSyncCo
             }}
           >
               <div onPointerDown={handlePointerDown} style={{ height: '30px', background: '#0f172a', width: '100%', cursor: 'grab', position: 'absolute', top: 0, left: 0, zIndex: 10001, display: 'flex', alignItems: 'center', padding: '0 10px', color: 'white' }}>
-                  <span style={{ fontSize: '12px' }}>Student Lab Window - Drag to move</span>
+                  <span style={{ fontSize: '12px' }}>{t('studentLab.title')}</span>
               </div>
               <div style={{ paddingTop: '30px', height: '100%', position: 'relative' }}>
                 <CustomProjectileMotionLab onClose={() => setActiveLab(null)} />
@@ -163,7 +165,7 @@ export default function StudentLabWidget({ canEdit = true, config = {}, onSyncCo
             }}
           >
               <div onPointerDown={handlePointerDown} style={{ height: '30px', background: '#0f172a', width: '100%', cursor: 'grab', position: 'absolute', top: 0, left: 0, zIndex: 10001, display: 'flex', alignItems: 'center', padding: '0 10px', color: 'white' }}>
-                  <span style={{ fontSize: '12px' }}>Student Lab Window - Drag to move</span>
+                  <span style={{ fontSize: '12px' }}>{t('studentLab.title')}</span>
               </div>
               <div style={{ paddingTop: '30px', height: '100%', position: 'relative' }}>
                 <CustomBalanceLab onClose={() => setActiveLab(null)} />
@@ -191,7 +193,7 @@ export default function StudentLabWidget({ canEdit = true, config = {}, onSyncCo
             }}
           >
               <div onPointerDown={handlePointerDown} style={{ height: '30px', background: '#0f172a', width: '100%', cursor: 'grab', position: 'absolute', top: 0, left: 0, zIndex: 10001, display: 'flex', alignItems: 'center', padding: '0 10px', color: 'white' }}>
-                  <span style={{ fontSize: '12px' }}>Student Lab Window - Drag to move</span>
+                  <span style={{ fontSize: '12px' }}>{t('studentLab.title')}</span>
               </div>
               <div style={{ paddingTop: '30px', height: '100%', position: 'relative' }}>
                 <CustomPHLab onClose={() => setActiveLab(null)} />

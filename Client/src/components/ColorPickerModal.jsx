@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from "react";
+import { useI18n } from "../i18n/i18n";
 import { createPortal } from "react-dom";
 
 // ============================================================
@@ -15,6 +16,7 @@ const BASIC_COLORS = [
 
 // Helper: แปลง HSL เป็น RGB
 function hslToRgb(h, s, l) {
+    
   let r, g, b;
   if (s === 0) {
     r = g = b = l; // achromatic
@@ -38,6 +40,7 @@ function hslToRgb(h, s, l) {
 
 // Helper: แปลง RGB เป็น Hex
 function rgbToHex(r, g, b) {
+    
   return "#" + [r, g, b].map(x => {
     const hex = x.toString(16);
     return hex.length === 1 ? "0" + hex : hex;
@@ -46,6 +49,7 @@ function rgbToHex(r, g, b) {
 
 // Helper: แปลง Hex เป็น RGB
 function hexToRgb(hex) {
+    
   const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
   return result ? {
     r: parseInt(result[1], 16),
@@ -56,6 +60,7 @@ function hexToRgb(hex) {
 
 // Helper: RGB to HSL
 function rgbToHsl(r, g, b) {
+    
   r /= 255; g /= 255; b /= 255;
   const max = Math.max(r, g, b), min = Math.min(r, g, b);
   let h, s, l = (max + min) / 2;
@@ -77,6 +82,8 @@ function rgbToHsl(r, g, b) {
 
 
 function ColorPickerModal({ currentColor, onClose, onSelectColor }) {
+    const { t } = useI18n();
+
   // อ่าน Custom Colors จาก localStorage
   const [customColors, setCustomColors] = useState(() => {
     try {
@@ -195,7 +202,7 @@ function ColorPickerModal({ currentColor, onClose, onSelectColor }) {
     <div className="cp-modal-overlay" onMouseDown={onClose}>
       <div className="cp-modal-content" onMouseDown={e => e.stopPropagation()}>
         <div className="cp-header">
-          <span>Edit colors</span>
+          <span>{t("panel.editColors")}</span>
           <button className="cp-close-btn" onClick={onClose}>✕</button>
         </div>
         
@@ -277,7 +284,7 @@ function ColorPickerModal({ currentColor, onClose, onSelectColor }) {
           <div className="cp-bottom-section">
             <div className="cp-palettes">
               <div className="cp-section">
-                <div className="cp-label">Basic colors</div>
+                <div className="cp-label">{t("panel.basicColors")}</div>
                 <div className="cp-grid basic">
                   {BASIC_COLORS.map((c, i) => (
                     <div 
@@ -292,7 +299,7 @@ function ColorPickerModal({ currentColor, onClose, onSelectColor }) {
 
               <div className="cp-section">
                 <div className="cp-label custom-label-row">
-                  <span>Custom colors</span>
+                  <span>{t("panel.customColors")}</span>
                   <button className="cp-add-custom-icon" onClick={handleAddToCustomColors}>+</button>
                 </div>
                 <div className="cp-grid custom">
@@ -311,8 +318,8 @@ function ColorPickerModal({ currentColor, onClose, onSelectColor }) {
         </div>
 
         <div className="cp-footer">
-          <button className="cp-btn fill" onClick={() => onSelectColor(selectedColor)}>OK</button>
-          <button className="cp-btn" onClick={onClose}>Cancel</button>
+          <button className="cp-btn fill" onClick={() => onSelectColor(selectedColor)}>{t("panel.ok")}</button>
+          <button className="cp-btn" onClick={onClose}>{t("panel.cancel")}</button>
         </div>
       </div>
     </div>,

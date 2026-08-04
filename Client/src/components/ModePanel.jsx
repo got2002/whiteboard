@@ -21,36 +21,37 @@
 // ============================================================
 
 import { useState, useRef, useCallback } from "react";
+import { useI18n } from "../i18n/i18n";
 
 // ============================================================
 // ข้อมูล: Stamp อุปกรณ์วิทยาศาสตร์ (16 ชิ้น)
 // ============================================================
-const SCIENCE_STAMPS = [
-    { emoji: "🧪", label: "หลอดทดลอง" },
-    { emoji: "⚗️", label: "ขวดกลั่น" },
-    { emoji: "🔬", label: "กล้องจุลทรรศน์" },
-    { emoji: "🧲", label: "แม่เหล็ก" },
-    { emoji: "⚛️", label: "อะตอม" },
+const getScienceStamps = (t) => [
+    { emoji: "🧪", label: "modeTestTube" },
+    { emoji: "⚗️", label: "modeFlask" },
+    { emoji: "🔬", label: "modeMicroscope" },
+    { emoji: "🧲", label: "modeMagnet" },
+    { emoji: "⚛️", label: "modeAtom" },
     { emoji: "🧬", label: "DNA" },
-    { emoji: "🌡️", label: "เทอร์โมมิเตอร์" },
-    { emoji: "💡", label: "หลอดไฟ" },
-    { emoji: "🔋", label: "แบตเตอรี่" },
-    { emoji: "⚡", label: "ไฟฟ้า" },
-    { emoji: "🌍", label: "โลก" },
-    { emoji: "☀️", label: "ดวงอาทิตย์" },
-    { emoji: "🪐", label: "วงแหวนดาวเสาร์" },
-    { emoji: "👤", label: "หุ่นคน (Person)" },
-    { emoji: "❤️", label: "หัวใจ (Heart)" },
-    { emoji: "⭐", label: "ดาว (Star)" },
-    { emoji: "✅", label: "ถูกต้อง (Correct)" },
-    { emoji: "❌", label: "ผิด (Wrong)" },
-    { emoji: "💡", label: "ไอเดีย (Idea)" },
-    { emoji: "💯", label: "เต็มร้อย (100)" },
-    { emoji: "🏆", label: "ถ้วยรางวัล (Trophy)" },
-    { emoji: "🌙", label: "ดวงจันทร์" },
-    { emoji: "💧", label: "หยดน้ำ" },
-    { emoji: "🔥", label: "ไฟ" },
-    { emoji: "🧫", label: "จานเพาะเชื้อ" },
+    { emoji: "🌡️", label: "modeThermometer" },
+    { emoji: "💡", label: "modeBulb" },
+    { emoji: "🔋", label: "modeBattery" },
+    { emoji: "⚡", label: "modeElectricity" },
+    { emoji: "🌍", label: "modeEarth" },
+    { emoji: "☀️", label: "modeSun" },
+    { emoji: "🪐", label: "modeSaturnRing" },
+    { emoji: "👤", label: "modePerson" },
+    { emoji: "❤️", label: "modeHeart" },
+    { emoji: "⭐", label: "modeStar" },
+    { emoji: "✅", label: "modeCorrect" },
+    { emoji: "❌", label: "modeWrong" },
+    { emoji: "💡", label: "modeIdea" },
+    { emoji: "💯", label: "mode100" },
+    { emoji: "🏆", label: "modeTrophy" },
+    { emoji: "🌙", label: "modeMoon" },
+    { emoji: "💧", label: "modeDrop" },
+    { emoji: "🔥", label: "modeFire" },
+    { emoji: "🧫", label: "modePetri" },
 ];
 
 // ============================================================
@@ -88,6 +89,7 @@ const PERIODIC_ELEMENTS = [
 // - หมุนด้วย scroll wheel (ทีละ 2 องศา)
 // - มีขีด 31 ขีด (ขีดใหญ่ทุก 5)
 function RulerOverlay() {
+    const { t } = useI18n();
     const [pos, setPos] = useState({ x: 100, y: 100 });    // ตำแหน่งปัจจุบัน
     const [rotation, setRotation] = useState(0);              // มุมหมุน (องศา)
     const dragging = useRef(false);
@@ -127,7 +129,7 @@ function RulerOverlay() {
             style={{ left: pos.x + "px", top: pos.y + "px", transform: `rotate(${rotation}deg)` }}
             onPointerDown={handleDown}
             onWheel={handleWheel}
-            title="ลากเพื่อย้าย • Scroll เพื่อหมุน"
+            title={t("modePanel.dragToMoveScrollToRotate")}
         >
             <div className="ruler-body">
                 {/* สร้างขีดบนไม้บรรทัด 31 ขีด (0-30) */}
@@ -148,6 +150,7 @@ function RulerOverlay() {
 // - วาดด้วย SVG (arc + เส้นขีดมุม + ตัวเลของศา)
 // - ขีดทุก 10° / ตัวเลขทุก 30°
 function ProtractorOverlay() {
+    const { t } = useI18n();
     const [pos, setPos] = useState({ x: 300, y: 200 });
     const dragging = useRef(false);
     const dragOffset = useRef({ x: 0, y: 0 });
@@ -210,7 +213,7 @@ function ProtractorOverlay() {
             className="protractor-overlay"
             style={{ left: pos.x + "px", top: pos.y + "px" }}
             onPointerDown={handleDown}
-            title="ลากเพื่อย้าย"
+            title={t("modePanel.dragToMove")}
         >
             <svg width="300" height="160" viewBox="0 0 300 160">
                 {/* ครึ่งวงกลม */}
@@ -236,6 +239,7 @@ function ProtractorOverlay() {
 //  activeStamp   → emoji stamp ที่เลือกไว้ (หรือ null)
 //  onStampSelect → callback เมื่อเลือก stamp
 function ModePanel({ mode, activeStamp, onStampSelect, onInsertImage }) {
+    const { t } = useI18n();
     const [showPeriodicTable, setShowPeriodicTable] = useState(false); // แสดงตารางธาตุ?
     const [showRuler, setShowRuler] = useState(false);                   // แสดงไม้บรรทัด?
     const [showProtractor, setShowProtractor] = useState(false);         // แสดงโปรแทรกเตอร์?
@@ -256,12 +260,12 @@ function ModePanel({ mode, activeStamp, onStampSelect, onInsertImage }) {
                         <button
                             className={`mode-tool-btn ${showRuler ? "active" : ""}`}
                             onClick={() => setShowRuler((v) => !v)}
-                            title="ไม้บรรทัด"
+                            title={t("modePanel.ruler")}
                         >📏</button>
                         <button
                             className={`mode-tool-btn ${showProtractor ? "active" : ""}`}
                             onClick={() => setShowProtractor((v) => !v)}
-                            title="โปรแทรกเตอร์"
+                            title={t("modePanel.protractor")}
                         >📐</button>
                     </div>
 
@@ -283,7 +287,7 @@ function ModePanel({ mode, activeStamp, onStampSelect, onInsertImage }) {
 
                         {/* เลือก Stamp: ไอคอน emoji */}
                         <div className="stamp-grid">
-                            {SCIENCE_STAMPS.map((s) => (
+                            {getScienceStamps(t).map((s) => (
                                 <button
                                     key={s.emoji}
                                     className={`stamp-btn ${activeStamp === s.emoji ? "active" : ""}`}
@@ -299,7 +303,7 @@ function ModePanel({ mode, activeStamp, onStampSelect, onInsertImage }) {
                         <button
                             className="mode-tool-btn periodic-btn"
                             onClick={() => setShowPeriodicTable((v) => !v)}
-                            title="ตารางธาตุ"
+                            title={t("modePanel.periodicTable")}
                         >🔤 PT</button>
                     </div>
 
@@ -307,7 +311,7 @@ function ModePanel({ mode, activeStamp, onStampSelect, onInsertImage }) {
                     {showPeriodicTable && (
                         <div className="periodic-popup">
                             <div className="periodic-header">
-                                <h4>ตารางธาตุ (1–20)</h4>
+                                <h4>{t("modePanel.periodicTableTitle")}</h4>
                                 <button className="periodic-close" onClick={() => setShowPeriodicTable(false)}>✕</button>
                             </div>
                             <div className="periodic-grid">
@@ -330,7 +334,7 @@ function ModePanel({ mode, activeStamp, onStampSelect, onInsertImage }) {
             {mode === "language" && (
                 <div className="mode-floating-bar language-bar">
                     <span className="mode-label">📖 Language</span>
-                    <span className="mode-hint">แนะนำ: ใช้กระดาษเส้น + เครื่องมือข้อความ</span>
+                    <span className="mode-hint">{t("modePanel.languageHint")}</span>
                 </div>
             )}
         </>
