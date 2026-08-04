@@ -1,8 +1,11 @@
+import { useI18n } from "../i18n/i18n";
 // ============================================================
 // ConfirmDialog.jsx — Custom Confirm Modal (แทน browser confirm)
 // ============================================================
 
 export default function ConfirmDialog({ open, title, message, onConfirm, onCancel }) {
+    const { t } = useI18n();
+
   if (!open) return null;
 
   return (
@@ -17,16 +20,16 @@ export default function ConfirmDialog({ open, title, message, onConfirm, onCance
         </div>
 
         {/* Content */}
-        <div className="confirm-title">{title || "ยืนยัน"}</div>
+        <div className="confirm-title">{title || t("dialog.confirm")}</div>
         <div className="confirm-message">{message}</div>
 
         {/* Buttons */}
         <div className="confirm-actions">
           <button className="confirm-btn confirm-btn-cancel" onClick={onCancel}>
-            ยกเลิก
+            {t("dialog.cancel")}
           </button>
           <button className="confirm-btn confirm-btn-ok" onClick={onConfirm}>
-            ยืนยัน
+            {t("dialog.confirm")}
           </button>
         </div>
       </div>

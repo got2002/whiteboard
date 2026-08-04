@@ -12,9 +12,16 @@
 // ============================================================
 
 import { useState, useEffect, useCallback } from "react";
+import { useI18n } from "../i18n/i18n";
 
 function NameDialog({ onSubmit, hostExists, waitingForAck }) {
+    const { t, language, changeLanguage, langs } = useI18n();
     const [name, setName] = useState("");
+    const [showLangMenu, setShowLangMenu] = useState(false);
+    
+    const toggleLanguage = () => {
+        changeLanguage(language === 'th' ? 'en' : 'th');
+    };
     const [isMaximized, setIsMaximized] = useState(false);
 
     const autoRole = hostExists ? "viewer" : "host";
@@ -24,8 +31,8 @@ function NameDialog({ onSubmit, hostExists, waitingForAck }) {
         if (waitingForAck) return;
         const trimmed = name.trim();
         const finalName = trimmed || (autoRole === "host"
-            ? `ครู ${Math.floor(100 + Math.random() * 900)}`
-            : `นักเรียน ${Math.floor(1000 + Math.random() * 9000)}`);
+            ? `${t('nameDialog.teacherPrefix')} ${Math.floor(100 + Math.random() * 900)}`
+            : `${t('nameDialog.studentPrefix')} ${Math.floor(1000 + Math.random() * 9000)}`);
         onSubmit(finalName, autoRole);
     };
 
@@ -93,11 +100,67 @@ function NameDialog({ onSubmit, hostExists, waitingForAck }) {
                     <img src="/proedu1-logo.png" alt="ProEdu1" style={{ height: 16, marginRight: 8, opacity: 0.9, objectFit: 'contain' }} />
                     <span className="login-titlebar-label">ProEdu1 Whiteboard</span>
                 </div>
+                
+                <div style={{ flex: 1, WebkitAppRegion: 'drag' }} className="login-titlebar-drag" />
+                
+                <div style={{ display: 'flex', alignItems: 'center', marginRight: '16px', WebkitAppRegion: 'no-drag', position: 'relative' }}>
+                    <div className="login-lang-dropdown">
+                        <button 
+                            onClick={() => setShowLangMenu(!showLangMenu)}
+                            style={{
+                                background: 'rgba(255,255,255,0.1)',
+                                border: '1px solid rgba(255,255,255,0.2)',
+                                color: '#fff',
+                                borderRadius: '12px',
+                                padding: '4px 10px',
+                                cursor: 'pointer',
+                                fontSize: '11px',
+                                fontWeight: '600',
+                                backdropFilter: 'blur(4px)',
+                                transition: 'all 0.2s',
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '4px'
+                            }}
+                            onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.2)' }}
+                            onMouseLeave={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.1)' }}
+                        >
+                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                <circle cx="12" cy="12" r="10"></circle>
+                                <line x1="2" y1="12" x2="22" y2="12"></line>
+                                <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path>
+                            </svg>
+                            {langs?.find(l => l.code === language)?.label || 'TH'}
+                            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ marginLeft: 2 }}><polyline points="6 9 12 15 18 9"></polyline></svg>
+                        </button>
+                        {showLangMenu && (
+                            <>
+                                <div 
+                                    style={{ position: 'fixed', inset: 0, zIndex: 999 }} 
+                                    onClick={() => setShowLangMenu(false)} 
+                                />
+                                <div className="login-lang-menu" style={{ display: 'flex', zIndex: 1000 }}>
+                                    {langs?.map(l => (
+                                        <div 
+                                            key={l.code} 
+                                            className={`login-lang-item ${language === l.code ? 'active' : ''}`} 
+                                            onClick={() => { changeLanguage(l.code); setShowLangMenu(false); }}
+                                        >
+                                            <span style={{ marginRight: 6 }}>{l.flag}</span>
+                                            {l.label}
+                                        </div>
+                                    ))}
+                                </div>
+                            </>
+                        )}
+                    </div>
+                </div>
+
                 <div className="login-titlebar-controls">
-                    <button className="login-titlebar-btn" onClick={handleMinimize} title="ย่อหน้าต่าง">
+                    <button className="login-titlebar-btn" onClick={handleMinimize} title={t('nameDialog.minimizeWindow')}>
                         <svg width="10" height="10" viewBox="0 0 10 10"><path d="M1 5h8" stroke="currentColor" strokeWidth="1.2" /></svg>
                     </button>
-                    <button className="login-titlebar-btn" onClick={handleMaximize} title={isMaximized ? "คืนค่าหน้าต่าง" : "ขยายหน้าต่าง"}>
+                    <button className="login-titlebar-btn" onClick={handleMaximize} title={isMaximized ? t('nameDialog.restoreWindow') : t('nameDialog.maximizeWindow')}>
                         {isMaximized ? (
                             <svg width="10" height="10" viewBox="0 0 10 10">
                                 <rect x="2" y="3" width="6" height="6" rx="0.5" fill="none" stroke="currentColor" strokeWidth="1.2" />
@@ -107,7 +170,7 @@ function NameDialog({ onSubmit, hostExists, waitingForAck }) {
                             <svg width="10" height="10" viewBox="0 0 10 10"><rect x="1" y="1" width="8" height="8" rx="1" fill="none" stroke="currentColor" strokeWidth="1.2" /></svg>
                         )}
                     </button>
-                    <button className="login-titlebar-btn login-titlebar-close" onClick={handleClose} title="ปิดโปรแกรม">
+                    <button className="login-titlebar-btn login-titlebar-close" onClick={handleClose} title={t('nameDialog.closeProgram')}>
                         <svg width="10" height="10" viewBox="0 0 10 10"><path d="M2 2l6 6M8 2l-6 6" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" /></svg>
                     </button>
                 </div>
@@ -132,8 +195,8 @@ function NameDialog({ onSubmit, hostExists, waitingForAck }) {
                     {/* Minimal Description */}
                     <div className="login-hero-text">
                         <p className="login-tagline">
-                            Digital Whiteboard สำหรับการเรียนการสอนยุคใหม่<br />
-                            ทำงานร่วมกันแบบ Real-time พร้อมเครื่องมือที่ออกแบบมาเพื่อการศึกษา
+                            {t('nameDialog.tagline1')}<br />
+                            {t('nameDialog.tagline2')}
                         </p>
                     </div>
 
@@ -143,26 +206,26 @@ function NameDialog({ onSubmit, hostExists, waitingForAck }) {
                             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                                 <path d="M12 19l7-7 3 3-7 7-3-3z" /><path d="M18 13l-1.5-7.5L2 2l3.5 14.5L13 18l5-5z" /><path d="M2 2l7.586 7.586" />
                             </svg>
-                            <span>วาดเขียนอิสระ</span>
+                            <span>{t('nameDialog.featureFreehand')}</span>
                         </div>
                         <div className="login-feature-card">
                             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                                 <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /><path d="M23 21v-2a4 4 0 0 0-3-3.87" /><path d="M16 3.13a4 4 0 0 1 0 7.75" />
                             </svg>
-                            <span>ทำงานร่วมกัน</span>
+                            <span>{t('nameDialog.featureCollab')}</span>
                         </div>
                         <div className="login-feature-card">
                             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                                 <line x1="18" y1="20" x2="18" y2="10" /><line x1="12" y1="20" x2="12" y2="4" /><line x1="6" y1="20" x2="6" y2="14" /><line x1="2" y1="20" x2="22" y2="20" />
                             </svg>
-                            <span>เครื่องมือวิทย์-คณิต</span>
+                            <span>{t('nameDialog.featureMathSci')}</span>
                         </div>
                         <div className="login-feature-card">
                             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                                 <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
                                 <path d="M8 10h.01" /><path d="M12 10h.01" /><path d="M16 10h.01" />
                             </svg>
-                            <span>ผู้ช่วย AI อัจฉริยะ</span>
+                            <span>{t('nameDialog.featureAI')}</span>
                         </div>
                     </div>
                 </div>
@@ -170,12 +233,12 @@ function NameDialog({ onSubmit, hostExists, waitingForAck }) {
                 {/* ── Right: Login Card ── */}
                 <div className="login-card">
                     <h2 className="login-card-title">
-                        {hostExists ? "เข้าร่วมกระดาน" : "สร้างกระดาน"}
+                        {hostExists ? t('nameDialog.joinBoard') : t('nameDialog.createBoard')}
                     </h2>
                     <p className="login-card-subtitle">
                         {hostExists
-                            ? "ใส่ชื่อของคุณเพื่อเข้าร่วมห้องเรียน"
-                            : "ใส่ชื่อของคุณเพื่อเริ่มสอน"}
+                            ? t('nameDialog.joinSubtitle')
+                            : t('nameDialog.createSubtitle')}
                     </p>
 
                     {/* Role Badge */}
@@ -193,12 +256,12 @@ function NameDialog({ onSubmit, hostExists, waitingForAck }) {
                         </div>
                         <div className="login-role-info">
                             <span className="login-role-label">
-                                {autoRole === "host" ? "เข้าในฐานะ: ครูผู้สอน" : "เข้าในฐานะ: นักเรียน"}
+                                {autoRole === "host" ? t('nameDialog.roleTeacher') : t('nameDialog.roleStudent')}
                             </span>
                             <span className="login-role-desc">
                                 {autoRole === "host"
-                                    ? "สิทธิ์เต็ม — จัดการกระดาน, เครื่องมือ, สิทธิ์ผู้ใช้"
-                                    : "สิทธิ์ดู — วาดตามสิทธิ์ที่ครูกำหนด"}
+                                    ? t('nameDialog.teacherDesc')
+                                    : t('nameDialog.studentDesc')}
                             </span>
                         </div>
                     </div>
@@ -211,7 +274,7 @@ function NameDialog({ onSubmit, hostExists, waitingForAck }) {
                         value={name}
                         onChange={(e) => setName(e.target.value)}
                         onKeyDown={handleKeyDown}
-                        placeholder="ชื่อของคุณ..."
+                        placeholder={t('nameDialog.namePlaceholder')}
                         maxLength={20}
                         autoComplete="off"
                         autoFocus
@@ -226,17 +289,17 @@ function NameDialog({ onSubmit, hostExists, waitingForAck }) {
                         {waitingForAck ? (
                             <>
                                 <span className="login-spinner" />
-                                กำลังเชื่อมต่อ...
+                                {t('nameDialog.connecting')}
                             </>
                         ) : (
-                            hostExists ? "เข้าร่วม" : "เริ่มสอน"
+                            hostExists ? t('nameDialog.joinBtn') : t('nameDialog.startBtn')
                         )}
                     </button>
 
                     <p className="login-hint">
                         {waitingForAck
-                            ? "รอสักครู่ กำลังเชื่อมต่อกับกระดาน..."
-                            : "ถ้าไม่ใส่ชื่อ จะใช้ชื่อสุ่มอัตโนมัติ"}
+                            ? t('nameDialog.waitHint')
+                            : t('nameDialog.emptyHint')}
                     </p>
                 </div>
             </div>

@@ -1,8 +1,11 @@
 import { QRCodeSVG } from "qrcode.react";
+import { useI18n } from "../i18n/i18n";
 import { useDraggable } from "../hooks/useDraggable";
 import { useState, useRef, useEffect, useCallback } from "react";
 
 export default function QRCodePanel({ joinUrl, onClose }) {
+    const { t } = useI18n();
+
   const { handleRef: dragHandleRef, dragStyle, isDragging, handlePointerDown: handleDragStart } = useDraggable({
     storageKey: "proedu1-qr-pos",
     defaultPosition: { 
@@ -83,7 +86,7 @@ export default function QRCodePanel({ joinUrl, onClose }) {
           userSelect: "none"
         }}
       >
-        <span>สแกนเข้าร่วม</span>
+        <span>{t("panel.scanToJoin")}</span>
         <button 
           className="qr-close" 
           onClick={onClose} 

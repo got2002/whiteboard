@@ -1,104 +1,10 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { useI18n } from "../i18n/i18n";
 
 // ==========================================
 // Labels (Thai & English)
 // ==========================================
-const LABELS = {
-  TH: {
-    title: 'การเคลื่อนที่แบบโปรเจกไทล์',
-    angle: 'มุมยิง',
-    velocity: 'ความเร็วต้น',
-    gravity: 'แรงโน้มถ่วง',
-    fire: '🚀 ยิง!',
-    reset: '🔄 รีเซ็ต',
-    pause: '⏸ หยุด',
-    play: '▶ เล่น',
-    maxHeight: 'ความสูงสูงสุด',
-    range: 'ระยะไกลสุด',
-    flightTime: 'เวลาบิน',
-    currentPos: 'ตำแหน่งปัจจุบัน',
-    formula: 'สูตร',
-    mode_free: '🎮 โหมดอิสระ',
-    mode_challenge: '🎯 โหมดท้าทาย',
-    mode_quiz: '📝 โหมดทดสอบ',
-    close: 'ปิด',
-    earth: 'โลก',
-    moon: 'ดวงจันทร์',
-    mars: 'ดาวอังคาร',
-    jupiter: 'ดาวพฤหัสบดี',
-    noGravity: 'ไร้แรงโน้มถ่วง',
-    target: 'เป้าหมาย',
-    hit: '🎉 ยอดเยี่ยม! ยิงโดนเป้า!',
-    miss: '😅 พลาด! ลองอีกครั้ง',
-    attempts: 'ครั้งที่ยิง',
-    challengeQ: 'ยิงให้โดนเป้าที่',
-    m: 'ม.',
-    s: 'วินาที',
-    ms: 'ม./วิ',
-    deg: '°',
-    score: 'คะแนน',
-    quizQ1: 'ถ้ายิงด้วยมุม 45° ความเร็ว 50 m/s จะได้ระยะเท่าไร?',
-    quizQ2: 'มุมใดให้ระยะไกลที่สุด?',
-    quizQ3: 'ถ้าเพิ่มความเร็วต้นเป็น 2 เท่า ระยะจะเพิ่มเป็นกี่เท่า?',
-    quizQ4: 'แรงโน้มถ่วงมีผลต่อการเคลื่อนที่ในแนวใด?',
-    quizQ5: 'มุม 30° และมุม 60° ให้ระยะเท่ากันเพราะอะไร?',
-    correct: '✅ ถูกต้อง!',
-    wrong: '❌ ไม่ถูก! คำตอบคือ',
-    finish: '🎉 เสร็จสิ้น!',
-    congrats: 'คุณได้คะแนน',
-    nextQ: 'ข้อถัดไป',
-    showFormulas: '📐 แสดงสูตร',
-    hideFormulas: '📐 ซ่อนสูตร',
-    trail: 'เส้นทาง',
-  },
-  EN: {
-    title: 'Projectile Motion',
-    angle: 'Launch Angle',
-    velocity: 'Initial Velocity',
-    gravity: 'Gravity',
-    fire: '🚀 Fire!',
-    reset: '🔄 Reset',
-    pause: '⏸ Pause',
-    play: '▶ Play',
-    maxHeight: 'Max Height',
-    range: 'Range',
-    flightTime: 'Flight Time',
-    currentPos: 'Current Position',
-    formula: 'Formulas',
-    mode_free: '🎮 Free Mode',
-    mode_challenge: '🎯 Challenge',
-    mode_quiz: '📝 Quiz',
-    close: 'Close',
-    earth: 'Earth',
-    moon: 'Moon',
-    mars: 'Mars',
-    jupiter: 'Jupiter',
-    noGravity: 'No Gravity',
-    target: 'Target',
-    hit: '🎉 Excellent! Target hit!',
-    miss: '😅 Missed! Try again',
-    attempts: 'Attempts',
-    challengeQ: 'Hit the target at',
-    m: 'm',
-    s: 's',
-    ms: 'm/s',
-    deg: '°',
-    score: 'Score',
-    quizQ1: 'If launched at 45° with 50 m/s, what is the range?',
-    quizQ2: 'Which angle gives maximum range?',
-    quizQ3: 'If initial velocity doubles, range increases by?',
-    quizQ4: 'Gravity affects motion in which direction?',
-    quizQ5: 'Why do 30° and 60° give the same range?',
-    correct: '✅ Correct!',
-    wrong: '❌ Wrong! The answer is',
-    finish: '🎉 Finished!',
-    congrats: 'Your score is',
-    nextQ: 'Next',
-    showFormulas: '📐 Show Formulas',
-    hideFormulas: '📐 Hide Formulas',
-    trail: 'Trail',
-  },
-};
+
 
 const GRAVITY_PRESETS = [
   { id: 'earth', g: 9.81, emoji: '🌍' },
@@ -252,7 +158,7 @@ document.head.appendChild(projStyle);
 // Main Component
 // ==========================================
 export default function CustomProjectileMotionLab({ onClose }) {
-  const [lang, setLang] = useState('TH');
+  const { t } = useI18n();
   const [mode, setMode] = useState('free'); // free, challenge, quiz
   const [angle, setAngle] = useState(45);
   const [velocity, setVelocity] = useState(50);
@@ -455,9 +361,7 @@ export default function CustomProjectileMotionLab({ onClose }) {
           <button onClick={() => setShowFormulas(!showFormulas)} style={{ background: showFormulas ? '#6366f1' : '#334155', border: 'none', color: 'white', padding: '4px 10px', borderRadius: 16, cursor: 'pointer', fontSize: 11, fontWeight: 'bold' }}>
             {showFormulas ? L.hideFormulas : L.showFormulas}
           </button>
-          <button onClick={() => setLang(lang === 'TH' ? 'EN' : 'TH')} style={{ background: '#334155', border: 'none', color: 'white', padding: '4px 12px', borderRadius: 16, cursor: 'pointer', fontSize: 11, fontWeight: 'bold' }}>
-            {lang === 'TH' ? 'TH → EN' : 'EN → TH'}
-          </button>
+          
           <button onClick={onClose} style={{ background: '#ef4444', border: 'none', color: 'white', padding: '4px 12px', borderRadius: 16, cursor: 'pointer', fontSize: 12, fontWeight: 'bold' }}>{L.close}</button>
         </div>
       </div>

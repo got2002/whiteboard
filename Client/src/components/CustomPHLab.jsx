@@ -1,45 +1,46 @@
 import React, { useState, useEffect } from "react";
+import { useI18n } from "../i18n/i18n";
 
 const SUBSTANCES = [
-  { id: 'water', ph: 7.0, name: { en: 'Water', th: 'น้ำเปล่า' } },
-  { id: 'lemon', ph: 2.2, name: { en: 'Lemon Juice', th: 'น้ำมะนาว' } },
-  { id: 'coffee', ph: 5.0, name: { en: 'Coffee', th: 'กาแฟดำ' } },
-  { id: 'milk', ph: 6.6, name: { en: 'Milk', th: 'นมสด' } },
-  { id: 'blood', ph: 7.4, name: { en: 'Blood', th: 'เลือด' } },
-  { id: 'soap', ph: 9.5, name: { en: 'Hand Soap', th: 'สบู่ล้างมือ' } },
-  { id: 'bleach', ph: 12.5, name: { en: 'Bleach', th: 'น้ำยาซักผ้าขาว' } },
+  { id: 'water', ph: 7.0 },
+  { id: 'lemon', ph: 2.2 },
+  { id: 'coffee', ph: 5.0 },
+  { id: 'milk', ph: 6.6 },
+  { id: 'blood', ph: 7.4 },
+  { id: 'soap', ph: 9.5 },
+  { id: 'bleach', ph: 12.5 },
 ];
 
 const CHALLENGES = [
   { 
     id: 1, substance: 'water', targetMin: 11, targetMax: 14,
-    title: { en: 'Level 1: Basic Solution', th: 'ด่าน 1: สร้างสารละลายด่าง' },
-    desc: { en: 'Make the solution highly basic (pH > 11).', th: 'เติมสารเพื่อให้ได้สารละลายที่มีฤทธิ์เป็นด่างแก่ (pH > 11)' }
+    title: 'Level 1: Basic Solution',
+    desc: 'Make the solution highly basic (pH > 11).'
   },
   { 
     id: 2, substance: 'lemon', targetMin: 6.8, targetMax: 7.2,
-    title: { en: 'Level 2: Neutralize Acid', th: 'ด่าน 2: สะเทินกรด' },
-    desc: { en: 'Neutralize the Lemon Juice to reach pH 7.0.', th: 'ทำให้ความเป็นกรดในน้ำมะนาวกลายเป็นกลาง (pH ~7.0)' }
+    title: 'Level 2: Neutralize Acid',
+    desc: 'Neutralize the Lemon Juice to reach pH 7.0.'
   },
   { 
     id: 3, substance: 'soap', targetMin: 0, targetMax: 3,
-    title: { en: 'Level 3: Highly Acidic', th: 'ด่าน 3: สร้างกรดแก่' },
-    desc: { en: 'Turn the soap highly acidic (pH < 3).', th: 'เปลี่ยนสบู่ล้างมือให้กลายเป็นกรดแก่ (pH < 3)' }
+    title: 'Level 3: Highly Acidic',
+    desc: 'Turn the soap highly acidic (pH < 3).'
   },
   { 
     id: 4, substance: 'coffee', targetMin: 6.8, targetMax: 7.2,
-    title: { en: 'Level 4: Neutralize Coffee', th: 'ด่าน 4: สะเทินกรดอ่อน' },
-    desc: { en: 'Neutralize the Coffee to reach pH 7.0.', th: 'ทำให้ความเป็นกรดในกาแฟดำกลายเป็นกลาง (pH ~7.0)' }
+    title: 'Level 4: Neutralize Coffee',
+    desc: 'Neutralize the Coffee to reach pH 7.0.'
   },
   { 
     id: 5, substance: 'bleach', targetMin: 6.8, targetMax: 7.2,
-    title: { en: 'Level 5: Neutralize Base', th: 'ด่าน 5: สะเทินด่างแก่' },
-    desc: { en: 'Neutralize the Bleach to reach pH 7.0.', th: 'ทำให้น้ำยาซักผ้าขาวกลายเป็นกลาง (pH ~7.0)' }
+    title: 'Level 5: Neutralize Base',
+    desc: 'Neutralize the Bleach to reach pH 7.0.'
   },
 ];
 
 export default function CustomPHLab({ onClose }) {
-  const [lang, setLang] = useState('th');
+  const { t } = useI18n();
   const [mode, setMode] = useState('free'); // 'free' or 'challenge'
   const [level, setLevel] = useState(0);
   const [challengeSuccess, setChallengeSuccess] = useState(false);
@@ -49,27 +50,6 @@ export default function CustomPHLab({ onClose }) {
   const [addedBase, setAddedBase] = useState(0);
   const [addedWater, setAddedWater] = useState(0);
   const [isDropping, setIsDropping] = useState(null);
-
-  const t = {
-    title: { en: 'pH Scale & Acid-Base Lab', th: 'ห้องทดลอง กรด-ด่าง และค่า pH' },
-    desc: { en: 'Test everyday substances and mix them with acids or bases.', th: 'ทดสอบค่า pH ของสารรอบตัว และลองผสมกับกรดหรือด่าง' },
-    modeFree: { en: 'Free Mode', th: 'โหมดอิสระ' },
-    modeChallenge: { en: 'Challenge Mode', th: 'โหมดแบบทดสอบ' },
-    substances: { en: '1. Choose Substance (100mL)', th: '1. เลือกสารตั้งต้น (100 มล.)' },
-    addLiquids: { en: '2. Add Liquids', th: '2. เติมสารละลาย' },
-    addAcid: { en: '+10 mL Acid (HCl)', th: '+10 มล. กรด (HCl)' },
-    addWater: { en: '+10 mL Water (H₂O)', th: '+10 มล. น้ำเปล่า (H₂O)' },
-    addBase: { en: '+10 mL Base (NaOH)', th: '+10 มล. ด่าง (NaOH)' },
-    totalVol: { en: 'Total Volume:', th: 'ปริมาตรทั้งหมด:' },
-    reset: { en: 'Empty Beaker', th: 'เททิ้ง / เริ่มใหม่' },
-    indicator: { en: 'Universal Indicator Scale', th: 'แถบสีอินดิเคเตอร์สากล' },
-    acid: { en: 'Acid', th: 'กรด' },
-    neutral: { en: 'Neutral', th: 'กลาง' },
-    base: { en: 'Base', th: 'ด่าง' },
-    targetPH: { en: 'Target pH:', th: 'เป้าหมาย pH:' },
-    success: { en: 'Success! You completed the challenge. 🎉', th: 'สำเร็จ! คุณผ่านด่านนี้แล้ว 🎉' },
-    nextLevel: { en: 'Next Level ➡️', th: 'ด่านถัดไป ➡️' }
-  };
 
   const initialVolume = 100;
   const maxVolume = 500;
@@ -165,10 +145,10 @@ export default function CustomPHLab({ onClose }) {
       <div style={{ padding: '15px 20px', borderBottom: '1px solid rgba(255,255,255,0.1)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <div>
           <h2 style={{ margin: 0, fontSize: '22px', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '10px' }}>
-            <span style={{ fontSize: '24px' }}>🧪</span> {t.title[lang]}
+            <span style={{ fontSize: '24px' }}>🧪</span> {t('lab.ph.title')}
           </h2>
           <p style={{ margin: '5px 0 0 0', color: '#94a3b8', fontSize: '13px' }}>
-            {t.desc[lang]}
+            {t('lab.ph.desc')}
           </p>
         </div>
         
@@ -177,16 +157,16 @@ export default function CustomPHLab({ onClose }) {
           
           <div style={{ background: 'rgba(255,255,255,0.05)', borderRadius: '20px', display: 'flex', padding: '4px', border: '1px solid rgba(255,255,255,0.1)' }}>
             <button onClick={() => toggleMode('free')} style={{ background: mode === 'free' ? '#3b82f6' : 'transparent', color: mode === 'free' ? 'white' : '#94a3b8', border: 'none', borderRadius: '16px', padding: '6px 16px', fontSize: '13px', cursor: 'pointer', fontWeight: 'bold', transition: 'all 0.2s' }}>
-              {t.modeFree[lang]}
+              {t('lab.ph.modeFree')}
             </button>
             <button onClick={() => toggleMode('challenge')} style={{ background: mode === 'challenge' ? '#f59e0b' : 'transparent', color: mode === 'challenge' ? 'white' : '#94a3b8', border: 'none', borderRadius: '16px', padding: '6px 16px', fontSize: '13px', cursor: 'pointer', fontWeight: 'bold', transition: 'all 0.2s' }}>
-              {t.modeChallenge[lang]}
+              {t('lab.ph.modeChallenge')}
             </button>
           </div>
 
           <div style={{ background: 'rgba(255,255,255,0.1)', borderRadius: '20px', display: 'flex', padding: '3px' }}>
-            <button onClick={() => setLang('th')} style={{ background: lang === 'th' ? '#64748b' : 'transparent', color: 'white', border: 'none', borderRadius: '16px', padding: '4px 12px', fontSize: '12px', cursor: 'pointer', fontWeight: 'bold' }}>TH</button>
-            <button onClick={() => setLang('en')} style={{ background: lang === 'en' ? '#64748b' : 'transparent', color: 'white', border: 'none', borderRadius: '16px', padding: '4px 12px', fontSize: '12px', cursor: 'pointer', fontWeight: 'bold' }}>EN</button>
+            
+            
           </div>
           
           <button onClick={onClose} style={{ background: 'transparent', border: 'none', color: '#94a3b8', cursor: 'pointer', padding: '5px' }}>
@@ -203,7 +183,7 @@ export default function CustomPHLab({ onClose }) {
           
           {mode === 'free' && (
             <div style={{ background: 'rgba(255,255,255,0.05)', borderRadius: '12px', padding: '15px' }}>
-              <h3 style={{ margin: '0 0 10px 0', fontSize: '14px', color: '#cbd5e1' }}>{t.substances[lang]}</h3>
+              <h3 style={{ margin: '0 0 10px 0', fontSize: '14px', color: '#cbd5e1' }}>{t('lab.ph.substances')}</h3>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
                 {SUBSTANCES.map(s => (
                   <button 
@@ -216,7 +196,7 @@ export default function CustomPHLab({ onClose }) {
                       padding: '8px 12px', borderRadius: '6px', textAlign: 'left', cursor: 'pointer', fontSize: '13px'
                     }}
                   >
-                    {s.name[lang]} (pH ~{s.ph})
+                    {t('lab.ph.sub_' + s.id)} (pH ~{s.ph})
                   </button>
                 ))}
               </div>
@@ -226,11 +206,11 @@ export default function CustomPHLab({ onClose }) {
           {mode === 'challenge' && (
             <div style={{ background: 'rgba(245, 158, 11, 0.1)', border: '1px solid rgba(245, 158, 11, 0.3)', borderRadius: '12px', padding: '15px' }}>
               <div style={{ display: 'inline-block', background: '#f59e0b', color: '#000', fontSize: '10px', fontWeight: 'bold', padding: '3px 8px', borderRadius: '10px', marginBottom: '8px', textTransform: 'uppercase' }}>
-                {activeChallenge.title[lang]}
+                {t('lab.ph.challenge_' + activeChallenge.id + '_title')}
               </div>
-              <h3 style={{ margin: '0 0 10px 0', fontSize: '15px', color: '#fcd34d' }}>{activeChallenge.desc[lang]}</h3>
+              <h3 style={{ margin: '0 0 10px 0', fontSize: '15px', color: '#fcd34d' }}>{t('lab.ph.challenge_' + activeChallenge.id + '_desc')}</h3>
               <div style={{ background: 'rgba(0,0,0,0.3)', padding: '10px', borderRadius: '8px', border: '1px dashed #f59e0b' }}>
-                <span style={{ fontSize: '12px', color: '#fbbf24' }}>{t.targetPH[lang]} </span>
+                <span style={{ fontSize: '12px', color: '#fbbf24' }}>{t('lab.ph.targetPH')} </span>
                 <span style={{ fontSize: '16px', fontWeight: 'bold', color: 'white' }}>{activeChallenge.targetMin} - {activeChallenge.targetMax}</span>
               </div>
             </div>
@@ -238,36 +218,36 @@ export default function CustomPHLab({ onClose }) {
 
           {/* Add Liquids */}
           <div style={{ background: 'rgba(255,255,255,0.05)', borderRadius: '12px', padding: '15px' }}>
-            <h3 style={{ margin: '0 0 15px 0', fontSize: '14px', color: '#cbd5e1' }}>{t.addLiquids[lang]}</h3>
+            <h3 style={{ margin: '0 0 15px 0', fontSize: '14px', color: '#cbd5e1' }}>{t('lab.ph.addLiquids')}</h3>
             
             <button onClick={() => handleAdd('acid')} disabled={totalVolML >= maxVolume || challengeSuccess} style={{ width: '100%', padding: '10px', marginBottom: '8px', borderRadius: '8px', border: '1px solid #ef4444', background: 'rgba(239, 68, 68, 0.1)', color: '#ef4444', fontWeight: 'bold', cursor: challengeSuccess ? 'not-allowed' : 'pointer', transition: 'all 0.2s', fontSize: '13px', opacity: (totalVolML >= maxVolume || challengeSuccess) ? 0.5 : 1 }}>
-              {t.addAcid[lang]}
+              {t('lab.ph.addAcid')}
             </button>
             <button onClick={() => handleAdd('water')} disabled={totalVolML >= maxVolume || challengeSuccess} style={{ width: '100%', padding: '10px', marginBottom: '8px', borderRadius: '8px', border: '1px solid #3b82f6', background: 'rgba(59, 130, 246, 0.1)', color: '#3b82f6', fontWeight: 'bold', cursor: challengeSuccess ? 'not-allowed' : 'pointer', transition: 'all 0.2s', fontSize: '13px', opacity: (totalVolML >= maxVolume || challengeSuccess) ? 0.5 : 1 }}>
-              {t.addWater[lang]}
+              {t('lab.ph.addWater')}
             </button>
             <button onClick={() => handleAdd('base')} disabled={totalVolML >= maxVolume || challengeSuccess} style={{ width: '100%', padding: '10px', marginBottom: '15px', borderRadius: '8px', border: '1px solid #8b5cf6', background: 'rgba(139, 92, 246, 0.1)', color: '#8b5cf6', fontWeight: 'bold', cursor: challengeSuccess ? 'not-allowed' : 'pointer', transition: 'all 0.2s', fontSize: '13px', opacity: (totalVolML >= maxVolume || challengeSuccess) ? 0.5 : 1 }}>
-              {t.addBase[lang]}
+              {t('lab.ph.addBase')}
             </button>
 
             <div style={{ fontSize: '13px', color: '#94a3b8', display: 'flex', justifyContent: 'space-between' }}>
-              <span>{t.totalVol[lang]}</span>
+              <span>{t('lab.ph.totalVol')}</span>
               <span style={{ color: 'white', fontWeight: 'bold' }}>{Math.round(totalVolML)} mL</span>
             </div>
             
             <button onClick={resetLab} style={{ width: '100%', padding: '10px', marginTop: '15px', borderRadius: '8px', border: 'none', background: '#334155', color: 'white', cursor: 'pointer', fontSize: '13px' }}>
-              {t.reset[lang]}
+              {t('lab.ph.reset')}
             </button>
           </div>
 
           {/* pH Scale Legend */}
           <div style={{ background: 'rgba(255,255,255,0.05)', borderRadius: '12px', padding: '15px' }}>
-            <h3 style={{ margin: '0 0 10px 0', fontSize: '13px', color: '#cbd5e1' }}>{t.indicator[lang]}</h3>
+            <h3 style={{ margin: '0 0 10px 0', fontSize: '13px', color: '#cbd5e1' }}>{t('lab.ph.indicator')}</h3>
             <div style={{ display: 'flex', height: '16px', borderRadius: '4px', background: 'linear-gradient(to right, #ff0000, #ff8c00, #ffd700, #00ff00, #00ced1, #0000ff, #8a2be2)' }}></div>
             <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px', color: '#64748b', marginTop: '5px' }}>
-              <span>0 ({t.acid[lang]})</span>
-              <span>7 ({t.neutral[lang]})</span>
-              <span>14 ({t.base[lang]})</span>
+              <span>0 ({t('lab.ph.acid')})</span>
+              <span>7 ({t('lab.ph.neutral')})</span>
+              <span>14 ({t('lab.ph.base')})</span>
             </div>
           </div>
         </div>
@@ -280,13 +260,13 @@ export default function CustomPHLab({ onClose }) {
             <div style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.7)', zIndex: 50, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', borderRadius: '12px', backdropFilter: 'blur(4px)' }}>
               <div style={{ background: '#1e293b', border: '2px solid #10b981', borderRadius: '16px', padding: '30px', textAlign: 'center', boxShadow: '0 20px 40px rgba(0,0,0,0.5)', maxWidth: '400px' }}>
                 <div style={{ fontSize: '60px', marginBottom: '10px' }}>🎉</div>
-                <h2 style={{ color: '#10b981', margin: '0 0 10px 0' }}>{t.success[lang]}</h2>
+                <h2 style={{ color: '#10b981', margin: '0 0 10px 0' }}>{t('lab.ph.success')}</h2>
                 <p style={{ color: '#cbd5e1', marginBottom: '20px' }}>
                   {lang === 'th' ? 'คุณผสมสารจนได้ค่า pH ที่ตรงตามเป้าหมายแล้ว!' : 'You successfully reached the target pH!'}
                 </p>
                 {level < CHALLENGES.length - 1 ? (
                   <button onClick={() => loadChallenge(level + 1)} style={{ background: '#10b981', color: 'white', border: 'none', padding: '12px 24px', borderRadius: '8px', fontSize: '16px', fontWeight: 'bold', cursor: 'pointer', transition: 'background 0.2s' }}>
-                    {t.nextLevel[lang]}
+                    {t('lab.ph.nextLevel')}
                   </button>
                 ) : (
                   <div style={{ color: '#f59e0b', fontWeight: 'bold', fontSize: '18px' }}>
@@ -311,9 +291,9 @@ export default function CustomPHLab({ onClose }) {
               {lang === 'th' ? 'สารละลายในบีกเกอร์:' : 'Beaker Contents:'} 
               <span style={{ color: 'white', fontWeight: 'bold', marginLeft: '5px' }}>
                 {SUBSTANCES.find(s => s.id === currentSubstance)?.name[lang]} (100mL)
-                {addedAcid > 0 && ` + ${t.acid[lang]} (${addedAcid}mL)`}
+                {addedAcid > 0 && ` + ${t('lab.ph.acid')} (${addedAcid}mL)`}
                 {addedWater > 0 && ` + H₂O (${addedWater}mL)`}
-                {addedBase > 0 && ` + ${t.base[lang]} (${addedBase}mL)`}
+                {addedBase > 0 && ` + ${t('lab.ph.base')} (${addedBase}mL)`}
               </span>
             </div>
             <div style={{ background: 'rgba(0,0,0,0.6)', padding: '6px 12px', borderRadius: '20px', fontSize: '12px', color: 'white', border: `1px solid ${liquidColor}`, display: 'flex', alignItems: 'center', gap: '8px' }}>

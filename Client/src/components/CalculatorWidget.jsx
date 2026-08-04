@@ -1,3 +1,4 @@
+import { useI18n } from "../i18n/i18n";
 // ============================================================
 // CalculatorWidget.jsx — Scientific Calculator (Floating Widget)
 // ============================================================
@@ -42,6 +43,7 @@ function factorial(n) {
 // CalculatorWidget Component
 // ============================================================
 export default function CalculatorWidget({ onClose }) {
+    const { t } = useI18n();
     const [display, setDisplay] = useState("0");
     const [expression, setExpression] = useState("");
     const [prevResult, setPrevResult] = useState(null);
@@ -389,7 +391,7 @@ export default function CalculatorWidget({ onClose }) {
                             <text x="4" y="18" fontSize="16" fill="currentColor" stroke="none" fontStyle="italic" fontFamily="serif">fx</text>
                         </svg>
                     </button>
-                    <button className="calc-close-btn" onClick={onClose} title="ปิดเครื่องคิดเลข">
+                    <button className="calc-close-btn" onClick={onClose} title={t("widget.closeCalc")}>
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
                             <path d="M18 6L6 18M6 6l12 12" />
                         </svg>
@@ -460,7 +462,7 @@ export default function CalculatorWidget({ onClose }) {
                 <div className="calc-history">
                     <div className="calc-history-title">
                         <span>History</span>
-                        <button onClick={() => setHistory([])} title="ล้างประวัติ">✕</button>
+                        <button onClick={() => setHistory([])} title={t("widget.clearHistory")}>✕</button>
                     </div>
                     <div className="calc-history-list">
                         {history.slice().reverse().map((h, i) => (

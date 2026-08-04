@@ -1,0 +1,236 @@
+AiSolutionWidget.jsx:4 -> // แผง AI สำหรับสร้างเนื้อหาและแปลภาษา (Host/Teacher only)
+AiSolutionWidget.jsx:5 -> // รองรับ Generate + Translate + Canvas Capture
+AiSolutionWidget.jsx:12 -> // Server URL — ใช้วิธีเดียวกับ socket.js
+AiSolutionWidget.jsx:18 -> // Quick Actions — คำสั่งด่วนสำหรับ Generate tab
+AiSolutionWidget.jsx:21 -> { id: "explain", label: "อธิบาย", prompt: "อธิบายเนื้อหาในภาพนี้อย่างละเอียด", promptNoImage: "อธิบายเรื่อง: " },
+AiSolutionWidget.jsx:22 -> { id: "summarize", label: "สรุป", prompt: "สรุปเนื้อหาในภาพนี้ให้กระชับ", promptNoImage: "สรุปเรื่อง: " },
+AiSolutionWidget.jsx:23 -> { id: "quiz", label: "สร้างคำถาม", prompt: "สร้างคำถาม 5 ข้อจากเนื้อหาในภาพนี้ พร้อมเฉลย", promptNoImage: "สร้างคำถาม 5 ข้อเกี่ยวกับ: " },
+AiSolutionWidget.jsx:24 -> { id: "suggest", label: "แนะนำ", prompt: "แนะนำแนวทางการสอนเนื้อหาในภาพนี้", promptNoImage: "แนะนำแนวทางสอนเรื่อง: " },
+AiSolutionWidget.jsx:25 -> { id: "analyze", label: "วิเคราะห์", prompt: "วิเคราะห์เนื้อหาในภาพนี้", promptNoImage: "วิเคราะห์เรื่อง: " },
+AiSolutionWidget.jsx:26 -> { id: "check", label: "ตรวจ", prompt: "ตรวจสอบความถูกต้องของเนื้อหาในภาพนี้", promptNoImage: "ตรวจสอบ: " },
+AiSolutionWidget.jsx:30 -> // Languages — ภาษาสำหรับ Translate tab
+AiSolutionWidget.jsx:34 -> { code: "th", flag: "🇹🇭", label: "ไทย" },
+AiSolutionWidget.jsx:67 -> // ── Draggable — ใช้ useDraggable hook เหมือน CalculatorWidget ──
+AiSolutionWidget.jsx:74 -> // Canvas Capture — จับภาพจาก Canvas (bg + fg layers)
+AiSolutionWidget.jsx:99 -> // API: Generate — ส่งคำสั่งไปยัง AI
+AiSolutionWidget.jsx:122 -> detail: { message: "AI กำลังยุ่งหรือเซิร์ฟเวอร์มีปัญหา กรุณาลองใหม่ครับ", type: "error" }
+AiSolutionWidget.jsx:130 -> // API: Translate — แปลภาษา
+AiSolutionWidget.jsx:153 -> detail: { message: "AI กำลังยุ่งหรือเซิร์ฟเวอร์แปลภาษามีปัญหา กรุณาลองใหม่ครับ", type: "error" }
+AiSolutionWidget.jsx:161 -> // Submit — เลือก generate หรือ translate ตาม tab
+AiSolutionWidget.jsx:172 -> // Quick Action — ตั้งค่า prompt ด่วน
+AiSolutionWidget.jsx:193 -> // Copy Result — คัดลอกผลลัพธ์
+AiSolutionWidget.jsx:208 -> // Insert to Board — วางผลลัพธ์ลงบอร์ด
+AiSolutionWidget.jsx:218 -> // Clear captured image — ลบภาพที่จับ
+AiSolutionWidget.jsx:250 -> title={isMinimized ? "ขยาย" : "ย่อ"}
+AiSolutionWidget.jsx:264 -> title="ปิด AI Solution"
+AiSolutionWidget.jsx:282 -> <span>สร้างเนื้อหา</span>
+AiSolutionWidget.jsx:288 -> <span>แปลภาษา</span>
+AiSolutionWidget.jsx:299 -> title="จับภาพจากกระดาน"
+AiSolutionWidget.jsx:305 -> <span>จับภาพกระดาน</span>
+AiSolutionWidget.jsx:311 -> title="อัปโหลดรูปภาพ"
+AiSolutionWidget.jsx:318 -> <span>อัปโหลดรูป</span>
+AiSolutionWidget.jsx:327 -> title="ลบภาพ"
+AiSolutionWidget.jsx:344 -> ? "พิมพ์คำสั่ง... เช่น อธิบายเรื่องนี้, สร้างแบบฝึกหัด"
+AiSolutionWidget.jsx:345 -> : "พิมพ์ข้อความที่ต้องการแปล..."
+AiSolutionWidget.jsx:398 -> <span>กำลังประมวลผล...</span>
+AiSolutionWidget.jsx:406 -> <span>{activeTab === "generate" ? "ส่งคำสั่ง" : "แปลภาษา"}</span>
+AiSolutionWidget.jsx:421 -> <span>กำลังประมวลผล... กรุณารอสักครู่</span>
+AiSolutionWidget.jsx:427 -> <span>ผลลัพธ์</span>
+AiSolutionWidget.jsx:438 -> title="คัดลอกผลลัพธ์"
+AiSolutionWidget.jsx:445 -> <span>คัดลอกแล้ว!</span>
+AiSolutionWidget.jsx:453 -> <span>คัดลอก</span>
+AiSolutionWidget.jsx:460 -> title="วางผลลัพธ์ลงบอร์ด"
+AiSolutionWidget.jsx:467 -> <span>วางลงบอร์ด</span>
+BannerWidget.jsx:2 -> // BannerWidget.jsx — Banner อักษรวิ่ง (Scrolling Text Marquee)
+BannerWidget.jsx:4 -> // แถบข้อความเลื่อนวิ่งแบบ LED / News Ticker
+BannerWidget.jsx:5 -> // ครูตั้งค่าข้อความ, สี, ความเร็ว, ตำแหน่ง แล้วแสดงบนกระดาน
+BannerWidget.jsx:13 -> { id: "classic", label: "คลาสสิก", bg: "#0a0a0a", text: "#fbbf24", glow: "rgba(251,191,36,0.3)" },
+BannerWidget.jsx:14 -> { id: "neon_red", label: "นีออนแดง", bg: "#1a0005", text: "#ff3b3b", glow: "rgba(255,59,59,0.4)" },
+BannerWidget.jsx:15 -> { id: "neon_blue", label: "นีออนฟ้า", bg: "#000a1a", text: "#00d4ff", glow: "rgba(0,212,255,0.4)" },
+BannerWidget.jsx:16 -> { id: "neon_green", label: "นีออนเขียว", bg: "#001a0a", text: "#00ff88", glow: "rgba(0,255,136,0.4)" },
+BannerWidget.jsx:17 -> { id: "sunset", label: "พระอาทิตย์", bg: "linear-gradient(90deg,#1a0505,#2d1810,#1a0505)", text: "#ff9f43", glow: "rgba(255,159,67,0.3)" },
+BannerWidget.jsx:19 -> { id: "alert", label: "แจ้งเตือน", bg: "#1c1c00", text: "#facc15", glow: "rgba(250,204,21,0.4)" },
+BannerWidget.jsx:20 -> { id: "white", label: "สว่าง", bg: "rgba(255,255,255,0.95)", text: "#1e293b", glow: "none" },
+BannerWidget.jsx:24 -> { id: "slow", label: "ช้า", duration: 25 },
+BannerWidget.jsx:25 -> { id: "normal", label: "ปกติ", duration: 15 },
+BannerWidget.jsx:26 -> { id: "fast", label: "เร็ว", duration: 8 },
+BannerWidget.jsx:27 -> { id: "very_fast", label: "เร็วมาก", duration: 4 },
+BannerWidget.jsx:39 -> const [text, setText] = useState(bannerConfig?.text || "ยินดีต้อนรับสู่ห้องเรียน 🎓");
+BannerWidget.jsx:163 -> Banner อักษรวิ่ง
+BannerWidget.jsx:168 -> {/* ปุ่มย่อ (minimize) — เก็บแผงตั้งค่า แต่ Banner ยังวิ่งอยู่ */}
+BannerWidget.jsx:171 -> title="ย่อแผงตั้งค่า (Banner ยังแสดงอยู่)"
+BannerWidget.jsx:180 -> {/* ปุ่มปิด — ปิดทั้งหมด (Banner + แผงตั้งค่า) */}
+BannerWidget.jsx:183 -> title="ปิดทั้งหมด"
+BannerWidget.jsx:201 -> ข้อความ
+BannerWidget.jsx:206 -> placeholder="พิมพ์ข้อความที่ต้องการให้วิ่ง..."
+BannerWidget.jsx:223 -> 🎨 ธีมสี
+BannerWidget.jsx:247 -> ⚡ ความเร็ว
+BannerWidget.jsx:267 -> 🔤 ขนาดตัวอักษร
+BannerWidget.jsx:288 -> 📍 ตำแหน่ง
+BannerWidget.jsx:292 -> { id: "top", label: "▲ ด้านบน" },
+BannerWidget.jsx:293 -> { id: "bottom", label: "▼ ด้านล่าง" },
+BannerWidget.jsx:325 -> {text || "พิมพ์ข้อความ..."}
+BannerWidget.jsx:331 -> }}>ตัวอย่าง</div>
+BannerWidget.jsx:350 -> {isShowing ? "⏹ ปิด Banner" : "▶ แสดง Banner"}
+CalculatorWidget.jsx:4 -> // เครื่องคิดเลข Scientific ลอย ลากได้
+CalculatorWidget.jsx:5 -> // รองรับทั้งโหมด Standard และ Scientific
+CalculatorWidget.jsx:392 -> <button className="calc-close-btn" onClick={onClose} title="ปิดเครื่องคิดเลข">
+CalculatorWidget.jsx:463 -> <button onClick={() => setHistory([])} title="ล้างประวัติ">✕</button>
+GraphWidget.jsx:4 -> // สร้างกราฟจากข้อมูล: Bar, Pie, Line, Doughnut
+GraphWidget.jsx:5 -> // กรอกชื่อ + ค่า แล้วแสดงเป็นกราฟ
+MathFunctionWidget.jsx:4 -> // สร้างกราฟฟังก์ชันทางคณิตศาสตร์จากสมการ เช่น y = x^2, y = sin(x)
+MathFunctionWidget.jsx:21 -> // รองรับฟังก์ชันทางคณิตศาสตร์ครบถ้วนสำหรับการสอน
+MathToolWidget.jsx:796 -> <button onClick={(e) => { e.stopPropagation(); setRotation(r => { const nr = r + 15; updateState({ rotation: nr }); return nr; }); }} style={{ ...btnS, color: "#60a5fa" }} title="หมุน +15°">↻</button>
+MathToolWidget.jsx:797 -> <button onClick={(e) => { e.stopPropagation(); setRotation(r => { const nr = r - 15; updateState({ rotation: nr }); return nr; }); }} style={{ ...btnS, color: "#60a5fa" }} title="หมุน -15°">↺</button>
+MathToolWidget.jsx:799 -> <button onClick={handleDrawCircle} style={{ ...btnS, color: "#22c55e" }} title="วาดวงกลมเต็มวง">⭕</button>
+MathToolWidget.jsx:800 -> <button onClick={handleDrawArc} style={{ ...btnS, color: "#f59e0b" }} title="วาดส่วนโค้ง">◠</button>
+MathToolWidget.jsx:801 -> <button onClick={(e) => { e.stopPropagation(); setCompassRadius(r => { const nr = Math.max(20, r - 10); updateState({ compassRadius: nr }); return nr; }); }} style={{ ...btnS, color: "#60a5fa" }} title="ลดรัศมี">−</button>
+MathToolWidget.jsx:802 -> <button onClick={(e) => { e.stopPropagation(); setCompassRadius(r => { const nr = Math.min(300, r + 10); updateState({ compassRadius: nr }); return nr; }); }} style={{ ...btnS, color: "#60a5fa" }} title="เพิ่มรัศมี">+</button>
+MathToolWidget.jsx:804 -> {toolType === "shapes_3d" && <button onClick={toggleShape3D} style={{ ...btnS, color: "#a855f7" }} title="เปลี่ยนรูปทรง 3 มิติ">🧊</button>}
+MathToolWidget.jsx:806 -> <button onClick={(e) => { e.stopPropagation(); setShowSpinnerEdit(v => !v); }} style={{ ...btnS, color: "#3b82f6" }} title="แก้ไขชื่อ">✏️</button>
+MathToolWidget.jsx:807 -> <button onClick={(e) => { e.stopPropagation(); setSpinnerLabels(labels => labels.length > 2 ? labels.slice(0, -1) : labels); }} style={{ ...btnS, color: "#ec4899" }} title="ลดจำนวนช่อง">−</button>
+MathToolWidget.jsx:808 -> <button onClick={(e) => { e.stopPropagation(); setSpinnerLabels(labels => labels.length < 20 ? [...labels, (labels.length + 1).toString()] : labels); }} style={{ ...btnS, color: "#ec4899" }} title="เพิ่มจำนวนช่อง">+</button>
+MathToolWidget.jsx:809 -> <button onClick={spinWheel} style={{ ...btnS, color: "#a855f7" }} title="หมุนวงล้อ">🎡</button>
+MathToolWidget.jsx:812 -> <button onClick={(e) => adjClock(e, 1, 0)} style={{ ...btnS, color: "#f59e0b" }} title="+1 ชม.">H+</button>
+MathToolWidget.jsx:813 -> <button onClick={(e) => adjClock(e, 0, 5)} style={{ ...btnS, color: "#f59e0b" }} title="+5 นาที">M+</button>
+MathToolWidget.jsx:816 -> <button onClick={(e) => adjTimer(e, 60)} style={{ ...btnS, color: "#3b82f6" }} title="เพิ่ม 1 นาที">+1m</button>
+MathToolWidget.jsx:817 -> <button onClick={(e) => adjTimer(e, -60)} style={{ ...btnS, color: "#ef4444" }} title="ลด 1 นาที">-1m</button>
+MathToolWidget.jsx:818 -> <button onClick={(e) => adjTimer(e, 10)} style={{ ...btnS, color: "#3b82f6" }} title="เพิ่ม 10 วินาที">+10s</button>
+MathToolWidget.jsx:819 -> <button onClick={(e) => adjTimer(e, -10)} style={{ ...btnS, color: "#ef4444" }} title="ลด 10 วินาที">-10s</button>
+MathToolWidget.jsx:821 -> <button onClick={(e) => { e.stopPropagation(); onClose(toolId); }} style={{ ...btnS, color: "#ef4444", fontSize: 13 }} title="ปิด">✕</button>
+MathToolWidget.jsx:830 -> <div style={{ fontSize: 12, fontWeight: "bold", marginBottom: 8, color: "#334155" }}>แก้ไขชื่อ (1 บรรทัดต่อ 1 ช่อง)</div>
+MathToolWidget.jsx:842 -> ตกลง
+MathToolWidget.jsx:856 -> <div style={{ position: "absolute", right: -28, top: "50%", transform: "translateY(-50%)", width: 24, height: 24, cursor: "grab", background: "#f1f5f9", border: "1px solid #cbd5e1", borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 4, boxShadow: "0 1px 3px rgba(0,0,0,0.1)", touchAction: "none" }} onPointerDown={(e) => { e.stopPropagation(); startRotate(e); }} title="หมุนเครื่องมือ">
+TableWidget.jsx:12 -> { id: "none", name: "ไม่มี", headerBg: "", headerColor: "", stripeBg: "", borderColor: "" },
+TableWidget.jsx:13 -> { id: "blue", name: "ฟ้าคลาสสิก", headerBg: "#3b82f6", headerColor: "#fff", stripeBg: "#eff6ff", borderColor: "#bfdbfe" },
+TableWidget.jsx:14 -> { id: "dark", name: "มืดโปร", headerBg: "#1e293b", headerColor: "#f1f5f9", stripeBg: "#f8fafc", borderColor: "#cbd5e1" },
+TableWidget.jsx:15 -> { id: "green", name: "เขียวมรกต", headerBg: "#059669", headerColor: "#fff", stripeBg: "#ecfdf5", borderColor: "#a7f3d0" },
+TableWidget.jsx:16 -> { id: "warm", name: "ส้มอุ่น", headerBg: "#ea580c", headerColor: "#fff", stripeBg: "#fff7ed", borderColor: "#fed7aa" },
+TableWidget.jsx:17 -> { id: "purple", name: "ม่วงสง่า", headerBg: "#7c3aed", headerColor: "#fff", stripeBg: "#f5f3ff", borderColor: "#c4b5fd" },
+TableWidget.jsx:18 -> { id: "minimal", name: "มินิมอล", headerBg: "#f1f5f9", headerColor: "#1e293b", stripeBg: "", borderColor: "#e2e8f0" },
+TableWidget.jsx:34 -> <div className="table-picker-title">สร้างตาราง</div>
+TableWidget.jsx:47 -> <div className="table-picker-custom-label">กำหนดเอง</div>
+TableWidget.jsx:50 -> type="number" min={MIN_SZ} max={MAX_SZ} placeholder="แถว"
+TableWidget.jsx:57 -> type="number" min={MIN_SZ} max={MAX_SZ} placeholder="คอลัมน์"
+TableWidget.jsx:65 -> สร้าง
+TableWidget.jsx:306 -> <button className={`ct-btn ${selCell?.bold ? "ct-btn-on" : ""}`} onClick={() => toggleProp("bold")} title="ตัวหนา"><b>B</b></button>
+TableWidget.jsx:307 -> <button className={`ct-btn ${selCell?.italic ? "ct-btn-on" : ""}`} onClick={() => toggleProp("italic")} title="ตัวเอียง"><i>I</i></button>
+TableWidget.jsx:308 -> <button className={`ct-btn ${selCell?.underline ? "ct-btn-on" : ""}`} onClick={() => toggleProp("underline")} title="ขีดเส้นใต้"><u>U</u></button>
+TableWidget.jsx:312 -> <button className={`ct-btn ${selCell?.align === "left" || !selCell?.align ? "ct-btn-on" : ""}`} onClick={() => setCellProp("align", "left")} title="ชิดซ้าย">
+TableWidget.jsx:315 -> <button className={`ct-btn ${selCell?.align === "center" ? "ct-btn-on" : ""}`} onClick={() => setCellProp("align", "center")} title="กึ่งกลาง">
+TableWidget.jsx:318 -> <button className={`ct-btn ${selCell?.align === "right" ? "ct-btn-on" : ""}`} onClick={() => setCellProp("align", "right")} title="ชิดขวา">
+TableWidget.jsx:325 -> <button className="ct-btn" onClick={() => { setFontMenu(v => !v); setColorMenu(null); }} title="ขนาดตัวอักษร">
+TableWidget.jsx:341 -> <button className="ct-btn" onClick={() => { setColorMenu(v => v === "bg" ? null : "bg"); setFontMenu(false); }} title="สีพื้นหลัง"
+TableWidget.jsx:353 -> <button className="ct-row-btn" onClick={() => { if (sel) { setRowProp("bg", selCell?.bg || ""); setColorMenu(null); } }}>ทั้งแถว</button>
+TableWidget.jsx:360 -> <button className="ct-btn" onClick={() => { setColorMenu(v => v === "text" ? null : "text"); setFontMenu(false); }} title="สีตัวอักษร"
+TableWidget.jsx:374 -> <button className="ct-btn" onClick={insertImage} title="แทรกรูปในเซล" disabled={!sel}>
+TableWidget.jsx:378 -> <button className="ct-btn ct-btn-del" onClick={removeImage} title="ลบรูปจากเซล">
+TableWidget.jsx:385 -> <button className={`ct-btn ${table.data[0]?.[0]?.bold ? "ct-btn-on" : ""}`} onClick={toggleHeader} title="หัวตาราง">
+TableWidget.jsx:388 -> <button className={`ct-btn ${table.striped ? "ct-btn-on" : ""}`} onClick={toggleStripes} title="แถวสลับสี">
+TableWidget.jsx:392 -> <button className="ct-btn" onClick={() => { setStyleMenu(v => !v); setColorMenu(null); setFontMenu(false); }} title="ธีมตาราง">
+TableWidget.jsx:414 -> <button className="ct-btn" onClick={() => addRow(sr)} title="เพิ่มแถวบน">↑+</button>
+TableWidget.jsx:415 -> <button className="ct-btn" onClick={() => addRow(sr + 1)} title="เพิ่มแถวล่าง">↓+</button>
+TableWidget.jsx:416 -> <button className="ct-btn" onClick={() => delRow(sr)} title="ลบแถว" disabled={rows <= 1}>↕−</button>
+TableWidget.jsx:417 -> <button className="ct-btn" onClick={() => addCol(sc)} title="เพิ่มคอลัมน์ซ้าย">←+</button>
+TableWidget.jsx:418 -> <button className="ct-btn" onClick={() => addCol(sc + 1)} title="เพิ่มคอลัมน์ขวา">→+</button>
+TableWidget.jsx:419 -> <button className="ct-btn" onClick={() => delCol(sc)} title="ลบคอลัมน์" disabled={cols <= 1}>↔−</button>
+TableWidget.jsx:423 -> <button className="ct-btn ct-btn-del" onClick={() => onRemove(table.id)} title="ลบตาราง">✕</button>
+VideoPlayerModal.jsx:10 -> <h3>วิดีโอที่บันทึกไว้ (Recorded Video)</h3>
+VideoPlayerModal.jsx:22 -> ปิด (Close)
+VideoPlayerModal.jsx:25 -> ⬇️ ดาวน์โหลด (Download)
+SketchpadWidget.jsx:4 -> // สมุดวาดภาพขนาดเล็ก แยกการทำงานจากกระดานหลัก 100%
+ScreenshotOverlay.jsx:4 -> // แสดง overlay ทับหน้าจอให้ user ลากเลือกพื้นที่ที่ต้องการ capture
+ScreenshotOverlay.jsx:5 -> // รองรับการรับภาพพื้นหลัง bgImage (สำหรับ Desktop/App capture)
+ScreenshotOverlay.jsx:10 -> function ScreenshotOverlay({ canvasRef, pages, currentPageIndex, onClose, bgImage, onAddToBoard, onConfirm, confirmText = "ยืนยัน", initialPreview }) {
+ScreenshotOverlay.jsx:212 -> เลือกใหม่
+ScreenshotOverlay.jsx:215 -> บันทึกลงเครื่อง
+ScreenshotOverlay.jsx:218 -> {onConfirm ? confirmText : "เพิ่มลงกระดาน"}
+ScreenshotOverlay.jsx:260 -> <span>ลากเพื่อเลือกพื้นที่ที่ต้องการ Screenshot</span>
+ScreenshotOverlay.jsx:261 -> <span className="screenshot-instruction-sub">กด ESC เพื่อยกเลิก</span>
+ScreenshotOverlay.jsx:303 -> ✕ ยกเลิก
+PresentationMode.jsx:2 -> // PresentationMode.jsx — โหมดพรีเซ้นแบบ Fullscreen
+PresentationMode.jsx:5 -> // ฟีเจอร์:
+PresentationMode.jsx:6 -> //  - Fullscreen overlay แสดง page content
+PresentationMode.jsx:7 -> //  - Transition animations ระหว่างหน้า (fade, slide, zoom, flip, push)
+PresentationMode.jsx:8 -> //  - Navigation: ปุ่ม ◀ ▶, Arrow Keys, Space, ESC
+PresentationMode.jsx:20 -> { id: "none", label: "ไม่มี", icon: <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="4.93" y1="4.93" x2="19.07" y2="19.07"></line></svg> },
+LockScreenOverlay.jsx:2 -> // LockScreenOverlay.jsx — ล็อคหน้าจอ (Lock Screen)
+LockScreenOverlay.jsx:4 -> // Overlay เต็มจอที่ปิดบังเนื้อหาทั้งหมด
+LockScreenOverlay.jsx:5 -> // Host กดปุ่ม Unlock เพื่อปลดล็อค
+LockScreenOverlay.jsx:6 -> // Client เห็น Lock Screen เมื่อ Host ล็อค (ผ่าน Socket.io)
+LockScreenOverlay.jsx:47 -> alert("รหัสผ่านไม่ถูกต้อง!");
+LockScreenOverlay.jsx:154 -> <div className="lockscreen-text">หน้าจอถูกล็อค</div>
+LockScreenOverlay.jsx:157 -> ? "กดปุ่มด้านล่างเพื่อปลดล็อค"
+LockScreenOverlay.jsx:158 -> : "กรุณารอผู้สอนปลดล็อค"}
+LockScreenOverlay.jsx:169 -> placeholder="ใส่รหัสผ่าน..."
+LockScreenOverlay.jsx:175 -> <button className="lockscreen-unlock-btn" onClick={handleUnlock} style={{ margin: 0 }}>ยืนยัน</button>
+LockScreenOverlay.jsx:176 -> <button className="lockscreen-unlock-btn" onClick={() => { setIsPromptingUnlock(false); setInputPin(""); }} style={{ margin: 0, background: 'rgba(255,255,255,0.1)' }}>ยกเลิก</button>
+LockScreenOverlay.jsx:183 -> placeholder="ตั้งรหัสผ่าน..."
+LockScreenOverlay.jsx:195 -> <button className="lockscreen-unlock-btn" onClick={() => { setPin(inputPin); setIsSettingPin(false); setInputPin(""); }} style={{ margin: 0 }}>บันทึกรหัส</button>
+LockScreenOverlay.jsx:196 -> <button className="lockscreen-unlock-btn" onClick={() => { setIsSettingPin(false); setInputPin(""); }} style={{ margin: 0, background: 'rgba(255,255,255,0.1)' }}>ยกเลิก</button>
+LockScreenOverlay.jsx:205 -> ปลดล็อค
+LockScreenOverlay.jsx:212 -> {pin ? "เปลี่ยนรหัสผ่าน" : "ตั้งรหัสผ่าน"}
+LockScreenOverlay.jsx:222 -> กด <kbd>ESC</kbd> เพื่อปลดล็อค
+CurtainOverlay.jsx:2 -> // CurtainOverlay.jsx — ม่านบังจอ (Screen Curtain)
+CurtainOverlay.jsx:4 -> // ลากขอบม่านเพื่อค่อยๆ เปิดเผยเนื้อหาบนจอ
+SpotlightOverlay.jsx:2 -> // SpotlightOverlay.jsx — Spotlight (ไฟฉายส่องจุด)
+SpotlightOverlay.jsx:4 -> // ใช้ SVG mask เจาะวงสว่างตาม cursor บน overlay สีดำ
+SpotlightOverlay.jsx:5 -> // รองรับ: ปรับขนาด (scroll), ปรับความมืด, เปลี่ยนรูปร่าง
+SpotlightOverlay.jsx:304 -> title="วงกลม"
+SpotlightOverlay.jsx:313 -> title="สี่เหลี่ยม"
+SpotlightOverlay.jsx:337 -> title={`ขนาด: ${r}px`}
+SpotlightOverlay.jsx:356 -> title={`ความมืด: ${Math.round(op * 100)}%`}
+SpotlightOverlay.jsx:369 -> title="ปิด Spotlight (ESC)"
+ColorSidebar.jsx:2 -> // ColorSidebar.jsx — แถบสีด้านขวา (Vertical Color Palette)
+ColorSidebar.jsx:5 -> // แสดงจานสี + Color Picker + Background Picker แนวตั้งด้านขวา
+ColorSidebar.jsx:18 -> // ── พื้นฐาน ──
+ColorSidebar.jsx:19 -> { id: "white", label: "⬜", title: "พื้นขาว", group: "basic" },
+ColorSidebar.jsx:20 -> { id: "black", label: "⬛", title: "พื้นดำ", group: "basic" },
+ColorSidebar.jsx:21 -> { id: "grid", label: "📐", title: "ตาราง", group: "basic" },
+ColorSidebar.jsx:22 -> { id: "lined", label: "📝", title: "เส้นบรรทัด", group: "basic" },
+ColorSidebar.jsx:23 -> { id: "dotted", label: "⁙", title: "จุด", group: "basic" },
+ColorSidebar.jsx:24 -> { id: "graph", label: "📊", title: "กราฟ", group: "basic" },
+ColorSidebar.jsx:25 -> { id: "isometric", label: "◇", title: "ไอโซเมตริก", group: "basic" },
+ColorSidebar.jsx:26 -> // ── คณิตศาสตร์ ──
+ColorSidebar.jsx:27 -> { id: "coordinate", label: "✛", title: "แกนพิกัด XY", group: "math" },
+ColorSidebar.jsx:28 -> { id: "polar", label: "◎", title: "กริดโพลาร์", group: "math" },
+ColorSidebar.jsx:29 -> { id: "trigrid", label: "△", title: "ตารางสามเหลี่ยม", group: "math" },
+ColorSidebar.jsx:30 -> { id: "checkerboard", label: "♟", title: "ตารางหมากรุก", group: "math" },
+ColorSidebar.jsx:31 -> // ── วิทยาศาสตร์ ──
+ColorSidebar.jsx:32 -> { id: "hexagonal", label: "⬡", title: "โมเลกุล / รังผึ้ง", group: "science" },
+ColorSidebar.jsx:33 -> { id: "labnotebook", label: "🔬", title: "สมุดแล็บ", group: "science" },
+ColorSidebar.jsx:34 -> { id: "cross", label: "✚", title: "กริดกากบาท", group: "science" },
+ColorSidebar.jsx:35 -> // ── ดนตรี ──
+ColorSidebar.jsx:36 -> { id: "music", label: "🎵", title: "บรรทัด 5 เส้น", group: "music" },
+ColorSidebar.jsx:37 -> // ── เขียน / สอน ──
+ColorSidebar.jsx:39 -> { id: "calligraphy", label: "✒️", title: "คัดลายมือ", group: "writing" },
+ColorSidebar.jsx:40 -> // ── พิเศษ ──
+ColorSidebar.jsx:42 -> { id: "diamond", label: "♦", title: "ข้าวหลามตัด", group: "special" },
+ColorSidebar.jsx:43 -> { id: "basketball", label: "🏀", title: "สนามบาส", group: "special" },
+ColorSidebar.jsx:99 -> title="ลากเพื่อย้ายตำแหน่ง (ดับเบิลคลิกเพื่อรีเซ็ต)"
+ColorSidebar.jsx:131 -> title="เลือกสีเพิ่มเติม"
+ColorSidebar.jsx:148 -> title={`ขนาด: ${penSize}`}
+ColorSidebar.jsx:180 -> title="เปลี่ยนพื้นหลัง"
+ColorSidebar.jsx:195 -> { key: "basic", label: "พื้นฐาน" },
+ColorSidebar.jsx:196 -> { key: "math", label: "🧮 คณิตศาสตร์" },
+ColorSidebar.jsx:197 -> { key: "science", label: "🔬 วิทยาศาสตร์" },
+ColorSidebar.jsx:198 -> { key: "music", label: "🎵 ดนตรี" },
+ColorSidebar.jsx:199 -> { key: "writing", label: "✏️ เขียน / สอน" },
+ColorSidebar.jsx:200 -> { key: "special", label: "✨ พิเศษ" },
+ColorSidebar.jsx:227 -> <div className="cs-bg-group-label">🎨 พื้นสี</div>
+ColorSidebar.jsx:235 -> title={`พื้นสี ${c}`}
+ColorSidebar.jsx:240 -> title="เลือกสีพื้นหลังเอง"
+useFileOps.js:2 -> // useFileOps.js — Hook ไฟล์ Save/Load/Export/Import/AutoSave
+useFileOps.js:61 -> if (buffer.length < 2) throw new Error("ไฟล์เสียหาย");
+useFileOps.js:73 -> alert("ไฟล์ PD1 ไม่มีข้อมูลหน้ากระดาน");
+useFileOps.js:77 -> alert("ไม่สามารถอ่านไฟล์ PD1 ได้: " + err.message);
+useFileOps.js:91 -> alert("ไฟล์ไม่มีข้อมูลหน้ากระดาน");
+useFileOps.js:94 -> alert("ไม่สามารถอ่านไฟล์ได้");
+useFileOps.js:119 -> alert("ไฟล์ IWB ไม่มีข้อมูลหน้ากระดาน");
+useFileOps.js:122 -> alert("ไม่สามารถอ่านไฟล์ IWB ได้");
+useFileOps.js:141 -> if (buffer.length < 2) throw new Error("ไฟล์เสียหาย");
+useFileOps.js:153 -> alert("ไฟล์ PD1 ไม่มีข้อมูลหน้ากระดาน");
+useFileOps.js:157 -> alert("ไม่สามารถอ่านไฟล์ PD1 ได้: " + err.message);
+useFileOps.js:260 -> alert("ไฟล์วิดีโอมีขนาดใหญ่เกินไป (จำกัด 500MB) กรุณาใช้ไฟล์ที่เล็กกว่านี้เพื่อป้องกันแอปพลิเคชันค้างเวลาซิงค์ข้อมูลครับ");
+useFileOps.js:308 -> alert("อัปโหลดวิดีโอไม่สำเร็จ");
+useFileOps.js:312 -> alert("เกิดข้อผิดพลาดในการอัปโหลดวิดีโอ");

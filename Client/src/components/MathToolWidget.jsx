@@ -1,3 +1,4 @@
+import { useI18n } from "../i18n/i18n";
 // ============================================================
 // MathToolWidget.jsx — Draggable/Rotatable Math Overlays
 // ============================================================
@@ -525,6 +526,7 @@ const TOOL_RENDERER = {
 
 // ============================================================
 export default function MathToolWidget({ canEdit = true, toolId, toolType, toolData, tool, onUpdate, onClose, onDrawCircle, penColor = "#000", penSize = 3 }) {
+    const { t } = useI18n();
   const def = TOOL_DEFAULTS[toolType] || TOOL_DEFAULTS.ruler;
   const [pos, setPos] = useState(toolData?.pos || { x: window.innerWidth / 2 - def.w / 2, y: window.innerHeight / 2 - def.h / 2 });
   const [size, setSize] = useState(toolData?.size || { w: def.w, h: def.h });
@@ -793,32 +795,32 @@ export default function MathToolWidget({ canEdit = true, toolId, toolType, toolD
         boxShadow: "0 2px 8px rgba(0,0,0,0.3)", zIndex: 3,
       }}>
         <span style={{ fontSize: 10, color: "#94a3b8", padding: "0 4px", userSelect: "none" }}>📐 {def.label}</span>
-        <button onClick={(e) => { e.stopPropagation(); setRotation(r => { const nr = r + 15; updateState({ rotation: nr }); return nr; }); }} style={{ ...btnS, color: "#60a5fa" }} title="หมุน +15°">↻</button>
-        <button onClick={(e) => { e.stopPropagation(); setRotation(r => { const nr = r - 15; updateState({ rotation: nr }); return nr; }); }} style={{ ...btnS, color: "#60a5fa" }} title="หมุน -15°">↺</button>
+        <button onClick={(e) => { e.stopPropagation(); setRotation(r => { const nr = r + 15; updateState({ rotation: nr }); return nr; }); }} style={{ ...btnS, color: "#60a5fa" }} title={t("widget.rotatePlus15")}>↻</button>
+        <button onClick={(e) => { e.stopPropagation(); setRotation(r => { const nr = r - 15; updateState({ rotation: nr }); return nr; }); }} style={{ ...btnS, color: "#60a5fa" }} title={t("widget.rotateMinus15")}>↺</button>
         {toolType === "compass" && <>
-          <button onClick={handleDrawCircle} style={{ ...btnS, color: "#22c55e" }} title="วาดวงกลมเต็มวง">⭕</button>
-          <button onClick={handleDrawArc} style={{ ...btnS, color: "#f59e0b" }} title="วาดส่วนโค้ง">◠</button>
-          <button onClick={(e) => { e.stopPropagation(); setCompassRadius(r => { const nr = Math.max(20, r - 10); updateState({ compassRadius: nr }); return nr; }); }} style={{ ...btnS, color: "#60a5fa" }} title="ลดรัศมี">−</button>
-          <button onClick={(e) => { e.stopPropagation(); setCompassRadius(r => { const nr = Math.min(300, r + 10); updateState({ compassRadius: nr }); return nr; }); }} style={{ ...btnS, color: "#60a5fa" }} title="เพิ่มรัศมี">+</button>
+          <button onClick={handleDrawCircle} style={{ ...btnS, color: "#22c55e" }} title={t("widget.drawFullCircle")}>⭕</button>
+          <button onClick={handleDrawArc} style={{ ...btnS, color: "#f59e0b" }} title={t("widget.drawArc")}>◠</button>
+          <button onClick={(e) => { e.stopPropagation(); setCompassRadius(r => { const nr = Math.max(20, r - 10); updateState({ compassRadius: nr }); return nr; }); }} style={{ ...btnS, color: "#60a5fa" }} title={t("widget.decreaseRadius")}>−</button>
+          <button onClick={(e) => { e.stopPropagation(); setCompassRadius(r => { const nr = Math.min(300, r + 10); updateState({ compassRadius: nr }); return nr; }); }} style={{ ...btnS, color: "#60a5fa" }} title={t("widget.increaseRadius")}>+</button>
         </>}
-        {toolType === "shapes_3d" && <button onClick={toggleShape3D} style={{ ...btnS, color: "#a855f7" }} title="เปลี่ยนรูปทรง 3 มิติ">🧊</button>}
+        {toolType === "shapes_3d" && <button onClick={toggleShape3D} style={{ ...btnS, color: "#a855f7" }} title={t("widget.change3DShape")}>🧊</button>}
         {toolType === "spinner" && <>
-          <button onClick={(e) => { e.stopPropagation(); setShowSpinnerEdit(v => !v); }} style={{ ...btnS, color: "#3b82f6" }} title="แก้ไขชื่อ">✏️</button>
-          <button onClick={(e) => { e.stopPropagation(); setSpinnerLabels(labels => labels.length > 2 ? labels.slice(0, -1) : labels); }} style={{ ...btnS, color: "#ec4899" }} title="ลดจำนวนช่อง">−</button>
-          <button onClick={(e) => { e.stopPropagation(); setSpinnerLabels(labels => labels.length < 20 ? [...labels, (labels.length + 1).toString()] : labels); }} style={{ ...btnS, color: "#ec4899" }} title="เพิ่มจำนวนช่อง">+</button>
-          <button onClick={spinWheel} style={{ ...btnS, color: "#a855f7" }} title="หมุนวงล้อ">🎡</button>
+          <button onClick={(e) => { e.stopPropagation(); setShowSpinnerEdit(v => !v); }} style={{ ...btnS, color: "#3b82f6" }} title={t("widget.editName")}>✏️</button>
+          <button onClick={(e) => { e.stopPropagation(); setSpinnerLabels(labels => labels.length > 2 ? labels.slice(0, -1) : labels); }} style={{ ...btnS, color: "#ec4899" }} title={t("widget.decreaseSlot")}>−</button>
+          <button onClick={(e) => { e.stopPropagation(); setSpinnerLabels(labels => labels.length < 20 ? [...labels, (labels.length + 1).toString()] : labels); }} style={{ ...btnS, color: "#ec4899" }} title={t("widget.increaseSlot")}>+</button>
+          <button onClick={spinWheel} style={{ ...btnS, color: "#a855f7" }} title={t("widget.spinWheel")}>🎡</button>
         </>}
         {toolType === "clock_face" && <>
-          <button onClick={(e) => adjClock(e, 1, 0)} style={{ ...btnS, color: "#f59e0b" }} title="+1 ชม.">H+</button>
-          <button onClick={(e) => adjClock(e, 0, 5)} style={{ ...btnS, color: "#f59e0b" }} title="+5 นาที">M+</button>
+          <button onClick={(e) => adjClock(e, 1, 0)} style={{ ...btnS, color: "#f59e0b" }} title={t("widget.add1Hour")}>H+</button>
+          <button onClick={(e) => adjClock(e, 0, 5)} style={{ ...btnS, color: "#f59e0b" }} title={t("widget.add5Min")}>M+</button>
         </>}
         {toolType === "classroom_timer" && <>
-          <button onClick={(e) => adjTimer(e, 60)} style={{ ...btnS, color: "#3b82f6" }} title="เพิ่ม 1 นาที">+1m</button>
-          <button onClick={(e) => adjTimer(e, -60)} style={{ ...btnS, color: "#ef4444" }} title="ลด 1 นาที">-1m</button>
-          <button onClick={(e) => adjTimer(e, 10)} style={{ ...btnS, color: "#3b82f6" }} title="เพิ่ม 10 วินาที">+10s</button>
-          <button onClick={(e) => adjTimer(e, -10)} style={{ ...btnS, color: "#ef4444" }} title="ลด 10 วินาที">-10s</button>
+          <button onClick={(e) => adjTimer(e, 60)} style={{ ...btnS, color: "#3b82f6" }} title={t("widget.add1Min")}>+1m</button>
+          <button onClick={(e) => adjTimer(e, -60)} style={{ ...btnS, color: "#ef4444" }} title={t("widget.sub1Min")}>-1m</button>
+          <button onClick={(e) => adjTimer(e, 10)} style={{ ...btnS, color: "#3b82f6" }} title={t("widget.add10Sec")}>+10s</button>
+          <button onClick={(e) => adjTimer(e, -10)} style={{ ...btnS, color: "#ef4444" }} title={t("widget.sub10Sec")}>-10s</button>
         </>}
-        <button onClick={(e) => { e.stopPropagation(); onClose(toolId); }} style={{ ...btnS, color: "#ef4444", fontSize: 13 }} title="ปิด">✕</button>
+        <button onClick={(e) => { e.stopPropagation(); onClose(toolId); }} style={{ ...btnS, color: "#ef4444", fontSize: 13 }} title={t("widget.closeTool")}>✕</button>
       </div>
 
       {/* Tool SVG */}
@@ -827,7 +829,7 @@ export default function MathToolWidget({ canEdit = true, toolId, toolType, toolD
       {/* Edit Names Panel for Spinner */}
       {toolType === "spinner" && showSpinnerEdit && (
         <div style={{ position: "absolute", top: 40, left: "50%", transform: "translateX(-50%)", background: "white", borderRadius: 8, padding: 12, boxShadow: "0 10px 25px rgba(0,0,0,0.2)", zIndex: 10 }}>
-          <div style={{ fontSize: 12, fontWeight: "bold", marginBottom: 8, color: "#334155" }}>แก้ไขชื่อ (1 บรรทัดต่อ 1 ช่อง)</div>
+          <div style={{ fontSize: 12, fontWeight: "bold", marginBottom: 8, color: "#334155" }}>{t("widget.editNameDesc")}</div>
           <textarea 
             style={{ width: 160, height: 120, fontSize: 12, padding: 6, borderRadius: 4, border: "1px solid #cbd5e1", resize: "none" }}
             value={spinnerLabels.join("\n")}
@@ -839,7 +841,7 @@ export default function MathToolWidget({ canEdit = true, toolId, toolType, toolD
             onClick={(e) => { e.stopPropagation(); setShowSpinnerEdit(false); }}
             style={{ display: "block", width: "100%", marginTop: 8, padding: "6px", background: "#3b82f6", color: "white", border: "none", borderRadius: 4, cursor: "pointer", fontWeight: "bold" }}
           >
-            ตกลง
+            {t("deepCleanup.btnConfirm")}
           </button>
         </div>
       )}
@@ -853,7 +855,7 @@ export default function MathToolWidget({ canEdit = true, toolId, toolType, toolD
 
       {/* Rotate Handle */}
       {canEdit && (
-        <div style={{ position: "absolute", right: -28, top: "50%", transform: "translateY(-50%)", width: 24, height: 24, cursor: "grab", background: "#f1f5f9", border: "1px solid #cbd5e1", borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 4, boxShadow: "0 1px 3px rgba(0,0,0,0.1)", touchAction: "none" }} onPointerDown={(e) => { e.stopPropagation(); startRotate(e); }} title="หมุนเครื่องมือ">
+        <div style={{ position: "absolute", right: -28, top: "50%", transform: "translateY(-50%)", width: 24, height: 24, cursor: "grab", background: "#f1f5f9", border: "1px solid #cbd5e1", borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 4, boxShadow: "0 1px 3px rgba(0,0,0,0.1)", touchAction: "none" }} onPointerDown={(e) => { e.stopPropagation(); startRotate(e); }} title={t("widget.rotateTool")}>
           ↻
         </div>
       )}

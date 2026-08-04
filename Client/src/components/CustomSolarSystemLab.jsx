@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { useI18n } from "../i18n/i18n";
 
 // ==========================================
 // Planet Data (Thai & English)
@@ -81,10 +82,7 @@ const PLANETS = [
   },
 ];
 
-const LABELS = {
-  TH: { title: 'ระบบสุริยะ', sun: 'ดวงอาทิตย์', distance: 'ระยะห่าง', diameter: 'เส้นผ่าศูนย์กลาง', temp: 'อุณหภูมิพื้นผิว', moons: 'ดวงจันทร์', period: 'คาบการโคจร', type: 'ประเภท', speed: 'ความเร็ว', pause: 'หยุด', play: 'เล่น', compare: 'เปรียบเทียบขนาด', orbit: 'โหมดโคจร', quiz: 'โหมดทดสอบ', close: 'ปิด', dwarf: 'ดาวเคราะห์แคระ', quizQ: 'ดาวดวงนี้คือดาวอะไร?', correct: 'ถูกต้อง!', wrong: 'ลองใหม่นะ!', score: 'คะแนน', reset: 'เริ่มใหม่', finish: 'เสร็จสิ้น!', congrats: 'ยอดเยี่ยม! คุณได้คะแนน' },
-  EN: { title: 'Solar System', sun: 'Sun', distance: 'Distance', diameter: 'Diameter', temp: 'Surface Temp', moons: 'Moons', period: 'Orbital Period', type: 'Type', speed: 'Speed', pause: 'Pause', play: 'Play', compare: 'Compare Sizes', orbit: 'Orbit Mode', quiz: 'Quiz Mode', close: 'Close', dwarf: 'Dwarf Planet', quizQ: 'Which planet is this?', correct: 'Correct!', wrong: 'Try again!', score: 'Score', reset: 'Reset', finish: 'Finished!', congrats: 'Excellent! Your score is' },
-};
+
 
 // ==========================================
 // Star Background
@@ -321,7 +319,7 @@ document.head.appendChild(ssStyle);
 // Main Component
 // ==========================================
 export default function CustomSolarSystemLab({ onClose }) {
-  const [lang, setLang] = useState('TH');
+  const { t } = useI18n();
   const [isPaused, setIsPaused] = useState(false);
   const [speedMultiplier, setSpeedMultiplier] = useState(1);
   const [selectedPlanet, setSelectedPlanet] = useState(null);
@@ -397,9 +395,7 @@ export default function CustomSolarSystemLab({ onClose }) {
           </div>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <button onClick={() => setLang(l => l === 'TH' ? 'EN' : 'TH')} style={{ background: '#334155', border: 'none', color: 'white', padding: '4px 12px', borderRadius: 20, cursor: 'pointer', fontSize: 12, fontWeight: 'bold' }}>
-            {lang === 'TH' ? '🇹🇭 → EN' : '🇬🇧 → TH'}
-          </button>
+          
           <button onClick={onClose} style={{ background: '#ef4444', border: 'none', color: '#fff', padding: '4px 12px', borderRadius: 6, cursor: 'pointer', fontSize: 12, fontWeight: 'bold' }}>{L.close}</button>
         </div>
       </div>

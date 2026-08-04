@@ -2,24 +2,28 @@
 // PermissionPanel.jsx — แผงจัดการสิทธิ์สำหรับครู (host)
 // ============================================================
 import { useState, useRef, useEffect } from "react";
+import { useI18n } from "../i18n/i18n";
 
-const PERMISSION_LEVELS = [
-    { id: "draw_only", label: "วาดอย่างเดียว", emoji: "✏️", color: "#4ade80", bg: "rgba(34,197,94,0.15)", border: "rgba(34,197,94,0.35)" },
-    { id: "full_access", label: "เข้าถึงเต็มที่", emoji: "⚡", color: "#fbbf24", bg: "rgba(251,191,36,0.15)", border: "rgba(251,191,36,0.35)" },
+const getPermissionLevels = (t) => [
+    { id: "draw_only", label: t("panel.permDrawOnly"), emoji: "✏️", color: "#4ade80", bg: "rgba(34,197,94,0.15)", border: "rgba(34,197,94,0.35)" },
+    { id: "full_access", label: t("panel.permFullAccess"), emoji: "⚡", color: "#fbbf24", bg: "rgba(251,191,36,0.15)", border: "rgba(251,191,36,0.35)" },
 ];
 
-const getLevelInfo = (id) => PERMISSION_LEVELS.find(l => l.id === id) || PERMISSION_LEVELS[0];
+const getLevelInfo = (id, t) => getPermissionLevels(t).find(l => l.id === id) || getPermissionLevels(t)[0];
+
 
 // ── Custom Dropdown Component ──
 function LevelDropdown({ value, onChange, showViewOnly = false }) {
+    const { t } = useI18n();
+
     const [open, setOpen] = useState(false);
     const ref = useRef(null);
     
-    const options = [...PERMISSION_LEVELS];
+    const options = [...getPermissionLevels(t)];
     if (showViewOnly) {
         options.push({
             id: "view_only",
-            label: "ดูได้อย่างเดียว",
+            label: t("panel.permViewOnly"),
             emoji: "👀",
             color: "#94a3b8",
             bg: "rgba(148,163,184,0.15)",
@@ -100,6 +104,7 @@ function PermissionPanel({
     pendingRequests, contributors, viewers = [],
     onApprove, onDeny, onRevoke, onGrant, onChangeLevel,
 }) {
+    const { t } = useI18n();
     const [selectedLevels, setSelectedLevels] = useState({});
     const getLevel = (id) => selectedLevels[id] || "draw_only";
     const setLevel = (id, level) => setSelectedLevels(prev => ({ ...prev, [id]: level }));
@@ -109,7 +114,7 @@ function PermissionPanel({
             {/* ─── Header ─── */}
             <div className="permission-panel-header">
                 <h3>
-                    🔐 จัดการสิทธิ์
+                    {t("panel.permissionTitle")}
                     {pendingRequests.length > 0 && (
                         <span className="permission-badge">{pendingRequests.length}</span>
                     )}
@@ -120,10 +125,10 @@ function PermissionPanel({
             {/* ─── คำขอที่รออนุมัติ ─── */}
             <div className="permission-section">
                 <h4 className="permission-section-title">
-                    ✋ คำขอรออนุมัติ ({pendingRequests.length})
+                    ✋ {t("panel.pendingRequests")} ({pendingRequests.length})
                 </h4>
                 {pendingRequests.length === 0 ? (
-                    <div className="permission-empty">ไม่มีคำขอ</div>
+                    <div className="permission-empty">{t("panel.noRequests")}</div>
                 ) : (
                     pendingRequests.map((req) => (
                         <div key={req.id} className="permission-request-item" style={{ flexDirection: "column", alignItems: "stretch", gap: 8 }}>
@@ -134,7 +139,7 @@ function PermissionPanel({
 
                             {/* Level Selection for approval */}
                             <div style={{ display: "flex", gap: 4, marginLeft: 20 }}>
-                                {PERMISSION_LEVELS.map(lvl => {
+                                {getPermissionLevels(t).map(lvl => {
                                     const active = getLevel(req.id) === lvl.id;
                                     return (
                                         <button
@@ -167,7 +172,7 @@ function PermissionPanel({
                                         cursor: "pointer", transition: "all 0.15s",
                                     }}
                                 >
-                                    ✅ อนุมัติ
+                                    ✅ {t("panel.approve")}
                                 </button>
                                 <button
                                     onClick={() => onDeny(req.id)}
@@ -189,10 +194,10 @@ function PermissionPanel({
             {/* ─── นักเรียนที่ได้สิทธิ์แล้ว ─── */}
             <div className="permission-section">
                 <h4 className="permission-section-title">
-                    ✏️ ได้สิทธิ์เขียนแล้ว ({contributors.length})
+                    ✏️ {t("panel.contributors")} ({contributors.length})
                 </h4>
                 {contributors.length === 0 ? (
-                    <div className="permission-empty">ยังไม่มี</div>
+                    <div className="permission-empty">{t("panel.noneYet")}</div>
                 ) : (
                     contributors.map((user) => (
                         <div key={user.id} className="permission-contributor-item" style={{ flexDirection: "column", alignItems: "stretch", gap: 8 }}>
@@ -201,7 +206,7 @@ function PermissionPanel({
                                 <span className="permission-user-name" style={{ flex: 1 }}>{user.name}</span>
                                 <button
                                     onClick={() => onRevoke(user.id)}
-                                    title="ถอนสิทธิ์"
+                                    title={t("panel.revoke")}
                                     style={{
                                         padding: "3px 6px", fontSize: 10, lineHeight: 1,
                                         border: "1px solid rgba(239,68,68,0.2)", borderRadius: 5,
@@ -237,10 +242,10 @@ function PermissionPanel({
             {/* ─── ผู้เข้าชมทั้งหมด (Viewers) ─── */}
             <div className="permission-section">
                 <h4 className="permission-section-title">
-                    👀 ผู้เข้าชม ({viewers.length})
+                    👀 {t("panel.viewers")} ({viewers.length})
                 </h4>
                 {viewers.length === 0 ? (
-                    <div className="permission-empty">ไม่มีผู้เข้าชม</div>
+                    <div className="permission-empty">{t("panel.noViewers")}</div>
                 ) : (
                     viewers.map((user) => (
                         <div key={user.id} className="permission-contributor-item" style={{ flexDirection: "column", alignItems: "stretch", gap: 6 }}>
@@ -249,11 +254,11 @@ function PermissionPanel({
                                 <span className="permission-user-name" style={{ flex: 1 }}>{user.name}</span>
                             </div>
                             <div style={{ display: "flex", gap: 4, marginLeft: 20 }}>
-                                {PERMISSION_LEVELS.map(lvl => (
+                                {getPermissionLevels(t).map(lvl => (
                                     <button
                                         key={lvl.id}
                                         onClick={() => onGrant(user.id, lvl.id)}
-                                        title={`ให้สิทธิ์: ${lvl.label}`}
+                                        title={`${t("panel.grant")}: ${lvl.label}`}
                                         style={{
                                             flex: 1, padding: "5px 6px", fontSize: 10, fontWeight: 600,
                                             border: `1px solid ${lvl.border}`, borderRadius: 6,
@@ -264,7 +269,7 @@ function PermissionPanel({
                                         onMouseEnter={e => e.target.style.opacity = "1"}
                                         onMouseLeave={e => e.target.style.opacity = "0.7"}
                                     >
-                                        {lvl.emoji} ให้สิทธิ์ {lvl.label}
+                                        {lvl.emoji} {t("panel.grant")} {lvl.label}
                                     </button>
                                 ))}
                             </div>

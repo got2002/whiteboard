@@ -4,9 +4,11 @@
 // จับทั้งหน้าต่าง (รวม floating widgets) + เสียงจากไมโครโฟน
 // พร้อม AudioAnalyser สำหรับ Waveform Visualizer
 // ============================================================
+import { useI18n } from "../i18n/i18n";
 import { useState, useRef, useCallback } from "react";
 
 export function useRecording() {
+  const { t } = useI18n();
   const [isRecording, setIsRecording] = useState(false);
   const [recordedVideoUrl, setRecordedVideoUrl] = useState(null);
   const [showVideoModal, setShowVideoModal] = useState(false);
@@ -156,9 +158,9 @@ export function useRecording() {
       console.error("Recording error:", err);
       cleanup();
       if (err.name === "NotAllowedError") {
-        alert("การบันทึกถูกปฏิเสธ — กรุณาอนุญาตการเข้าถึงหน้าจอและไมโครโฟน");
+        alert(t("deepCleanup.recordDenied"));
       } else {
-        alert("ไม่สามารถเริ่มบันทึกได้: " + err.message);
+        alert(t("deepCleanup.recordError") + err.message);
       }
     }
   }, []);

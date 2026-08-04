@@ -7,6 +7,7 @@
 //   - hitTestUtils.js    → select, resize, hit detection
 // ============================================================
 
+import { useI18n } from "../i18n/i18n";
 import {
   useRef, useEffect, useCallback,
   useImperativeHandle, forwardRef, useState,
@@ -51,6 +52,7 @@ const Canvas = forwardRef(function Canvas(
   },
   ref
 ) {
+  const { t } = useI18n();
   // ── Refs ──
   const canvasRef = useRef(null);
   const ctxRef = useRef(null);
@@ -611,7 +613,7 @@ const Canvas = forwardRef(function Canvas(
       console.log("[Gemini AI] Calling server endpoint...");
       
       const promptStr = mode === "ai_pen"
-        ? "จงอ่านคำถามหรือสมการคณิตศาสตร์ที่เขียนด้วยลายมือในรูปภาพนี้ และให้คำตอบพร้อมคำอธิบายที่สั้น กระชับ ชัดเจน ตอบเป็นภาษาเดียวกับคำถาม (ส่วนใหญ่เป็นภาษาไทย) ห้ามมีคำพูดเกริ่นนำ"
+        ? t("ai.systemPrompt") || "จงอ่านคำถามหรือสมการคณิตศาสตร์ที่เขียนด้วยลายมือในรูปภาพนี้ และให้คำตอบพร้อมคำอธิบายที่สั้น กระชับ ชัดเจน ตอบเป็นภาษาเดียวกับคำถาม ห้ามมีคำพูดเกริ่นนำ"
         : "Extract the handwritten text from this image. Output only the transcribed text without any formatting, quotes, or markdown. The text may be in Thai or English.";
 
       const res = await fetch(`${serverUrl}/api/ai/generate`, {
@@ -723,7 +725,7 @@ const Canvas = forwardRef(function Canvas(
 
       setVoicePos({ x: canvasX, y: canvasY });
       setIsListeningVoice(true);
-      setInterimVoiceText("กำลังเชื่อมต่อไมโครโฟน...");
+      setInterimVoiceText(t("deepCleanup.aiMicConnecting"));
 
       navigator.mediaDevices.getUserMedia({ 
          audio: { 
@@ -786,7 +788,7 @@ const Canvas = forwardRef(function Canvas(
                         };
                         onStrokeComplete(stroke);
                      } else {
-                        setAiError("ไม่ได้ยินเสียง หรือไม่มีข้อความ");
+                        setAiError(t("deepCleanup.aiNoVoice"));
                         setTimeout(() => setAiError(null), 3000);
                      }
                   } catch (err) {
@@ -804,9 +806,9 @@ const Canvas = forwardRef(function Canvas(
          };
 
          mediaRecorder.start();
-         setInterimVoiceText("กำลังบันทึกเสียง... (คลิกอีกครั้งเพื่อหยุด)");
+         setInterimVoiceText(t("deepCleanup.aiRecording"));
       }).catch(err => {
-         setAiError("ไม่สามารถเข้าถึงไมโครโฟนได้: " + err.message);
+         setAiError(t("deepCleanup.aiMicError") + err.message);
          setTimeout(() => setAiError(null), 5000);
          setIsListeningVoice(false);
          setInterimVoiceText("");
@@ -1635,7 +1637,7 @@ const Canvas = forwardRef(function Canvas(
                   type="button"
                   style={{ color: 'rgba(255, 255, 255, 0.85)', background: 'transparent', border: 'none', cursor: 'pointer', padding: '4px', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '6px' }}
                   onClick={() => setShowTextColorModal(true)}
-                  title="เลือกสีเพิ่มเติม"
+                  title={t("deepCleanup.tooltipColorMore")}
                   onPointerDown={(e) => e.stopPropagation()}
               >
                   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0, opacity: 0.85 }}>
@@ -1704,7 +1706,7 @@ const Canvas = forwardRef(function Canvas(
                   justifyContent: "center", fontSize: "14px",
                   background: inlineText.fontWeight === "bold" ? "rgba(99, 102, 241, 0.4)" : "transparent"
                 }}
-                title="ตัวหนา"
+                title={t("deepCleanup.tooltipBold")}
               ><b>B</b></button>
               <button
                 tabIndex={-1}
@@ -1715,7 +1717,7 @@ const Canvas = forwardRef(function Canvas(
                   justifyContent: "center", fontSize: "14px", fontFamily: "serif",
                   background: inlineText.fontStyle === "italic" ? "rgba(99, 102, 241, 0.4)" : "transparent"
                 }}
-                title="ตัวเอียง"
+                title={t("deepCleanup.tooltipItalic")}
               ><i>I</i></button>
               <button
                 tabIndex={-1}
@@ -1726,7 +1728,7 @@ const Canvas = forwardRef(function Canvas(
                   justifyContent: "center", fontSize: "14px",
                   background: inlineText.textDecoration === "underline" ? "rgba(99, 102, 241, 0.4)" : "transparent"
                 }}
-                title="ขีดเส้นใต้"
+                title={t("deepCleanup.tooltipUnderline")}
               ><u>U</u></button>
             </div>
 
@@ -1743,7 +1745,7 @@ const Canvas = forwardRef(function Canvas(
                 fontWeight: 600, cursor: "pointer", whiteSpace: "nowrap",
               }}
             >
-              ✓ ตกลง
+              {t("deepCleanup.btnOk")}
             </button>
             <button
               tabIndex={-1}
@@ -1767,7 +1769,7 @@ const Canvas = forwardRef(function Canvas(
               if (e.relatedTarget?.closest?.(".inline-text-container")) return;
               handleInlineTextSubmit();
             }}
-            placeholder="พิมพ์ข้อความ..."
+            placeholder={t("deepCleanup.placeholderText")}
             style={{
               background: "rgba(255,255,255,0.05)",
               border: "2px solid rgba(59, 130, 246, 0.5)",
@@ -1889,8 +1891,8 @@ const Canvas = forwardRef(function Canvas(
               pointerEvents: "auto",
               paddingTop: isHorizontalSplit ? "10px" : 0,
             }}>
-              <div style={{ width: "18px", height: "18px", borderRadius: "50%", flexShrink: 0, backgroundColor: SLOT_COLORS[i % SLOT_COLORS.length], border: "2.5px solid rgba(255,255,255,0.9)", boxShadow: `0 2px 8px ${SLOT_COLORS[i % SLOT_COLORS.length]}66` }} title={`สีช่องที่ ${i+1}`} />
-              <input type="text" placeholder={`ชื่อช่อง ${i+1}`} value={slotTitles[i] || ""}
+              <div style={{ width: "18px", height: "18px", borderRadius: "50%", flexShrink: 0, backgroundColor: SLOT_COLORS[i % SLOT_COLORS.length], border: "2.5px solid rgba(255,255,255,0.9)", boxShadow: `0 2px 8px ${SLOT_COLORS[i % SLOT_COLORS.length]}66` }} title={`${t("canvas.colorSlot")} ${i+1}`} />
+              <input type="text" placeholder={`${t("canvas.slotName")} ${i+1}`} value={slotTitles[i] || ""}
                 onChange={(e) => {
                   const newTitles = { ...slotTitles, [i]: e.target.value };
                   setSlotTitles(newTitles);
@@ -2010,7 +2012,7 @@ const Canvas = forwardRef(function Canvas(
             <path d="M19 10v2a7 7 0 0 1-14 0v-2" />
             <line x1="12" x2="12" y1="19" y2="22" />
           </svg>
-          {interimVoiceText ? interimVoiceText : "กำลังฟังเสียง..."}
+          {interimVoiceText ? interimVoiceText : t("deepCleanup.aiListening")}
         </div>
       )}
 
@@ -2032,7 +2034,7 @@ const Canvas = forwardRef(function Canvas(
         }}>
           <div className="ai-spinner"></div>
           <span style={{ fontSize: "14px", fontWeight: "500", color: "#475569" }}>
-            กำลังแปลงเสียงเป็นข้อความ...
+            {t("deepCleanup.aiTranscribing")}
           </span>
         </div>
       )}
@@ -2073,7 +2075,7 @@ const Canvas = forwardRef(function Canvas(
             <line x1="4.93" y1="19.07" x2="7.76" y2="16.24" />
             <line x1="16.24" y1="7.76" x2="19.07" y2="4.93" />
           </svg>
-          กำลังแปลงเป็นข้อความ...
+          {t("deepCleanup.aiConverting")}
         </div>
       )}
 

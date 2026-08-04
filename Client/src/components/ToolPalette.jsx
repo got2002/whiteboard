@@ -10,6 +10,7 @@
 //
 // ============================================================
 
+import { useI18n } from "../i18n/i18n";
 import { useState, useRef, useEffect } from "react";
 import { useDraggable } from "../hooks/useDraggable";
 
@@ -43,28 +44,28 @@ const SplitPenIcon = ({ slots, horizontal }) => (
     </svg>
 );
 
-const PEN_STYLES = [
-    { id: "pen", label: "Pen", icon: <img src="/pen.png" alt="Pen" style={{width: "18px", height: "18px", objectFit: "contain"}} />, desc: "ปากกาปกติ" },
-    { id: "highlighter", label: "Highlight", icon: <img src="/highlighter.png" alt="Highlight" style={{width: "18px", height: "18px", objectFit: "contain"}} />, desc: "ปากกาเน้นข้อความ" },
-    { id: "brush", label: "Brush", icon: <img src="/brush.png" alt="Brush" style={{width: "18px", height: "18px", objectFit: "contain"}} />, desc: "พู่กัน" },
-    { id: "crayon", label: "Crayon", icon: <img src="/crayon.png" alt="Crayon" style={{width: "18px", height: "18px", objectFit: "contain"}} />, desc: "สีเทียน" },
-    { id: "dashed", label: "Dashed", icon: <img src="/dashed.png" alt="Dashed" style={{width: "18px", height: "18px", objectFit: "contain"}} />, desc: "เส้นประ" },
-    { id: "dotted", label: "Dotted", icon: <img src="/dotted.png" alt="Dotted" style={{width: "18px", height: "18px", objectFit: "contain"}} />, desc: "เส้นจุด" },
-    { id: "neon", label: "Neon", icon: <img src="/neon.png" alt="Neon" style={{width: "18px", height: "18px", objectFit: "contain"}} />, desc: "เรืองแสง" },
-    { id: "pencil", label: "Pencil", icon: <img src="/pencil.png" alt="Pencil" style={{width: "18px", height: "18px", objectFit: "contain"}} />, desc: "ดินสอ" },
-    { id: "marker", label: "Marker", icon: <img src="/marker.png" alt="Marker" style={{width: "18px", height: "18px", objectFit: "contain"}} />, desc: "ปากกามาร์กเกอร์" },
-    { id: "chalk", label: "Chalk", icon: <img src="/chalk.png" alt="Chalk" style={{width: "18px", height: "18px", objectFit: "contain"}} />, desc: "ชอล์ก" },
-    { id: "fountain", label: "Fountain", icon: <img src="/fountain.png" alt="Fountain" style={{width: "18px", height: "18px", objectFit: "contain"}} />, desc: "ปากกาหมึกซึม" },
+const getPenStyles = (t) => [
+    { id: "pen", label: t("toolbar.pen"), icon: <img src="/pen.png" alt="Pen" style={{width: "18px", height: "18px", objectFit: "contain"}} />, desc: t("toolbar.penNormal") },
+    { id: "highlighter", label: t("toolbar.penHighlighter"), icon: <img src="/highlighter.png" alt="Highlight" style={{width: "18px", height: "18px", objectFit: "contain"}} />, desc: t("toolbar.penHighlighter") },
+    { id: "brush", label: t("toolbar.penBrush"), icon: <img src="/brush.png" alt="Brush" style={{width: "18px", height: "18px", objectFit: "contain"}} />, desc: t("toolbar.penBrush") },
+    { id: "crayon", label: t("toolbar.penCrayon"), icon: <img src="/crayon.png" alt="Crayon" style={{width: "18px", height: "18px", objectFit: "contain"}} />, desc: t("toolbar.penCrayon") },
+    { id: "dashed", label: t("toolbar.penDashed"), icon: <img src="/dashed.png" alt="Dashed" style={{width: "18px", height: "18px", objectFit: "contain"}} />, desc: t("toolbar.penDashed") },
+    { id: "dotted", label: t("toolbar.penDotted"), icon: <img src="/dotted.png" alt="Dotted" style={{width: "18px", height: "18px", objectFit: "contain"}} />, desc: t("toolbar.penDotted") },
+    { id: "neon", label: t("toolbar.penNeon"), icon: <img src="/neon.png" alt="Neon" style={{width: "18px", height: "18px", objectFit: "contain"}} />, desc: t("toolbar.penNeon") },
+    { id: "pencil", label: t("toolbar.penPencil"), icon: <img src="/pencil.png" alt="Pencil" style={{width: "18px", height: "18px", objectFit: "contain"}} />, desc: t("toolbar.penPencil") },
+    { id: "marker", label: t("toolbar.penMarker"), icon: <img src="/marker.png" alt="Marker" style={{width: "18px", height: "18px", objectFit: "contain"}} />, desc: t("toolbar.penMarker") },
+    { id: "chalk", label: t("toolbar.penChalk"), icon: <img src="/chalk.png" alt="Chalk" style={{width: "18px", height: "18px", objectFit: "contain"}} />, desc: t("toolbar.penChalk") },
+    { id: "fountain", label: t("toolbar.penFountain"), icon: <img src="/fountain.png" alt="Fountain" style={{width: "18px", height: "18px", objectFit: "contain"}} />, desc: t("toolbar.penFountain") },
     // Split Board
-    { id: "split_2", label: "2 Slots", icon: <SplitPenIcon slots={2} />, desc: "แบ่ง 2 ช่อง" },
-    { id: "split_3", label: "3 Slots", icon: <SplitPenIcon slots={3} />, desc: "แบ่ง 3 ช่อง" },
-    { id: "split_4", label: "4 Slots", icon: <SplitPenIcon slots={4} />, desc: "แบ่ง 4 ช่อง" },
-    { id: "split_5", label: "5 Slots", icon: <SplitPenIcon slots={5} />, desc: "แบ่ง 5 ช่อง" },
-    { id: "split_6", label: "6 Slots", icon: <SplitPenIcon slots={6} />, desc: "แบ่ง 6 ช่อง" },
-    { id: "split_7", label: "7 Slots", icon: <SplitPenIcon slots={7} />, desc: "แบ่ง 7 ช่อง" },
-    { id: "split_8", label: "8 Slots", icon: <SplitPenIcon slots={8} />, desc: "แบ่ง 8 ช่อง" },
-    { id: "split_9", label: "9 Slots", icon: <SplitPenIcon slots={9} />, desc: "แบ่ง 9 ช่อง" },
-    { id: "split_10", label: "10 Slots", icon: <SplitPenIcon slots={10} />, desc: "แบ่ง 10 ช่อง" },
+    { id: "split_2", label: t("toolbar.splitSlots").replace("{count}", "2"), icon: <SplitPenIcon slots={2} />, desc: t("toolbar.splitSlots").replace("{count}", "2") },
+    { id: "split_3", label: t("toolbar.splitSlots").replace("{count}", "3"), icon: <SplitPenIcon slots={3} />, desc: t("toolbar.splitSlots").replace("{count}", "3") },
+    { id: "split_4", label: t("toolbar.splitSlots").replace("{count}", "4"), icon: <SplitPenIcon slots={4} />, desc: t("toolbar.splitSlots").replace("{count}", "4") },
+    { id: "split_5", label: t("toolbar.splitSlots").replace("{count}", "5"), icon: <SplitPenIcon slots={5} />, desc: t("toolbar.splitSlots").replace("{count}", "5") },
+    { id: "split_6", label: t("toolbar.splitSlots").replace("{count}", "6"), icon: <SplitPenIcon slots={6} />, desc: t("toolbar.splitSlots").replace("{count}", "6") },
+    { id: "split_7", label: t("toolbar.splitSlots").replace("{count}", "7"), icon: <SplitPenIcon slots={7} />, desc: t("toolbar.splitSlots").replace("{count}", "7") },
+    { id: "split_8", label: t("toolbar.splitSlots").replace("{count}", "8"), icon: <SplitPenIcon slots={8} />, desc: t("toolbar.splitSlots").replace("{count}", "8") },
+    { id: "split_9", label: t("toolbar.splitSlots").replace("{count}", "9"), icon: <SplitPenIcon slots={9} />, desc: t("toolbar.splitSlots").replace("{count}", "9") },
+    { id: "split_10", label: t("toolbar.splitSlots").replace("{count}", "10"), icon: <SplitPenIcon slots={10} />, desc: t("toolbar.splitSlots").replace("{count}", "10") },
 ];
 
 // ── Shapes ──
@@ -74,35 +75,36 @@ const ShapeSvg = ({ children }) => (
     </svg>
 );
 
-const SHAPES = [
-    { id: "axes", label: "Axes", icon: <ShapeSvg><path d="M12 2v20M2 12h20" /></ShapeSvg>, desc: "แกนพิกัด" },
-    { id: "line", label: "Line", icon: <ShapeSvg><path d="M4 20L20 4" /></ShapeSvg>, desc: "เส้นตรง" },
-    { id: "arrow", label: "Arrow", icon: <ShapeSvg><path d="M4 12h16M14 6l6 6-6 6" /></ShapeSvg>, desc: "ลูกศร" },
-    { id: "rect", label: "Rect", icon: <ShapeSvg><rect x="3" y="5" width="18" height="14" rx="1" /></ShapeSvg>, desc: "สี่เหลี่ยม" },
-    { id: "rounded_rect", label: "Rounded", icon: <ShapeSvg><rect x="3" y="5" width="18" height="14" rx="4" ry="4" /></ShapeSvg>, desc: "สี่เหลี่ยมมุมมน" },
-    { id: "parallelogram", label: "P-gram", icon: <ShapeSvg><path d="M6 18L10 6h12l-4 12H6z" /></ShapeSvg>, desc: "สี่เหลี่ยมด้านขนาน" },
-    { id: "trapezoid", label: "Trapezoid", icon: <ShapeSvg><path d="M7 6h10l4 12H3l4-12z" /></ShapeSvg>, desc: "สี่เหลี่ยมคางหมู" },
-    { id: "diamond", label: "Diamond", icon: <ShapeSvg><path d="M12 3l8 9-8 9-8-9 8-9z" /></ShapeSvg>, desc: "ข้าวหลามตัด" },
-    { id: "triangle", label: "Triangle", icon: <ShapeSvg><path d="M12 3l10 17H2L12 3z" /></ShapeSvg>, desc: "สามเหลี่ยม" },
-    { id: "right_triangle", label: "RightTri", icon: <ShapeSvg><path d="M4 20h16L4 4v16z" /></ShapeSvg>, desc: "สามเหลี่ยมมุมฉาก" },
-    { id: "pentagon", label: "Pentagon", icon: <ShapeSvg><path d="M12 2l8.5 6.2-3.3 10.3H6.8L3.5 8.2 12 2z" /></ShapeSvg>, desc: "ห้าเหลี่ยม" },
-    { id: "hexagon", label: "Hexagon", icon: <ShapeSvg><path d="M12 2l8.7 5v10L12 22l-8.7-5V7L12 2z" /></ShapeSvg>, desc: "หกเหลี่ยม" },
-    { id: "heptagon", label: "Heptagon", icon: <ShapeSvg><path d="M12 2l7.8 4-1.5 8.6-6.3 7.4-6.3-7.4L4.2 6 12 2z" /></ShapeSvg>, desc: "เจ็ดเหลี่ยม" },
-    { id: "octagon", label: "Octagon", icon: <ShapeSvg><path d="M8.2 2h7.6l6.2 6.2v7.6l-6.2 6.2H8.2L2 15.8V8.2L8.2 2z" /></ShapeSvg>, desc: "แปดเหลี่ยม" },
-    { id: "star", label: "Star", icon: <ShapeSvg><path d="M12 2l3 7h7.5l-6 4.5 2 7.5-6.5-5-6.5 5 2-7.5-6-4.5H9l3-7z" /></ShapeSvg>, desc: "ดาว" },
-    { id: "cross", label: "Cross", icon: <ShapeSvg><path d="M10 2h4v8h8v4h-8v8h-4v-8H2v-4h8V2z" /></ShapeSvg>, desc: "กากบาท" },
-    { id: "circle", label: "Circle", icon: <ShapeSvg><circle cx="12" cy="12" r="9.5" /></ShapeSvg>, desc: "วงกลม" },
-    { id: "ellipse", label: "Ellipse", icon: <ShapeSvg><ellipse cx="12" cy="12" rx="10" ry="6" /></ShapeSvg>, desc: "วงรี" },
-    { id: "cylinder", label: "Cylinder", icon: <ShapeSvg><ellipse cx="12" cy="6" rx="8" ry="3" /><path d="M4 6v12c0 1.7 3.6 3 8 3s8-1.3 8-3V6" /></ShapeSvg>, desc: "ทรงกระบอก" },
-    { id: "cone", label: "Cone", icon: <ShapeSvg><ellipse cx="12" cy="18" rx="8" ry="3" /><path d="M4 18L12 2l8 16" /></ShapeSvg>, desc: "กรวย" },
-    { id: "sphere", label: "Sphere", icon: <ShapeSvg><circle cx="12" cy="12" r="9.5" /><ellipse cx="12" cy="12" rx="9.5" ry="3.5" /><ellipse cx="12" cy="12" rx="3.5" ry="9.5" /></ShapeSvg>, desc: "ทรงกลม" },
-    { id: "cube", label: "Cube", icon: <ShapeSvg><path d="M12 2.5l8 4.5v9l-8 4.5-8-4.5v-9l8-4.5z" /><path d="M12 11.5l8-4.5M12 11.5v9M12 11.5l-8-4.5" /></ShapeSvg>, desc: "ลูกบาศก์" },
-    { id: "triangular_prism", label: "Prism", icon: <ShapeSvg><path d="M7 8L3 18h10l8-4-6-10L7 8z" /><path d="M7 8l6 10" /></ShapeSvg>, desc: "ปริซึมสามเหลี่ยม" },
-    { id: "pyramid", label: "Pyramid", icon: <ShapeSvg><path d="M12 3l-9 14h18L12 3z" /><path d="M12 3l3 14" /><path d="M3 17l9 3 9-3" /></ShapeSvg>, desc: "พีระมิด" },
+const getShapes = (t) => [
+    { id: "axes", label: "Axes", icon: <ShapeSvg><path d="M12 2v20M2 12h20" /></ShapeSvg>, desc: t("toolbar.shapeAxes") },
+    { id: "line", label: "Line", icon: <ShapeSvg><path d="M4 20L20 4" /></ShapeSvg>, desc: t("toolbar.shapeLine") },
+    { id: "arrow", label: "Arrow", icon: <ShapeSvg><path d="M4 12h16M14 6l6 6-6 6" /></ShapeSvg>, desc: t("toolbar.shapeArrow") },
+    { id: "rect", label: "Rect", icon: <ShapeSvg><rect x="3" y="5" width="18" height="14" rx="1" /></ShapeSvg>, desc: t("toolbar.shapeRect") },
+    { id: "rounded_rect", label: "Rounded", icon: <ShapeSvg><rect x="3" y="5" width="18" height="14" rx="4" ry="4" /></ShapeSvg>, desc: t("toolbar.shapeRoundedRect") },
+    { id: "parallelogram", label: "P-gram", icon: <ShapeSvg><path d="M6 18L10 6h12l-4 12H6z" /></ShapeSvg>, desc: t("toolbar.shapeParallelogram") },
+    { id: "trapezoid", label: "Trapezoid", icon: <ShapeSvg><path d="M7 6h10l4 12H3l4-12z" /></ShapeSvg>, desc: t("toolbar.shapeTrapezoid") },
+    { id: "diamond", label: "Diamond", icon: <ShapeSvg><path d="M12 3l8 9-8 9-8-9 8-9z" /></ShapeSvg>, desc: t("toolbar.shapeDiamond") },
+    { id: "triangle", label: "Triangle", icon: <ShapeSvg><path d="M12 3l10 17H2L12 3z" /></ShapeSvg>, desc: t("toolbar.shapeTriangle") },
+    { id: "right_triangle", label: "RightTri", icon: <ShapeSvg><path d="M4 20h16L4 4v16z" /></ShapeSvg>, desc: t("toolbar.shapeRightTriangle") },
+    { id: "pentagon", label: "Pentagon", icon: <ShapeSvg><path d="M12 2l8.5 6.2-3.3 10.3H6.8L3.5 8.2 12 2z" /></ShapeSvg>, desc: t("toolbar.shapePentagon") },
+    { id: "hexagon", label: "Hexagon", icon: <ShapeSvg><path d="M12 2l8.7 5v10L12 22l-8.7-5V7L12 2z" /></ShapeSvg>, desc: t("toolbar.shapeHexagon") },
+    { id: "heptagon", label: "Heptagon", icon: <ShapeSvg><path d="M12 2l7.8 4-1.5 8.6-6.3 7.4-6.3-7.4L4.2 6 12 2z" /></ShapeSvg>, desc: t("toolbar.shapeHeptagon") },
+    { id: "octagon", label: "Octagon", icon: <ShapeSvg><path d="M8.2 2h7.6l6.2 6.2v7.6l-6.2 6.2H8.2L2 15.8V8.2L8.2 2z" /></ShapeSvg>, desc: t("toolbar.shapeOctagon") },
+    { id: "star", label: "Star", icon: <ShapeSvg><path d="M12 2l3 7h7.5l-6 4.5 2 7.5-6.5-5-6.5 5 2-7.5-6-4.5H9l3-7z" /></ShapeSvg>, desc: t("toolbar.shapeStar") },
+    { id: "cross", label: "Cross", icon: <ShapeSvg><path d="M10 2h4v8h8v4h-8v8h-4v-8H2v-4h8V2z" /></ShapeSvg>, desc: t("toolbar.shapeCross") },
+    { id: "circle", label: "Circle", icon: <ShapeSvg><circle cx="12" cy="12" r="9.5" /></ShapeSvg>, desc: t("toolbar.shapeCircle") },
+    { id: "ellipse", label: "Ellipse", icon: <ShapeSvg><ellipse cx="12" cy="12" rx="10" ry="6" /></ShapeSvg>, desc: t("toolbar.shapeEllipse") },
+    { id: "cylinder", label: "Cylinder", icon: <ShapeSvg><ellipse cx="12" cy="6" rx="8" ry="3" /><path d="M4 6v12c0 1.7 3.6 3 8 3s8-1.3 8-3V6" /></ShapeSvg>, desc: t("toolbar.shapeCylinder") },
+    { id: "cone", label: "Cone", icon: <ShapeSvg><ellipse cx="12" cy="18" rx="8" ry="3" /><path d="M4 18L12 2l8 16" /></ShapeSvg>, desc: t("toolbar.shapeCone") },
+    { id: "sphere", label: "Sphere", icon: <ShapeSvg><circle cx="12" cy="12" r="9.5" /><ellipse cx="12" cy="12" rx="9.5" ry="3.5" /><ellipse cx="12" cy="12" rx="3.5" ry="9.5" /></ShapeSvg>, desc: t("toolbar.shapeSphere") },
+    { id: "cube", label: "Cube", icon: <ShapeSvg><path d="M12 2.5l8 4.5v9l-8 4.5-8-4.5v-9l8-4.5z" /><path d="M12 11.5l8-4.5M12 11.5v9M12 11.5l-8-4.5" /></ShapeSvg>, desc: t("toolbar.shapeCube") },
+    { id: "triangular_prism", label: "Prism", icon: <ShapeSvg><path d="M7 8L3 18h10l8-4-6-10L7 8z" /><path d="M7 8l6 10" /></ShapeSvg>, desc: t("toolbar.shapePrism") },
+    { id: "pyramid", label: "Pyramid", icon: <ShapeSvg><path d="M12 3l-9 14h18L12 3z" /><path d="M12 3l3 14" /><path d="M3 17l9 3 9-3" /></ShapeSvg>, desc: t("toolbar.shapePyramid") },
 ];
 
 // ── PenPreview ──
 function PenPreview({ penStyle, color, size }) {
+    const { t } = useI18n();
     const canvasRef = useRef(null);
     useEffect(() => {
         const canvas = canvasRef.current;
@@ -178,6 +180,7 @@ function ToolPalette({
     showLayerPanel, onToggleLayers,
     hostPenStyle,
 }) {
+    const { t } = useI18n();
     const [showPenPopup, setShowPenPopup] = useState(false);
     const penPopupRef = useRef(null);
     const [showShapePopup, setShowShapePopup] = useState(false);
@@ -234,10 +237,10 @@ function ToolPalette({
 
     const isPenActive = tool === "pen" || tool === "highlighter";
     const isSplitActive = penStyle.startsWith("split_") || (typeof hostPenStyle === "string" && hostPenStyle.startsWith("split_"));
-    const isShapeActive = SHAPES.some(s => s.id === tool);
+    const isShapeActive = getShapes(t).some(s => s.id === tool);
     const lookupPenStyle = penStyle.startsWith("split_h_") ? `split_${penStyle.split("_")[2]}` : penStyle;
-    const currentPenIcon = PEN_STYLES.find(p => p.id === lookupPenStyle)?.icon || PEN_STYLES[0].icon;
-    const currentShapeObj = SHAPES.find(s => s.id === tool) || SHAPES.find(s => s.id === "rect");
+    const currentPenIcon = getPenStyles(t).find(p => p.id === lookupPenStyle)?.icon || getPenStyles(t)[0].icon;
+    const currentShapeObj = getShapes(t).find(s => s.id === tool) || getShapes(t).find(s => s.id === "rect");
 
     const handlePenClick = () => {
         if (isPenActive) setShowPenPopup(v => !v);
@@ -251,7 +254,7 @@ function ToolPalette({
     const handleShapeClick = () => {
         if (isShapeActive) setShowShapePopup(v => !v);
         else {
-            onToolChange(SHAPES.some(s => s.id === tool) ? tool : "rect");
+            onToolChange(getShapes(t).some(s => s.id === tool) ? tool : "rect");
         }
         setShowPenPopup(false);
         setShowEraserPopup(false);
@@ -266,7 +269,7 @@ function ToolPalette({
                 onMouseDown={handlePointerDown}
                 onTouchStart={handlePointerDown}
                 onDoubleClick={resetPosition}
-                title="ลากเพื่อย้ายตำแหน่ง (ดับเบิลคลิกเพื่อรีเซ็ต)"
+                title={t("toolbar.dragToMove")}
             >
                 <svg width="8" height="18" viewBox="0 0 8 18" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" opacity="0.7">
                     <path d="M1 3h6M1 7h6M1 11h6M1 15h6" />
@@ -275,18 +278,18 @@ function ToolPalette({
 
             {/* ── Drawing Tools ── */}
             <div className="tp-group" ref={penPopupRef}>
-                <button className={`tp-btn ${isPenActive ? "active" : ""}`} onClick={handlePenClick} title="ปากกา">
+                <button className={`tp-btn ${isPenActive ? "active" : ""}`} onClick={handlePenClick} title={t("toolbar.pen")}>
                     <img src="/pen.png" className="tall-tool-img scale-1-1" alt="Pen" />
                     <span className="tp-indicator" />
                 </button>
 
                 {showPenPopup && (
                     <div className="tp-popup pen-popup">
-                        <div className="pen-popup-header"><span className="pen-popup-title">Pen Style</span></div>
+                        <div className="pen-popup-header"><span className="pen-popup-title">{t("toolbar.pen")}</span></div>
                         {/* แถบเลื่อนแนวนอนสำหรับปากกา */}
-                        <div style={{fontSize:'12px', fontWeight:'bold', color:'rgba(255,255,255,0.7)', marginBottom:'8px'}}>ปากกา</div>
+                        <div style={{fontSize:'12px', fontWeight:'bold', color:'rgba(255,255,255,0.7)', marginBottom:'8px'}}>{t("toolbar.pen")}</div>
                         <div className="pen-horizontal-scroll">
-                            {PEN_STYLES.filter(ps => !ps.id.startsWith('split_')).map((ps) => {
+                            {getPenStyles(t).filter(ps => !ps.id.startsWith('split_')).map((ps) => {
                                 const isActive = penStyle === ps.id;
                                 return (
                                     <button key={ps.id} className={`pen-option ${isActive ? "active" : ""}`} onClick={() => handlePenStyleSelect(ps.id)} title={ps.desc}>
@@ -300,9 +303,9 @@ function ToolPalette({
                         {/* Grid แบ่งหน้าจอ (Only for Full Access / Host) */}
                         {canUseFullTools && (
                             <>
-                                <div style={{fontSize:'12px', fontWeight:'bold', color:'rgba(255,255,255,0.7)', marginBottom:'8px'}}>แบ่งหน้าจอ</div>
+                                <div style={{fontSize:'12px', fontWeight:'bold', color:'rgba(255,255,255,0.7)', marginBottom:'8px'}}>{t("toolbar.splitScreen")}</div>
                                 <div className="pen-grid">
-                                    {PEN_STYLES.filter(ps => ps.id.startsWith('split_')).map(ps => {
+                                    {getPenStyles(t).filter(ps => ps.id.startsWith('split_')).map(ps => {
                                         const isActive = ps.id.startsWith("split_") && (penStyle === ps.id || penStyle === `split_h_${ps.id.split("_")[1]}`);
                                         return (
                                             <button key={ps.id} className={`pen-option ${isActive ? "active" : ""}`} onClick={() => handlePenStyleSelect(ps.id)} title={ps.desc}>
@@ -321,7 +324,7 @@ function ToolPalette({
                                             background: "rgba(0, 0, 0, 0.15)", borderRadius: "10px",
                                             boxShadow: "inset 0 1px 3px rgba(0,0,0,0.2)"
                                         }}>
-                                            <span style={{ fontSize: "12px", fontWeight: 600, color: "rgba(255,255,255,0.6)", marginRight: "12px" }}>ทิศทาง:</span>
+                                            <span style={{ fontSize: "12px", fontWeight: 600, color: "rgba(255,255,255,0.6)", marginRight: "12px" }}>{t("toolbar.direction")}</span>
                                             <div style={{ display: "flex", gap: "4px", background: "rgba(255,255,255,0.05)", padding: "4px", borderRadius: "8px" }}>
                                                 <button
                                                     onClick={() => { if (penStyle.startsWith("split_h_")) handleSplitDirectionToggle(); }}
@@ -333,9 +336,9 @@ function ToolPalette({
                                                         boxShadow: !penStyle.startsWith("split_h_") ? "0 2px 4px rgba(0,0,0,0.2)" : "none",
                                                         transition: "all 0.2s"
                                                     }}
-                                                    title="แบ่งแนวตั้ง"
+                                                    title={t("toolbar.vertical")}
                                                 >
-                                                    │ แนวตั้ง
+                                                    │ {t("toolbar.vertical")}
                                                 </button>
                                                 <button
                                                     onClick={() => { if (!penStyle.startsWith("split_h_")) handleSplitDirectionToggle(); }}
@@ -347,9 +350,9 @@ function ToolPalette({
                                                         boxShadow: penStyle.startsWith("split_h_") ? "0 2px 4px rgba(0,0,0,0.2)" : "none",
                                                         transition: "all 0.2s"
                                                     }}
-                                                    title="แบ่งแนวนอน"
+                                                    title={t("toolbar.horizontal")}
                                                 >
-                                                    ─ แนวนอน
+                                                    ─ {t("toolbar.horizontal")}
                                                 </button>
                                             </div>
                                         </div>
@@ -364,7 +367,7 @@ function ToolPalette({
                                             onMouseOver={(e) => { e.target.style.background = "rgba(239, 68, 68, 0.25)"; }}
                                             onMouseOut={(e) => { e.target.style.background = "rgba(239, 68, 68, 0.15)"; }}
                                         >
-                                            ❌ รีเซ็ตการแบ่งหน้าจอ
+                                            ❌ {t("toolbar.cancelSplit")}
                                         </button>
                                     </>
                                 )}
@@ -375,7 +378,7 @@ function ToolPalette({
                         </div>
                         {onPenSizeChange && (
                             <div className="pen-slider-section" style={{ marginTop: "12px" }}>
-                                <span className="pen-slider-label">ขนาด</span>
+                                <span className="pen-slider-label">{t("toolbar.size")}</span>
                                 <input
                                     type="range"
                                     className="pen-slider"
@@ -383,7 +386,7 @@ function ToolPalette({
                                     max={20}
                                     value={penSize}
                                     onChange={(e) => onPenSizeChange(Number(e.target.value))}
-                                    title={`ขนาดเส้น: ${penSize}`}
+                                    title={`${t("toolbar.size")}: ${penSize}`}
                                 />
                                 <span className="pen-slider-value">{penSize}</span>
                             </div>
@@ -400,15 +403,15 @@ function ToolPalette({
                         }
                         setShowPenPopup(false);
                         setShowShapePopup(false);
-                    }} title="ยางลบ (E)">
+                    }} title={`${t("toolbar.eraser")} (E)`}>
                         <img src="/eraser.png" className="tall-tool-img scale-1-2" alt="Eraser" />
                     </button>
                     {showEraserPopup && (
                         <div className="tp-popup pen-popup" style={{ width: "200px" }}>
-                            <div className="pen-popup-header"><span className="pen-popup-title">ยางลบ</span></div>
+                            <div className="pen-popup-header"><span className="pen-popup-title">{t("toolbar.eraser")}</span></div>
                             {onEraserSizeChange && (
                                 <div className="pen-slider-section" style={{ marginTop: "12px" }}>
-                                    <span className="pen-slider-label">ขนาด</span>
+                                    <span className="pen-slider-label">{t("toolbar.size")}</span>
                                     <input
                                         type="range"
                                         className="pen-slider"
@@ -416,7 +419,7 @@ function ToolPalette({
                                         max={100}
                                         value={eraserSize}
                                         onChange={(e) => onEraserSizeChange(Number(e.target.value))}
-                                        title={`ขนาด: ${eraserSize}`}
+                                        title={`${t("toolbar.size")}: ${eraserSize}`}
                                     />
                                     <span className="pen-slider-value">{eraserSize}</span>
                                 </div>
@@ -434,10 +437,10 @@ function ToolPalette({
 
                 {canUseFullTools && (
                     <>
-                        <button className={`tp-btn ${tool === "ai_pen" ? "active" : ""}`} onClick={() => { onToolChange("ai_pen"); setShowPenPopup(false); setShowEraserPopup(false); }} title="AI Pen (แปลงลายเส้นเป็นข้อความ)">
+                        <button className={`tp-btn ${tool === "ai_pen" ? "active" : ""}`} onClick={() => { onToolChange("ai_pen"); setShowPenPopup(false); setShowEraserPopup(false); }} title={t("toolbar.aiPen")}>
                             <img src="/ai-pen.png" className="tall-tool-img scale-1-2" alt="AI Pen" />
                         </button>
-                        <button className={`tp-btn ${tool === "ai_text" ? "active" : ""}`} onClick={() => { onToolChange("ai_text"); setShowPenPopup(false); setShowEraserPopup(false); }} title="Magic Pen">
+                        <button className={`tp-btn ${tool === "ai_text" ? "active" : ""}`} onClick={() => { onToolChange("ai_text"); setShowPenPopup(false); setShowEraserPopup(false); }} title={t("toolbar.magicPen")}>
                             <img src="/magic_pen.png" className="tall-tool-img scale-1-3" alt="Magic Pen" />
                         </button>
                     </>
@@ -448,7 +451,7 @@ function ToolPalette({
 
             <div className="tp-group">
 
-                <button className={`tp-btn ${tool === "text" ? "active" : ""}`} onClick={() => { onToolChange("text"); setShowPenPopup(false); setShowEraserPopup(false); }} title="ข้อความ (T)">
+                <button className={`tp-btn ${tool === "text" ? "active" : ""}`} onClick={() => { onToolChange("text"); setShowPenPopup(false); setShowEraserPopup(false); }} title={`${t("toolbar.text")} (T)`}>
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                         <polyline points="4 7 4 4 20 4 20 7" />
                         <line x1="9" y1="20" x2="15" y2="20" />
@@ -457,7 +460,7 @@ function ToolPalette({
                 </button>
 
                 {onInsertImage && (
-                    <button className="tp-btn" onClick={() => { onInsertImage(); onToolChange("select"); setShowPenPopup(false); }} title="แทรกรูปภาพ">
+                    <button className="tp-btn" onClick={() => { onInsertImage(); onToolChange("select"); setShowPenPopup(false); }} title={t("toolbar.insertImageLabel")}>
                         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                             <rect width="18" height="18" x="3" y="3" rx="2" ry="2" />
                             <circle cx="9" cy="9" r="2" />
@@ -466,7 +469,7 @@ function ToolPalette({
                     </button>
                 )}
                 {onInsertVideo && (
-                    <button className="tp-btn" onClick={() => { onInsertVideo(); setShowPenPopup(false); }} title="แทรกวิดีโอ (.mp4)">
+                    <button className="tp-btn" onClick={() => { onInsertVideo(); setShowPenPopup(false); }} title={t("toolbar.insertVideoLabel")}>
                         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                             <rect width="18" height="14" x="3" y="5" rx="2" ry="2" />
                             <polygon points="10 9 16 12 10 15 10 9" fill="currentColor" stroke="none" />
@@ -479,7 +482,7 @@ function ToolPalette({
                 <>
                     <div className="tp-divider" />
                     <div className="tp-group">
-                        <button className={`tp-btn ${tool === "voice_text" ? "active" : ""}`} onClick={() => { onToolChange("voice_text"); setShowPenPopup(false); setShowEraserPopup(false); }} title="พิมพ์ด้วยเสียง (Voice to Text)">
+                        <button className={`tp-btn ${tool === "voice_text" ? "active" : ""}`} onClick={() => { onToolChange("voice_text"); setShowPenPopup(false); setShowEraserPopup(false); }} title={t("toolbar.voiceToText")}>
                             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                                 <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z" />
                                 <path d="M19 10v2a7 7 0 0 1-14 0v-2" />
@@ -494,7 +497,7 @@ function ToolPalette({
 
             {/* ── Shape & Selection Tools ── */}
             <div className="tp-group" ref={shapePopupRef}>
-                <button className={`tp-btn ${isShapeActive ? "active" : ""}`} onClick={handleShapeClick} title="รูปทรง">
+                <button className={`tp-btn ${isShapeActive ? "active" : ""}`} onClick={handleShapeClick} title={t("toolbar.shapes")}>
                     {currentShapeObj?.icon}
                     <span className="tp-indicator" />
                 </button>
@@ -503,7 +506,7 @@ function ToolPalette({
                     <div className="tp-popup shape-popup">
                         <div className="pen-popup-header"><span className="pen-popup-title">Geometry</span></div>
                         <div className="shape-grid">
-                            {SHAPES.map(sh => (
+                            {getShapes(t).map(sh => (
                                 <button key={sh.id} className={`pen-option ${tool === sh.id ? "active" : ""}`} onClick={() => { onToolChange(sh.id); setShowShapePopup(false); }} title={sh.desc}>
                                     <span className="pen-option-icon">{sh.icon}</span>
                                 </button>
@@ -511,19 +514,19 @@ function ToolPalette({
                         </div>
                     </div>
                 )}
-                <button className={`tp-btn ${tool === "select" ? "active" : ""}`} onClick={() => onToolChange("select")} title="เลือก/ย้าย (V)">
+                <button className={`tp-btn ${tool === "select" ? "active" : ""}`} onClick={() => onToolChange("select")} title={`${t("toolbar.selectMove")} (V)`}>
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                         <path d="M4 4l7.07 17 2.51-7.39L21 11.07z" />
                     </svg>
                 </button>
-                <button className={`tp-btn ${tool === "lasso" ? "active" : ""}`} onClick={() => onToolChange("lasso")} title="บ่วงเชือก (Lasso)">
+                <button className={`tp-btn ${tool === "lasso" ? "active" : ""}`} onClick={() => onToolChange("lasso")} title={t("toolbar.lasso")}>
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                         <path d="M7 22a5 5 0 0 1-2-4" />
                         <path d="M3.3 14A6.8 6.8 0 0 1 2 10c0-4.4 4.5-8 10-8s10 3.6 10 8-4.5 8-10 8a12 12 0 0 1-5-1" />
                         <path d="M5 18a2 2 0 1 0 0-4 2 2 0 0 0 0 4z" />
                     </svg>
                 </button>
-                <button className={`tp-btn ${tool === "pan" ? "active" : ""}`} onClick={() => onToolChange("pan")} title="เลื่อนกระดาน">
+                <button className={`tp-btn ${tool === "pan" ? "active" : ""}`} onClick={() => onToolChange("pan")} title={t("toolbar.pan")}>
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                         <path d="M18 11V6a2 2 0 0 0-2-2a2 2 0 0 0-2 2" />
                         <path d="M14 10V4a2 2 0 0 0-2-2a2 2 0 0 0-2 2v2" />
@@ -531,7 +534,7 @@ function ToolPalette({
                         <path d="M18 8a2 2 0 1 1 4 0v6a8 8 0 0 1-8 8h-2c-2.8 0-4.5-.86-5.99-2.34l-3.6-3.6a2 2 0 0 1 2.83-2.82L7 15" />
                     </svg>
                 </button>
-                <button className={`tp-btn ${tool === "laser" ? "active tp-laser" : ""}`} onClick={() => onToolChange("laser")} title="เลเซอร์ชี้">
+                <button className={`tp-btn ${tool === "laser" ? "active tp-laser" : ""}`} onClick={() => onToolChange("laser")} title={t("toolbar.laser")}>
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                         <circle cx="12" cy="12" r="2" fill="#ef4444" stroke="#ef4444" strokeWidth="1" />
                         <circle cx="12" cy="12" r="6" opacity="0.6" />
@@ -548,19 +551,19 @@ function ToolPalette({
 
             {/* ── Actions ── */}
             <div className="tp-group">
-                <button className="tp-btn" onClick={onUndo} title="เลิกทำ (Ctrl+Z)">
+                <button className="tp-btn" onClick={onUndo} title={`${t("toolbar.undo")} (Ctrl+Z)`}>
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                         <path d="M9 14 4 9l5-5" />
                         <path d="M4 9h10.5a5.5 5.5 0 0 1 5.5 5.5a5.5 5.5 0 0 1-5.5 5.5H11" />
                     </svg>
                 </button>
-                <button className="tp-btn" onClick={onRedo} title="ทำซ้ำ (Ctrl+Y)">
+                <button className="tp-btn" onClick={onRedo} title={`${t("toolbar.redo")} (Ctrl+Y)`}>
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                         <path d="M15 14l5-5-5-5" />
                         <path d="M20 9H9.5A5.5 5.5 0 0 0 4 14.5A5.5 5.5 0 0 0 9.5 20H13" />
                     </svg>
                 </button>
-                <button className="tp-btn tp-danger" onClick={onClear} title="ลบทั้งหมด">
+                <button className="tp-btn tp-danger" onClick={onClear} title={t("toolbar.clearAll")}>
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                         <path d="M3 6h18" />
                         <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6" />
@@ -569,7 +572,7 @@ function ToolPalette({
                         <line x1="14" y1="11" x2="14" y2="17" />
                     </svg>
                 </button>
-                <button className={`tp-btn ${showLayerPanel ? 'tp-active' : ''}`} onClick={onToggleLayers} title="เลเยอร์ (Layers)">
+                <button className={`tp-btn ${showLayerPanel ? 'tp-active' : ''}`} onClick={onToggleLayers} title={t("toolbar.layers")}>
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                         <polygon points="12 2 2 7 12 12 22 7 12 2" />
                         <polyline points="2 17 12 22 22 17" />

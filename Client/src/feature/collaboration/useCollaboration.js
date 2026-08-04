@@ -1,6 +1,7 @@
 // ============================================================
 // useCollaboration.js — Hook ระบบ Multiplayer (cursor, laser, users)
 // ============================================================
+import { useI18n } from "../../i18n/i18n";
 import { useState, useEffect, useCallback, useRef } from "react";
 import { collaborationService } from "./collaborationService";
 
@@ -21,7 +22,7 @@ export function useCollaboration({ isActive, currentPageIndex, setCurrentPageInd
         Object.keys(users).forEach(id => {
           if (id !== socket.id) {
             const u = users[id];
-            next[id] = { name: u.name || "ผู้ใช้", role: u.role, color: u.color, pageIndex: u.pageIndex || 0, permissionLevel: u.permissionLevel || null };
+            next[id] = { name: u.name || t("deepCleanup.userDefaultName"), role: u.role, color: u.color, pageIndex: u.pageIndex || 0, permissionLevel: u.permissionLevel || null };
           }
         });
         return next;
@@ -42,7 +43,7 @@ export function useCollaboration({ isActive, currentPageIndex, setCurrentPageInd
       setRemoteViewports(prev => ({ ...prev, [data.id]: data }));
     };
     const handleUserJoined = ({ id, name, role, color, permissionLevel }) => {
-      setRemoteUsers(prev => ({ ...prev, [id]: { name: name || "ผู้ใช้", role, color, pageIndex: 0, permissionLevel } }));
+      setRemoteUsers(prev => ({ ...prev, [id]: { name: name || t("deepCleanup.userDefaultName"), role, color, pageIndex: 0, permissionLevel } }));
     };
 
     const handleUserLeft = ({ id }) => {

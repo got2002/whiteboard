@@ -1,3 +1,4 @@
+import { useI18n } from "../i18n/i18n";
 // ============================================================
 // useFileOps.js — Hook ไฟล์ Save/Load/Export/Import/AutoSave
 // ============================================================
@@ -5,6 +6,7 @@ import { useState, useEffect, useCallback } from "react";
 import { SERVER_URL } from "../core/socket";
 
 export function useFileOps({ pages, setPages, setCurrentPageIndex, canvasRef, currentPageIndex, handleStrokeComplete }) {
+    const { t } = useI18n();
   const [autoSave, setAutoSave] = useState(false);
   const [showNewBoardConfirm, setShowNewBoardConfirm] = useState(false);
 
@@ -58,7 +60,7 @@ export function useFileOps({ pages, setPages, setCurrentPageIndex, canvasRef, cu
         reader.onload = (ev) => {
           try {
             const buffer = new Uint8Array(ev.target.result);
-            if (buffer.length < 2) throw new Error("ไฟล์เสียหาย");
+            if (buffer.length < 2) throw new Error(t("overlay.fileDamaged"));
             const key = buffer[0];
             const decoded = new Uint8Array(buffer.length - 1);
             for (let i = 0; i < decoded.length; i++) {
@@ -70,11 +72,11 @@ export function useFileOps({ pages, setPages, setCurrentPageIndex, canvasRef, cu
               setPages(data.pages);
               setCurrentPageIndex(0);
             } else {
-              alert("ไฟล์ PD1 ไม่มีข้อมูลหน้ากระดาน");
+              alert(t("overlay.noBoardDataPD1"));
             }
           } catch (err) {
             console.error("Load PD1 error:", err);
-            alert("ไม่สามารถอ่านไฟล์ PD1 ได้: " + err.message);
+            alert(t("overlay.cannotReadPD1") + err.message);
           }
         };
         reader.readAsArrayBuffer(file);
@@ -88,10 +90,10 @@ export function useFileOps({ pages, setPages, setCurrentPageIndex, canvasRef, cu
               setPages(data.pages);
               setCurrentPageIndex(0);
             } else {
-              alert("ไฟล์ไม่มีข้อมูลหน้ากระดาน");
+              alert(t("overlay.noBoardDataGeneric"));
             }
           } catch {
-            alert("ไม่สามารถอ่านไฟล์ได้");
+            alert(t("overlay.cannotReadGeneric"));
           }
         };
         reader.readAsText(file);
@@ -116,10 +118,10 @@ export function useFileOps({ pages, setPages, setCurrentPageIndex, canvasRef, cu
             setPages(data.pages);
             setCurrentPageIndex(0);
           } else {
-            alert("ไฟล์ IWB ไม่มีข้อมูลหน้ากระดาน");
+            alert(t("overlay.noBoardDataIWB"));
           }
         } catch {
-          alert("ไม่สามารถอ่านไฟล์ IWB ได้");
+          alert(t("overlay.cannotReadIWB"));
         }
       };
       reader.readAsText(file);
@@ -138,7 +140,7 @@ export function useFileOps({ pages, setPages, setCurrentPageIndex, canvasRef, cu
       reader.onload = (ev) => {
         try {
           const buffer = new Uint8Array(ev.target.result);
-          if (buffer.length < 2) throw new Error("ไฟล์เสียหาย");
+          if (buffer.length < 2) throw new Error(t("overlay.fileDamaged"));
           const key = buffer[0];
           const decoded = new Uint8Array(buffer.length - 1);
           for (let i = 0; i < decoded.length; i++) {
@@ -150,11 +152,11 @@ export function useFileOps({ pages, setPages, setCurrentPageIndex, canvasRef, cu
             setPages(data.pages);
             setCurrentPageIndex(0);
           } else {
-            alert("ไฟล์ PD1 ไม่มีข้อมูลหน้ากระดาน");
+            alert(t("overlay.noBoardDataPD1"));
           }
         } catch (err) {
           console.error("Load PD1 error:", err);
-          alert("ไม่สามารถอ่านไฟล์ PD1 ได้: " + err.message);
+          alert(t("overlay.cannotReadPD1") + err.message);
         }
       };
       reader.readAsArrayBuffer(file);
@@ -257,7 +259,7 @@ export function useFileOps({ pages, setPages, setCurrentPageIndex, canvasRef, cu
 
       // Check file size (limit 500MB) to prevent freezing
       if (file.size > 500 * 1024 * 1024) {
-        alert("ไฟล์วิดีโอมีขนาดใหญ่เกินไป (จำกัด 500MB) กรุณาใช้ไฟล์ที่เล็กกว่านี้เพื่อป้องกันแอปพลิเคชันค้างเวลาซิงค์ข้อมูลครับ");
+        alert(t("overlay.videoTooLarge"));
         return;
       }
 
@@ -305,11 +307,11 @@ export function useFileOps({ pages, setPages, setCurrentPageIndex, canvasRef, cu
             handleStrokeComplete(stroke);
             window.dispatchEvent(new CustomEvent('image-inserted', { detail: { strokeId } }));
           } else {
-            alert("อัปโหลดวิดีโอไม่สำเร็จ");
+            alert(t("overlay.uploadVidFailed"));
           }
         } catch (error) {
           console.error("Upload error:", error);
-          alert("เกิดข้อผิดพลาดในการอัปโหลดวิดีโอ");
+          alert(t("overlay.uploadVidError"));
         }
 
         URL.revokeObjectURL(tempVideo.src);

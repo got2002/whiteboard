@@ -1,13 +1,15 @@
+import { useI18n } from "../i18n/i18n";
 import React from "react";
 
 function VideoPlayerModal({ videoUrl, onClose, onDownload }) {
+    const { t } = useI18n();
   if (!videoUrl) return null;
 
   return (
     <div className="video-modal-overlay" onClick={onClose}>
       <div className="video-modal-content" onClick={(e) => e.stopPropagation()}>
         <div className="video-modal-header">
-          <h3>วิดีโอที่บันทึกไว้ (Recorded Video)</h3>
+          <h3>{t("widget.recordedVideo")}</h3>
           <button className="video-close-btn" onClick={onClose}>
             &times;
           </button>
@@ -19,10 +21,10 @@ function VideoPlayerModal({ videoUrl, onClose, onDownload }) {
         
         <div className="video-modal-footer">
           <button className="video-btn secondary" onClick={onClose}>
-            ปิด (Close)
+            {t("widget.closeVideo")}
           </button>
           <button className="video-btn primary" onClick={onDownload}>
-            ⬇️ ดาวน์โหลด (Download)
+            {t("widget.downloadVideo")}
           </button>
         </div>
       </div>

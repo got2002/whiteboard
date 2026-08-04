@@ -6,9 +6,10 @@
 // ============================================================
 
 import { useState, useRef, useEffect } from "react";
+import { useI18n } from "../i18n/i18n";
 
 // ── Tool Items ──
-const TOOLBOX_ITEMS = [
+const getToolboxItems = (t) => [
     {
         id: "calculator",
         label: "Calculator",
@@ -138,7 +139,7 @@ const TOOLBOX_ITEMS = [
     },
     {
         id: "banner",
-        label: "Banner อักษรวิ่ง",
+        label: t("widget.banner") || "Banner อักษรวิ่ง",
         icon: (
             <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
                 <rect x="2" y="8" width="20" height="8" rx="2" fill="rgba(251,191,36,0.15)" />
@@ -491,14 +492,15 @@ const TOOLBOX_ITEMS = [
     }
 ];
 
-const CATEGORIES = [
-    { id: "gadgets", label: "Gadgets" },
-    { id: "math", label: "Math Tools" },
-    { id: "science", label: "🔬 Science" },
-    { id: "stickers", label: "🌟 Stickers" },
+const getCategories = (t) => [
+    { id: "gadgets", label: t("toolbox.tabGadgets") },
+    { id: "math", label: t("toolbox.tabMath") },
+    { id: "science", label: t("toolbox.tabScience") },
+    { id: "stickers", label: t("toolbox.tabStickers") },
 ];
 
 export default function ToolBoxButton({ onToolSelect, activeTools = {} }) {
+    const { t } = useI18n();
     const [showPanel, setShowPanel] = useState(false);
     const [activeCategory, setActiveCategory] = useState("gadgets");
     const panelRef = useRef(null);
@@ -519,7 +521,7 @@ export default function ToolBoxButton({ onToolSelect, activeTools = {} }) {
         };
     }, [showPanel]);
 
-    const filteredItems = TOOLBOX_ITEMS.filter(item => item.category === activeCategory);
+    const filteredItems = getToolboxItems(t).filter(item => item.category === activeCategory);
 
     return (
         <div className="toolbox-wrap" ref={panelRef}>
@@ -527,7 +529,7 @@ export default function ToolBoxButton({ onToolSelect, activeTools = {} }) {
             <button
                 className={`header-btn toolbox-trigger ${showPanel ? "header-btn-active" : ""}`}
                 onClick={() => setShowPanel(v => !v)}
-                title="ToolBox — เครื่องมือเสริม"
+                title={t("toolbox.title")}
             >
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                     <path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z" />
@@ -540,7 +542,7 @@ export default function ToolBoxButton({ onToolSelect, activeTools = {} }) {
                 <div className="toolbox-panel">
                     {/* Category Tabs */}
                     <div className="toolbox-tabs">
-                        {CATEGORIES.map(cat => (
+                        {getCategories(t).map(cat => (
                             <button
                                 key={cat.id}
                                 className={`toolbox-tab ${activeCategory === cat.id ? "active" : ""}`}
@@ -577,7 +579,7 @@ export default function ToolBoxButton({ onToolSelect, activeTools = {} }) {
                                         <path d="M12 8v8M8 12h8" opacity="0.3" />
                                     </svg>
                                 </span>
-                                <span className="toolbox-item-label" style={{ opacity: 0.3 }}>เร็วๆ นี้</span>
+                                <span className="toolbox-item-label" style={{ opacity: 0.3 }}>{t("toolbox.comingSoon")}</span>
                             </div>
                         ))}
                     </div>

@@ -1,6 +1,8 @@
+import { useI18n } from "../i18n/i18n";
 import React, { useEffect, useRef, useState } from "react";
 
 function WebcamWidget({ isLocal, stream, ownerName, ownerId, onClose }) {
+  const { t } = useI18n();
   const videoRef = useRef(null);
   const [isMicOn, setIsMicOn] = useState(true);
 
@@ -46,7 +48,7 @@ function WebcamWidget({ isLocal, stream, ownerName, ownerId, onClose }) {
       {/* Name Tag */}
       <div className="webcam-name-tag">
         <div className="webcam-indicator"></div>
-        <span className="webcam-title">{ownerName || "Webcam"}</span>
+        <span className="webcam-title">{ownerName || t("webcam.title")}</span>
       </div>
 
       {/* Top Actions (Local only) */}
@@ -55,7 +57,7 @@ function WebcamWidget({ isLocal, stream, ownerName, ownerId, onClose }) {
           <button 
             className={`webcam-action-btn ${!isMicOn ? 'muted' : ''}`} 
             onClick={toggleMic} 
-            title={isMicOn ? "Mute Microphone" : "Unmute Microphone"}
+            title={isMicOn ? t("webcam.mute") : t("webcam.unmute")}
           >
             {isMicOn ? (
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
@@ -76,7 +78,7 @@ function WebcamWidget({ isLocal, stream, ownerName, ownerId, onClose }) {
           </button>
           
           {onClose && (
-            <button className="webcam-action-btn close-btn" onClick={onClose} title="Close Camera">
+            <button className="webcam-action-btn close-btn" onClick={onClose} title={t("webcam.close")}>
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                 <line x1="18" y1="6" x2="6" y2="18"></line>
                 <line x1="6" y1="6" x2="18" y2="18"></line>
@@ -88,7 +90,7 @@ function WebcamWidget({ isLocal, stream, ownerName, ownerId, onClose }) {
 
       {/* Remote Status Indicator (if remote user is muted, but we don't sync this yet, so we just show if stream has no audio tracks enabled) */}
       {!isLocal && stream && stream.getAudioTracks().length > 0 && !stream.getAudioTracks()[0].enabled && (
-        <div className="webcam-muted-indicator" title="Muted">
+        <div className="webcam-muted-indicator" title={t("webcam.mutedIndicator")}>
           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
             <line x1="1" y1="1" x2="23" y2="23"></line>
             <path d="M9 9v3a3 3 0 0 0 5.12 2.12M15 9.34V4a3 3 0 0 0-5.94-.6"></path>

@@ -1,3 +1,4 @@
+import { useI18n } from "../i18n/i18n";
 // ============================================================
 // PresentationMode.jsx — โหมดพรีเซ้นแบบ Fullscreen
 // ============================================================
@@ -16,8 +17,8 @@ import { drawPenStroke, drawTextOnCtx, drawStampOnCtx, drawImageOnCtx } from "..
 import { drawShapeOnCtx } from "../utils/shapeRenderer";
 
 // ── Transition types ──
-const TRANSITIONS = [
-  { id: "none", label: "ไม่มี", icon: <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="4.93" y1="4.93" x2="19.07" y2="19.07"></line></svg> },
+const getTransitions = (t) => [
+  { id: "none", label: t("overlay.none"), icon: <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="4.93" y1="4.93" x2="19.07" y2="19.07"></line></svg> },
   { id: "fade", label: "Fade", icon: <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><path d="M12 8v8M8 12h8" strokeOpacity="0.4"></path></svg> },
   { id: "slide-left", label: "Slide Left", icon: <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg> },
   { id: "slide-right", label: "Slide Right", icon: <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg> },
@@ -202,6 +203,7 @@ export default function PresentationMode({
   onSelectPage,
   onClose,
 }) {
+    const { t } = useI18n();
   const [slideIndex, setSlideIndex] = useState(currentPageIndex);
   const [prevSlideIndex, setPrevSlideIndex] = useState(null);
   const [transitionClass, setTransitionClass] = useState("");
@@ -523,8 +525,8 @@ export default function PresentationMode({
 
         {/* Transition label */}
         <div className="pres-transition-label">
-          {TRANSITIONS.find(t => t.id === (currentPage?.transition || "fade"))?.icon}{" "}
-          {TRANSITIONS.find(t => t.id === (currentPage?.transition || "fade"))?.label}
+          {getTransitions(t).find(t => t.id === (currentPage?.transition || "fade"))?.icon}{" "}
+          {getTransitions(t).find(t => t.id === (currentPage?.transition || "fade"))?.label}
         </div>
       </div>
 
@@ -535,4 +537,4 @@ export default function PresentationMode({
   );
 }
 
-export { TRANSITIONS };
+export { getTransitions };

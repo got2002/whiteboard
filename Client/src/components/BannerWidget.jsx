@@ -1,5 +1,6 @@
+import { useI18n } from "../i18n/i18n";
 // ============================================================
-// BannerWidget.jsx — Banner อักษรวิ่ง (Scrolling Text Marquee)
+// BannerWidget.jsx — {t("widget.bannerTitle")} (Scrolling Text Marquee)
 // ============================================================
 // แถบข้อความเลื่อนวิ่งแบบ LED / News Ticker
 // ครูตั้งค่าข้อความ, สี, ความเร็ว, ตำแหน่ง แล้วแสดงบนกระดาน
@@ -9,22 +10,22 @@ import { useState, useRef, useEffect, useCallback } from "react";
 import { useDraggable } from "../hooks/useDraggable";
 
 // ── Preset Color Themes ──
-const COLOR_THEMES = [
-  { id: "classic", label: "คลาสสิก", bg: "#0a0a0a", text: "#fbbf24", glow: "rgba(251,191,36,0.3)" },
-  { id: "neon_red", label: "นีออนแดง", bg: "#1a0005", text: "#ff3b3b", glow: "rgba(255,59,59,0.4)" },
-  { id: "neon_blue", label: "นีออนฟ้า", bg: "#000a1a", text: "#00d4ff", glow: "rgba(0,212,255,0.4)" },
-  { id: "neon_green", label: "นีออนเขียว", bg: "#001a0a", text: "#00ff88", glow: "rgba(0,255,136,0.4)" },
-  { id: "sunset", label: "พระอาทิตย์", bg: "linear-gradient(90deg,#1a0505,#2d1810,#1a0505)", text: "#ff9f43", glow: "rgba(255,159,67,0.3)" },
+const getThemeOptions = (t) => [
+  { id: "classic", label: t("widget.classic"), bg: "#0a0a0a", text: "#fbbf24", glow: "rgba(251,191,36,0.3)" },
+  { id: "neon_red", label: t("widget.neonRed"), bg: "#1a0005", text: "#ff3b3b", glow: "rgba(255,59,59,0.4)" },
+  { id: "neon_blue", label: t("widget.neonBlue"), bg: "#000a1a", text: "#00d4ff", glow: "rgba(0,212,255,0.4)" },
+  { id: "neon_green", label: t("widget.neonGreen"), bg: "#001a0a", text: "#00ff88", glow: "rgba(0,255,136,0.4)" },
+  { id: "sunset", label: t("widget.sunset"), bg: "linear-gradient(90deg,#1a0505,#2d1810,#1a0505)", text: "#ff9f43", glow: "rgba(255,159,67,0.3)" },
   { id: "royal", label: "Royal", bg: "linear-gradient(90deg,#0a0520,#1a1040,#0a0520)", text: "#a78bfa", glow: "rgba(167,139,250,0.4)" },
-  { id: "alert", label: "แจ้งเตือน", bg: "#1c1c00", text: "#facc15", glow: "rgba(250,204,21,0.4)" },
-  { id: "white", label: "สว่าง", bg: "rgba(255,255,255,0.95)", text: "#1e293b", glow: "none" },
+  { id: "alert", label: t("widget.alert"), bg: "#1c1c00", text: "#facc15", glow: "rgba(250,204,21,0.4)" },
+  { id: "white", label: t("widget.bright"), bg: "rgba(255,255,255,0.95)", text: "#1e293b", glow: "none" },
 ];
 
-const SPEED_OPTIONS = [
-  { id: "slow", label: "ช้า", duration: 25 },
-  { id: "normal", label: "ปกติ", duration: 15 },
-  { id: "fast", label: "เร็ว", duration: 8 },
-  { id: "very_fast", label: "เร็วมาก", duration: 4 },
+const getSpeedOptions = (t) => [
+  { id: "slow", label: t("widget.slow"), duration: 25 },
+  { id: "normal", label: t("widget.normal"), duration: 15 },
+  { id: "fast", label: t("widget.fast"), duration: 8 },
+  { id: "very_fast", label: t("widget.veryFast"), duration: 4 },
 ];
 
 export const FONT_SIZES = [
@@ -35,10 +36,11 @@ export const FONT_SIZES = [
 ];
 
 export default function BannerWidget({ bannerConfig, canEdit = true, onBannerSync, onClose }) {
+    const { t } = useI18n();
   // ── Settings State ──
-  const [text, setText] = useState(bannerConfig?.text || "ยินดีต้อนรับสู่ห้องเรียน 🎓");
-  const [theme, setTheme] = useState(COLOR_THEMES.find(t => t.id === bannerConfig?.themeId) || COLOR_THEMES[0]);
-  const [speed, setSpeed] = useState(SPEED_OPTIONS.find(s => s.id === bannerConfig?.speedId) || SPEED_OPTIONS[1]);
+  const [text, setText] = useState(bannerConfig?.text || t("widget.welcome"));
+  const [theme, setTheme] = useState(getThemeOptions(t).find(t => t.id === bannerConfig?.themeId) || getThemeOptions(t)[0]);
+  const [speed, setSpeed] = useState(getSpeedOptions(t).find(s => s.id === bannerConfig?.speedId) || getSpeedOptions(t)[1]);
   const [fontSize, setFontSize] = useState(FONT_SIZES.find(f => f.id === bannerConfig?.fontSizeId) || FONT_SIZES[1]);
   const [position, setPosition] = useState(bannerConfig?.position || "bottom"); // "top" | "bottom"
   const [isShowing, setIsShowing] = useState(bannerConfig?.isShowing ?? false);
@@ -56,8 +58,8 @@ export default function BannerWidget({ bannerConfig, canEdit = true, onBannerSyn
   useEffect(() => {
     if (bannerConfig) {
       if (bannerConfig.text !== undefined) setText(bannerConfig.text);
-      if (bannerConfig.themeId) setTheme(COLOR_THEMES.find(t => t.id === bannerConfig.themeId) || COLOR_THEMES[0]);
-      if (bannerConfig.speedId) setSpeed(SPEED_OPTIONS.find(s => s.id === bannerConfig.speedId) || SPEED_OPTIONS[1]);
+      if (bannerConfig.themeId) setTheme(getThemeOptions(t).find(t => t.id === bannerConfig.themeId) || getThemeOptions(t)[0]);
+      if (bannerConfig.speedId) setSpeed(getSpeedOptions(t).find(s => s.id === bannerConfig.speedId) || getSpeedOptions(t)[1]);
       if (bannerConfig.fontSizeId) setFontSize(FONT_SIZES.find(f => f.id === bannerConfig.fontSizeId) || FONT_SIZES[1]);
       if (bannerConfig.position) setPosition(bannerConfig.position);
       if (bannerConfig.isShowing !== undefined) setIsShowing(bannerConfig.isShowing);
@@ -160,7 +162,7 @@ export default function BannerWidget({ bannerConfig, canEdit = true, onBannerSyn
                 fontSize: 13, fontWeight: 700, letterSpacing: 0.5,
                 background: "linear-gradient(90deg,#fbbf24,#f59e0b)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent",
               }}>
-                Banner อักษรวิ่ง
+                {t("widget.bannerTitle")}
               </span>
               <span style={{ fontSize: 9, color: "#92400e", background: "rgba(251,191,36,0.1)", padding: "2px 8px", borderRadius: 4, fontWeight: 600 }}>v1.0</span>
             </div>
@@ -168,7 +170,7 @@ export default function BannerWidget({ bannerConfig, canEdit = true, onBannerSyn
               {/* ปุ่มย่อ (minimize) — เก็บแผงตั้งค่า แต่ Banner ยังวิ่งอยู่ */}
               <button
                 onClick={() => setShowSettings(false)}
-                title="ย่อแผงตั้งค่า (Banner ยังแสดงอยู่)"
+                title={t("widget.minimizeConfig")}
                 style={{
                   background: "rgba(59,130,246,0.1)", border: "1px solid rgba(59,130,246,0.2)",
                   color: "#60a5fa", cursor: "pointer", padding: "3px 8px", borderRadius: 6,
@@ -180,7 +182,7 @@ export default function BannerWidget({ bannerConfig, canEdit = true, onBannerSyn
               {/* ปุ่มปิด — ปิดทั้งหมด (Banner + แผงตั้งค่า) */}
               <button
                 onClick={() => { setIsShowing(false); onClose(); syncChanges({ isShowing: false }); }}
-                title="ปิดทั้งหมด"
+                title={t("widget.closeAll")}
                 style={{
                   background: "rgba(239,68,68,0.1)", border: "1px solid rgba(239,68,68,0.2)",
                   color: "#f87171", cursor: "pointer", padding: "3px 8px", borderRadius: 6,
@@ -203,7 +205,7 @@ export default function BannerWidget({ bannerConfig, canEdit = true, onBannerSyn
               <textarea
                 value={text}
                 onChange={e => { setText(e.target.value); syncChanges({ text: e.target.value }); }}
-                placeholder="พิมพ์ข้อความที่ต้องการให้วิ่ง..."
+                placeholder={t("widget.textPlaceholder")}
                 rows={2}
                 style={{
                   width: "100%", resize: "none", border: "1px solid rgba(100,140,200,0.15)",
@@ -220,10 +222,10 @@ export default function BannerWidget({ bannerConfig, canEdit = true, onBannerSyn
             {/* Color Theme */}
             <div>
               <label style={{ fontSize: 10, color: "#94a3b8", fontWeight: 600, marginBottom: 6, display: "block" }}>
-                🎨 ธีมสี
+                {t("widget.themeColor")}
               </label>
               <div style={{ display: "flex", gap: 5, flexWrap: "wrap" }}>
-                {COLOR_THEMES.map(t => {
+                {getThemeOptions(t).map(t => {
                   const active = theme.id === t.id;
                   return (
                     <button key={t.id} onClick={() => { setTheme(t); syncChanges({ theme: t }); }} style={{
@@ -244,10 +246,10 @@ export default function BannerWidget({ bannerConfig, canEdit = true, onBannerSyn
               {/* Speed */}
               <div style={{ flex: 1 }}>
                 <label style={{ fontSize: 10, color: "#94a3b8", fontWeight: 600, marginBottom: 6, display: "block" }}>
-                  ⚡ ความเร็ว
+                  {t("widget.speed")}
                 </label>
                 <div style={{ display: "flex", gap: 4 }}>
-                  {SPEED_OPTIONS.map(s => {
+                  {getSpeedOptions(t).map(s => {
                     const active = speed.id === s.id;
                     return (
                       <button key={s.id} onClick={() => { setSpeed(s); syncChanges({ speed: s }); }} style={{
@@ -264,7 +266,7 @@ export default function BannerWidget({ bannerConfig, canEdit = true, onBannerSyn
               {/* Font Size */}
               <div style={{ flex: 1 }}>
                 <label style={{ fontSize: 10, color: "#94a3b8", fontWeight: 600, marginBottom: 6, display: "block" }}>
-                  🔤 ขนาดตัวอักษร
+                  {t("widget.fontSize")}
                 </label>
                 <div style={{ display: "flex", gap: 4 }}>
                   {FONT_SIZES.map(f => {
@@ -285,12 +287,12 @@ export default function BannerWidget({ bannerConfig, canEdit = true, onBannerSyn
             {/* Position */}
             <div>
               <label style={{ fontSize: 10, color: "#94a3b8", fontWeight: 600, marginBottom: 6, display: "block" }}>
-                📍 ตำแหน่ง
+                {t("widget.position")}
               </label>
               <div style={{ display: "flex", gap: 6 }}>
                 {[
-                  { id: "top", label: "▲ ด้านบน" },
-                  { id: "bottom", label: "▼ ด้านล่าง" },
+                  { id: "top", label: t("widget.posTop") },
+                  { id: "bottom", label: t("widget.posBottom") },
                 ].map(p => {
                   const active = position === p.id;
                   return (
@@ -322,13 +324,13 @@ export default function BannerWidget({ bannerConfig, canEdit = true, onBannerSyn
                 textShadow: currentTheme.glow !== "none" ? `0 0 12px ${currentTheme.glow}, 0 0 24px ${currentTheme.glow}` : "none",
                 fontFamily: "'Inter','Segoe UI',system-ui,sans-serif",
               }}>
-                {text || "พิมพ์ข้อความ..."}
+                {text || t("widget.exampleText")}
               </div>
               <div style={{
                 position: "absolute", top: 2, right: 4,
                 fontSize: 8, color: "#64748b", background: "rgba(0,0,0,0.5)",
                 padding: "1px 5px", borderRadius: 3,
-              }}>ตัวอย่าง</div>
+              }}>{t("widget.exampleLabel")}</div>
             </div>
 
             {/* Action Buttons */}
@@ -347,7 +349,7 @@ export default function BannerWidget({ bannerConfig, canEdit = true, onBannerSyn
                   transition: "all 0.2s", opacity: text.trim() ? 1 : 0.4,
                 }}
               >
-                {isShowing ? "⏹ ปิด Banner" : "▶ แสดง Banner"}
+                {isShowing ? t("widget.stopBanner") : t("widget.playBanner")}
               </button>
               {isShowing && (
                 <button

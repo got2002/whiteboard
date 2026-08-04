@@ -8,6 +8,7 @@
 //
 // ============================================================
 
+import { useI18n } from "../i18n/i18n";
 import { useState, useRef, useCallback } from "react";
 
 // เครื่องมือที่แสดงในพาเลท
@@ -21,6 +22,7 @@ const PALETTE_TOOLS = [
 ];
 
 function FloatingPalette({ tool, onToolChange }) {
+  const { t } = useI18n();
     // ── state ──
     const [isOpen, setIsOpen] = useState(false);     // เปิด/ปิดพาเลท
     const [pos, setPos] = useState({ x: 80, y: 200 }); // ตำแหน่งพาเลท
@@ -73,7 +75,7 @@ function FloatingPalette({ tool, onToolChange }) {
                 onClick={() => setIsOpen((v) => !v)}
                 onMouseDown={handleDragStart}
                 onTouchStart={handleDragStart}
-                title="เครื่องมือด่วน"
+                title={t("deepCleanup.tooltipColorMore")}
             >
                 🎯
             </button>

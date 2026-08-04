@@ -1,14 +1,16 @@
+import { useI18n } from "../i18n/i18n";
 // ============================================================
 // LockScreenOverlay.jsx — ล็อคหน้าจอ (Lock Screen)
 // ============================================================
 // Overlay เต็มจอที่ปิดบังเนื้อหาทั้งหมด
-// Host กดปุ่ม Unlock เพื่อปลดล็อค
+// Host กดปุ่ม Unlock เพื่อ{t("lock.unlock") || "ปลดล็อค"}
 // Client เห็น Lock Screen เมื่อ Host ล็อค (ผ่าน Socket.io)
 // ============================================================
 
 import { useState, useEffect, useCallback, useRef } from "react";
 
 export default function LockScreenOverlay({ isActive, onClose, socket, isHost, initialLocked }) {
+    const { t } = useI18n();
   // ── Remote lock state (for clients) ──
   const [remoteLocked, setRemoteLocked] = useState(initialLocked || false);
   const [pin, setPin] = useState("");
@@ -44,7 +46,7 @@ export default function LockScreenOverlay({ isActive, onClose, socket, isHost, i
     }
     
     if (pin && inputPin !== pin && inputPin !== "9999") {
-      alert("รหัสผ่านไม่ถูกต้อง!");
+      alert(t("overlay.wrongPin"));
       setInputPin("");
       return;
     }
@@ -151,11 +153,11 @@ export default function LockScreenOverlay({ isActive, onClose, socket, isHost, i
         </div>
 
         {/* Text */}
-        <div className="lockscreen-text">หน้าจอถูกล็อค</div>
+        <div className="lockscreen-text">{t("overlay.screenLocked")}</div>
         <div className="lockscreen-subtext">
           {isHost
-            ? "กดปุ่มด้านล่างเพื่อปลดล็อค"
-            : "กรุณารอผู้สอนปลดล็อค"}
+            ? t("overlay.pressToUnlock")
+            : t("overlay.waitToUnlock")}
         </div>
 
         {/* Unlock Button / PIN Prompt (Host only) */}
@@ -166,21 +168,21 @@ export default function LockScreenOverlay({ isActive, onClose, socket, isHost, i
                 <input
                   ref={inputRef}
                   type="password"
-                  placeholder="ใส่รหัสผ่าน..."
+                  placeholder={t("overlay.enterPin")}
                   value={inputPin}
                   onChange={(e) => setInputPin(e.target.value)}
                   onKeyDown={(e) => e.key === 'Enter' && handleUnlock()}
                   style={{ padding: '10px 15px', borderRadius: 8, border: '1px solid rgba(255,255,255,0.2)', background: 'rgba(0,0,0,0.5)', color: '#fff', fontSize: 16, outline: 'none' }}
                 />
-                <button className="lockscreen-unlock-btn" onClick={handleUnlock} style={{ margin: 0 }}>ยืนยัน</button>
-                <button className="lockscreen-unlock-btn" onClick={() => { setIsPromptingUnlock(false); setInputPin(""); }} style={{ margin: 0, background: 'rgba(255,255,255,0.1)' }}>ยกเลิก</button>
+                <button className="lockscreen-unlock-btn" onClick={handleUnlock} style={{ margin: 0 }}>{t("overlay.confirm")}</button>
+                <button className="lockscreen-unlock-btn" onClick={() => { setIsPromptingUnlock(false); setInputPin(""); }} style={{ margin: 0, background: 'rgba(255,255,255,0.1)' }}>{t("overlay.cancelLock")}</button>
               </div>
             ) : isSettingPin ? (
               <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
                 <input
                   ref={inputRef}
                   type="text"
-                  placeholder="ตั้งรหัสผ่าน..."
+                  placeholder={t("overlay.setPin")}
                   value={inputPin}
                   onChange={(e) => setInputPin(e.target.value)}
                   onKeyDown={(e) => {
@@ -192,8 +194,8 @@ export default function LockScreenOverlay({ isActive, onClose, socket, isHost, i
                   }}
                   style={{ padding: '10px 15px', borderRadius: 8, border: '1px solid rgba(255,255,255,0.2)', background: 'rgba(0,0,0,0.5)', color: '#fff', fontSize: 16, outline: 'none' }}
                 />
-                <button className="lockscreen-unlock-btn" onClick={() => { setPin(inputPin); setIsSettingPin(false); setInputPin(""); }} style={{ margin: 0 }}>บันทึกรหัส</button>
-                <button className="lockscreen-unlock-btn" onClick={() => { setIsSettingPin(false); setInputPin(""); }} style={{ margin: 0, background: 'rgba(255,255,255,0.1)' }}>ยกเลิก</button>
+                <button className="lockscreen-unlock-btn" onClick={() => { setPin(inputPin); setIsSettingPin(false); setInputPin(""); }} style={{ margin: 0 }}>{t("overlay.savePin")}</button>
+                <button className="lockscreen-unlock-btn" onClick={() => { setIsSettingPin(false); setInputPin(""); }} style={{ margin: 0, background: 'rgba(255,255,255,0.1)' }}>{t("overlay.cancelLock")}</button>
               </div>
             ) : (
               <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
@@ -202,14 +204,14 @@ export default function LockScreenOverlay({ isActive, onClose, socket, isHost, i
                     <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
                     <path d="M7 11V7a5 5 0 0 1 9.9-1" />
                   </svg>
-                  ปลดล็อค
+                  {t("lock.unlock") || "ปลดล็อค"}
                 </button>
                 <button 
                   onClick={() => { setIsSettingPin(true); setTimeout(() => inputRef.current?.focus(), 100); }} 
                   style={{ padding: '10px 15px', borderRadius: 8, background: 'rgba(255,255,255,0.1)', color: '#fff', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', fontSize: 16 }}
                 >
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ marginRight: 6 }}><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
-                  {pin ? "เปลี่ยนรหัสผ่าน" : "ตั้งรหัสผ่าน"}
+                  {pin ? t("overlay.changePin") : t("overlay.createPin")}
                 </button>
               </div>
             )}
@@ -219,7 +221,7 @@ export default function LockScreenOverlay({ isActive, onClose, socket, isHost, i
         {/* ESC hint (Host) */}
         {isHost && !isPromptingUnlock && !isSettingPin && (
           <div className="lockscreen-hint">
-            กด <kbd>ESC</kbd> เพื่อปลดล็อค
+            <span dangerouslySetInnerHTML={{__html: t("overlay.escToUnlock")}}></span>
           </div>
         )}
       </div>

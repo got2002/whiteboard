@@ -1,3 +1,4 @@
+import { useI18n } from "../i18n/i18n";
 // ============================================================
 // TableWidget.jsx — On-Canvas Table (Excel-like)
 // ============================================================
@@ -8,17 +9,18 @@ const COLORS = ["", "#e0e7ff", "#dbeafe", "#dcfce7", "#fef9c3", "#fee2e2", "#fce
 const FONT_SIZES = [10, 12, 14, 16, 18, 20, 24];
 
 // ── Table decoration themes ──
-const TABLE_THEMES = [
-  { id: "none", name: "ไม่มี", headerBg: "", headerColor: "", stripeBg: "", borderColor: "" },
-  { id: "blue", name: "ฟ้าคลาสสิก", headerBg: "#3b82f6", headerColor: "#fff", stripeBg: "#eff6ff", borderColor: "#bfdbfe" },
-  { id: "dark", name: "มืดโปร", headerBg: "#1e293b", headerColor: "#f1f5f9", stripeBg: "#f8fafc", borderColor: "#cbd5e1" },
-  { id: "green", name: "เขียวมรกต", headerBg: "#059669", headerColor: "#fff", stripeBg: "#ecfdf5", borderColor: "#a7f3d0" },
-  { id: "warm", name: "ส้มอุ่น", headerBg: "#ea580c", headerColor: "#fff", stripeBg: "#fff7ed", borderColor: "#fed7aa" },
-  { id: "purple", name: "ม่วงสง่า", headerBg: "#7c3aed", headerColor: "#fff", stripeBg: "#f5f3ff", borderColor: "#c4b5fd" },
-  { id: "minimal", name: "มินิมอล", headerBg: "#f1f5f9", headerColor: "#1e293b", stripeBg: "", borderColor: "#e2e8f0" },
+const getTableThemes = (t) => [
+  { id: "none", name: t("widget.none"), headerBg: "", headerColor: "", stripeBg: "", borderColor: "" },
+  { id: "blue", name: t("widget.blueClassic"), headerBg: "#3b82f6", headerColor: "#fff", stripeBg: "#eff6ff", borderColor: "#bfdbfe" },
+  { id: "dark", name: t("widget.darkPro"), headerBg: "#1e293b", headerColor: "#f1f5f9", stripeBg: "#f8fafc", borderColor: "#cbd5e1" },
+  { id: "green", name: t("widget.emeraldGreen"), headerBg: "#059669", headerColor: "#fff", stripeBg: "#ecfdf5", borderColor: "#a7f3d0" },
+  { id: "warm", name: t("widget.warmOrange"), headerBg: "#ea580c", headerColor: "#fff", stripeBg: "#fff7ed", borderColor: "#fed7aa" },
+  { id: "purple", name: t("widget.elegantPurple"), headerBg: "#7c3aed", headerColor: "#fff", stripeBg: "#f5f3ff", borderColor: "#c4b5fd" },
+  { id: "minimal", name: t("widget.minimal"), headerBg: "#f1f5f9", headerColor: "#1e293b", stripeBg: "", borderColor: "#e2e8f0" },
 ];
 
 function TableSizePicker({ onSelect, onClose }) {
+    const { t } = useI18n();
   const [hr, setHr] = useState(3), [hc, setHc] = useState(3);
   const [customRows, setCustomRows] = useState(""), [customCols, setCustomCols] = useState("");
   const clamp = (v) => Math.max(MIN_SZ, Math.min(MAX_SZ, parseInt(v) || MIN_SZ));
@@ -31,7 +33,7 @@ function TableSizePicker({ onSelect, onClose }) {
   return (
     <div className="table-picker-backdrop" onClick={onClose}>
       <div className="table-picker-modal" onClick={e => e.stopPropagation()}>
-        <div className="table-picker-title">สร้างตาราง</div>
+        <div className="table-picker-title">{t("widget.createTable")}</div>
         <div className="table-picker-grid">
           {Array.from({ length: 8 }, (_, r) => Array.from({ length: 8 }, (_, c) => (
             <div key={`${r}-${c}`} className={`table-picker-cell ${r < hr && c < hc ? "active" : ""}`}
@@ -44,17 +46,17 @@ function TableSizePicker({ onSelect, onClose }) {
         <div className="table-picker-divider" />
 
         <form className="table-picker-custom" onSubmit={handleCustomSubmit}>
-          <div className="table-picker-custom-label">กำหนดเอง</div>
+          <div className="table-picker-custom-label">{t("widget.customLabel")}</div>
           <div className="table-picker-custom-inputs">
             <input
-              type="number" min={MIN_SZ} max={MAX_SZ} placeholder="แถว"
+              type="number" min={MIN_SZ} max={MAX_SZ} placeholder={t("widget.rows")}
               className="table-picker-input"
               value={customRows}
               onChange={e => setCustomRows(e.target.value)}
             />
             <span className="table-picker-x">×</span>
             <input
-              type="number" min={MIN_SZ} max={MAX_SZ} placeholder="คอลัมน์"
+              type="number" min={MIN_SZ} max={MAX_SZ} placeholder={t("widget.cols")}
               className="table-picker-input"
               value={customCols}
               onChange={e => setCustomCols(e.target.value)}
@@ -62,7 +64,7 @@ function TableSizePicker({ onSelect, onClose }) {
           </div>
           <button type="submit" className="table-picker-submit"
             disabled={!customRows || !customCols}>
-            สร้าง
+            {t("deepCleanup.btnCreate")}
           </button>
         </form>
       </div>
@@ -71,6 +73,7 @@ function TableSizePicker({ onSelect, onClose }) {
 }
 
 function CanvasTable({ table: incomingTable, canEdit = true, onUpdate, onRemove }) {
+    const { t } = useI18n();
   const [localState, setLocalState] = useState(null);
   const table = localState || incomingTable;
   const [editCell, setEditCell] = useState(null);
@@ -303,26 +306,26 @@ function CanvasTable({ table: incomingTable, canEdit = true, onUpdate, onRemove 
       {toolbar && (
         <div className="ct-tb" onPointerDown={e => e.stopPropagation()}>
           {/* Bold/Italic/Underline */}
-          <button className={`ct-btn ${selCell?.bold ? "ct-btn-on" : ""}`} onClick={() => toggleProp("bold")} title="ตัวหนา"><b>B</b></button>
-          <button className={`ct-btn ${selCell?.italic ? "ct-btn-on" : ""}`} onClick={() => toggleProp("italic")} title="ตัวเอียง"><i>I</i></button>
-          <button className={`ct-btn ${selCell?.underline ? "ct-btn-on" : ""}`} onClick={() => toggleProp("underline")} title="ขีดเส้นใต้"><u>U</u></button>
+          <button className={`ct-btn ${selCell?.bold ? "ct-btn-on" : ""}`} onClick={() => toggleProp("bold")} title={t("widget.bold")}><b>B</b></button>
+          <button className={`ct-btn ${selCell?.italic ? "ct-btn-on" : ""}`} onClick={() => toggleProp("italic")} title={t("widget.italic")}><i>I</i></button>
+          <button className={`ct-btn ${selCell?.underline ? "ct-btn-on" : ""}`} onClick={() => toggleProp("underline")} title={t("widget.underline")}><u>U</u></button>
           <div className="ct-div" />
 
           {/* Alignment */}
-          <button className={`ct-btn ${selCell?.align === "left" || !selCell?.align ? "ct-btn-on" : ""}`} onClick={() => setCellProp("align", "left")} title="ชิดซ้าย">
+          <button className={`ct-btn ${selCell?.align === "left" || !selCell?.align ? "ct-btn-on" : ""}`} onClick={() => setCellProp("align", "left")} title={t("widget.alignLeft")}>
             <svg width="12" height="12" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5" fill="none"><path d="M3 6h18M3 12h12M3 18h16"/></svg>
           </button>
-          <button className={`ct-btn ${selCell?.align === "center" ? "ct-btn-on" : ""}`} onClick={() => setCellProp("align", "center")} title="กึ่งกลาง">
+          <button className={`ct-btn ${selCell?.align === "center" ? "ct-btn-on" : ""}`} onClick={() => setCellProp("align", "center")} title={t("widget.alignCenter")}>
             <svg width="12" height="12" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5" fill="none"><path d="M3 6h18M6 12h12M4 18h16"/></svg>
           </button>
-          <button className={`ct-btn ${selCell?.align === "right" ? "ct-btn-on" : ""}`} onClick={() => setCellProp("align", "right")} title="ชิดขวา">
+          <button className={`ct-btn ${selCell?.align === "right" ? "ct-btn-on" : ""}`} onClick={() => setCellProp("align", "right")} title={t("widget.alignRight")}>
             <svg width="12" height="12" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5" fill="none"><path d="M3 6h18M9 12h12M5 18h16"/></svg>
           </button>
           <div className="ct-div" />
 
           {/* Font size */}
           <div style={{ position: "relative" }}>
-            <button className="ct-btn" onClick={() => { setFontMenu(v => !v); setColorMenu(null); }} title="ขนาดตัวอักษร">
+            <button className="ct-btn" onClick={() => { setFontMenu(v => !v); setColorMenu(null); }} title={t("widget.fontSizeBtn")}>
               {selCell?.fontSize || 13}
             </button>
             {fontMenu && (
@@ -338,7 +341,7 @@ function CanvasTable({ table: incomingTable, canEdit = true, onUpdate, onRemove 
 
           {/* BG color */}
           <div style={{ position: "relative" }}>
-            <button className="ct-btn" onClick={() => { setColorMenu(v => v === "bg" ? null : "bg"); setFontMenu(false); }} title="สีพื้นหลัง"
+            <button className="ct-btn" onClick={() => { setColorMenu(v => v === "bg" ? null : "bg"); setFontMenu(false); }} title={t("widget.bgColor")}
               style={{ borderBottom: `3px solid ${selCell?.bg || "#ddd"}` }}>
               <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" stroke="none"><rect x="2" y="2" width="20" height="20" rx="3"/></svg>
             </button>
@@ -350,14 +353,14 @@ function CanvasTable({ table: incomingTable, canEdit = true, onUpdate, onRemove 
                     {!c && "✕"}
                   </button>
                 ))}
-                <button className="ct-row-btn" onClick={() => { if (sel) { setRowProp("bg", selCell?.bg || ""); setColorMenu(null); } }}>ทั้งแถว</button>
+                <button className="ct-row-btn" onClick={() => { if (sel) { setRowProp("bg", selCell?.bg || ""); setColorMenu(null); } }}>{t("widget.wholeRow")}</button>
               </div>
             )}
           </div>
 
           {/* Text color */}
           <div style={{ position: "relative" }}>
-            <button className="ct-btn" onClick={() => { setColorMenu(v => v === "text" ? null : "text"); setFontMenu(false); }} title="สีตัวอักษร"
+            <button className="ct-btn" onClick={() => { setColorMenu(v => v === "text" ? null : "text"); setFontMenu(false); }} title={t("widget.textColor")}
               style={{ color: selCell?.color || "#1e293b" }}>A</button>
             {colorMenu === "text" && (
               <div className="ct-dropdown ct-colors">
@@ -371,30 +374,30 @@ function CanvasTable({ table: incomingTable, canEdit = true, onUpdate, onRemove 
           <div className="ct-div" />
 
           {/* Image */}
-          <button className="ct-btn" onClick={insertImage} title="แทรกรูปในเซล" disabled={!sel}>
+          <button className="ct-btn" onClick={insertImage} title={t("widget.insertImg")} disabled={!sel}>
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>
           </button>
           {selCell?.image && (
-            <button className="ct-btn ct-btn-del" onClick={removeImage} title="ลบรูปจากเซล">
+            <button className="ct-btn ct-btn-del" onClick={removeImage} title={t("widget.removeImg")}>
               <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><path d="M18 6L6 18M6 6l12 12"/></svg>
             </button>
           )}
           <div className="ct-div" />
 
           {/* Decoration */}
-          <button className={`ct-btn ${table.data[0]?.[0]?.bold ? "ct-btn-on" : ""}`} onClick={toggleHeader} title="หัวตาราง">
+          <button className={`ct-btn ${table.data[0]?.[0]?.bold ? "ct-btn-on" : ""}`} onClick={toggleHeader} title={t("widget.tableHeader")}>
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M3 3h18v6H3z"/><path d="M3 9h18v12H3z" opacity=".3"/></svg>
           </button>
-          <button className={`ct-btn ${table.striped ? "ct-btn-on" : ""}`} onClick={toggleStripes} title="แถวสลับสี">
+          <button className={`ct-btn ${table.striped ? "ct-btn-on" : ""}`} onClick={toggleStripes} title={t("widget.altRowColor")}>
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M3 6h18M3 10h18M3 14h18M3 18h18" strokeDasharray="2 2"/></svg>
           </button>
           <div style={{ position: "relative" }}>
-            <button className="ct-btn" onClick={() => { setStyleMenu(v => !v); setColorMenu(null); setFontMenu(false); }} title="ธีมตาราง">
+            <button className="ct-btn" onClick={() => { setStyleMenu(v => !v); setColorMenu(null); setFontMenu(false); }} title={t("widget.tableTheme")}>
               <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" stroke="none"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 17.93c-3.94-.49-7-3.85-7-7.93 0-.62.08-1.22.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39z"/></svg>
             </button>
             {styleMenu && (
               <div className="ct-dropdown ct-theme-dropdown">
-                {TABLE_THEMES.map(t => (
+                {getTableThemes(t).map(t => (
                   <button key={t.id} className={`ct-theme-item ${table.themeId === t.id ? "ct-theme-on" : ""}`}
                     onClick={() => applyTheme(t)}>
                     <span className="ct-theme-preview">
@@ -411,16 +414,16 @@ function CanvasTable({ table: incomingTable, canEdit = true, onUpdate, onRemove 
           <div className="ct-div" />
 
           {/* Row/Col ops */}
-          <button className="ct-btn" onClick={() => addRow(sr)} title="เพิ่มแถวบน">↑+</button>
-          <button className="ct-btn" onClick={() => addRow(sr + 1)} title="เพิ่มแถวล่าง">↓+</button>
-          <button className="ct-btn" onClick={() => delRow(sr)} title="ลบแถว" disabled={rows <= 1}>↕−</button>
-          <button className="ct-btn" onClick={() => addCol(sc)} title="เพิ่มคอลัมน์ซ้าย">←+</button>
-          <button className="ct-btn" onClick={() => addCol(sc + 1)} title="เพิ่มคอลัมน์ขวา">→+</button>
-          <button className="ct-btn" onClick={() => delCol(sc)} title="ลบคอลัมน์" disabled={cols <= 1}>↔−</button>
+          <button className="ct-btn" onClick={() => addRow(sr)} title={t("widget.addRowTop")}>↑+</button>
+          <button className="ct-btn" onClick={() => addRow(sr + 1)} title={t("widget.addRowBottom")}>↓+</button>
+          <button className="ct-btn" onClick={() => delRow(sr)} title={t("widget.delRow")} disabled={rows <= 1}>↕−</button>
+          <button className="ct-btn" onClick={() => addCol(sc)} title={t("widget.addColLeft")}>←+</button>
+          <button className="ct-btn" onClick={() => addCol(sc + 1)} title={t("widget.addColRight")}>→+</button>
+          <button className="ct-btn" onClick={() => delCol(sc)} title={t("widget.delCol")} disabled={cols <= 1}>↔−</button>
           <div className="ct-div" />
 
           {/* Delete */}
-          <button className="ct-btn ct-btn-del" onClick={() => onRemove(table.id)} title="ลบตาราง">✕</button>
+          <button className="ct-btn ct-btn-del" onClick={() => onRemove(table.id)} title={t("widget.delTable")}>✕</button>
         </div>
       )}
 
@@ -479,6 +482,7 @@ function CanvasTable({ table: incomingTable, canEdit = true, onUpdate, onRemove 
 }
 
 export default function TableManager({ tables, canEdit = true, onTableAdd, onTableUpdate, onTableRemove, showPicker, onClosePicker }) {
+    const { t } = useI18n();
   const handleSelect = (rows, cols) => {
     const t = {
       id: "tbl_" + Date.now(), x: window.innerWidth / 2 - cols * 45, y: window.innerHeight / 2 - rows * 18,

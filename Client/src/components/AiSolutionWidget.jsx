@@ -1,3 +1,4 @@
+import { useI18n } from "../i18n/i18n";
 // ============================================================
 // AiSolutionWidget.jsx — AI Solution Panel (Floating Widget)
 // ============================================================
@@ -17,13 +18,13 @@ const serverUrl = isLocalhost ? "http://localhost:3000" : `http://${window.locat
 // ============================================================
 // Quick Actions — คำสั่งด่วนสำหรับ Generate tab
 // ============================================================
-const QUICK_ACTIONS = [
-    { id: "explain", label: "อธิบาย", prompt: "อธิบายเนื้อหาในภาพนี้อย่างละเอียด", promptNoImage: "อธิบายเรื่อง: " },
-    { id: "summarize", label: "สรุป", prompt: "สรุปเนื้อหาในภาพนี้ให้กระชับ", promptNoImage: "สรุปเรื่อง: " },
-    { id: "quiz", label: "สร้างคำถาม", prompt: "สร้างคำถาม 5 ข้อจากเนื้อหาในภาพนี้ พร้อมเฉลย", promptNoImage: "สร้างคำถาม 5 ข้อเกี่ยวกับ: " },
-    { id: "suggest", label: "แนะนำ", prompt: "แนะนำแนวทางการสอนเนื้อหาในภาพนี้", promptNoImage: "แนะนำแนวทางสอนเรื่อง: " },
-    { id: "analyze", label: "วิเคราะห์", prompt: "วิเคราะห์เนื้อหาในภาพนี้", promptNoImage: "วิเคราะห์เรื่อง: " },
-    { id: "check", label: "ตรวจ", prompt: "ตรวจสอบความถูกต้องของเนื้อหาในภาพนี้", promptNoImage: "ตรวจสอบ: " },
+const getQuickActions = (t) => [
+    { id: "explain", label: t("widget.explain"), prompt: t("widget.explainPrompt"), promptNoImage: t("widget.explainPrompt") },
+    { id: "summarize", label: t("widget.summarize"), prompt: t("widget.summarizePrompt"), promptNoImage: t("widget.summarizePrompt") },
+    { id: "quiz", label: t("widget.quiz"), prompt: t("widget.quizPrompt"), promptNoImage: t("widget.quizPrompt") },
+    { id: "suggest", label: t("widget.suggest"), prompt: t("widget.suggestPrompt"), promptNoImage: t("widget.suggestPrompt") },
+    { id: "analyze", label: t("widget.analyze"), prompt: t("widget.analyzePrompt"), promptNoImage: t("widget.analyzePrompt") },
+    { id: "check", label: t("widget.check"), prompt: t("widget.checkPrompt"), promptNoImage: t("widget.checkPrompt") },
 ];
 
 // ============================================================
@@ -44,6 +45,7 @@ const LANGUAGES = [
 // AiSolutionWidget Component
 // ============================================================
 export default function AiSolutionWidget({ onClose, canvasRef, onInsertText, onStartScreenshot, initialImage }) {
+    const { t } = useI18n();
     // ── State ──
     const [activeTab, setActiveTab] = useState("generate"); // 'generate' | 'translate'
     const [prompt, setPrompt] = useState("");
@@ -119,7 +121,7 @@ export default function AiSolutionWidget({ onClose, canvasRef, onInsertText, onS
         } catch (err) {
             console.error("AI Generation Error:", err);
             window.dispatchEvent(new CustomEvent('show-toast', { 
-                detail: { message: "AI กำลังยุ่งหรือเซิร์ฟเวอร์มีปัญหา กรุณาลองใหม่ครับ", type: "error" } 
+                detail: { message: t("widget.aiBusyErr"), type: "error" } 
             }));
         } finally {
             setIsLoading(false);
@@ -150,7 +152,7 @@ export default function AiSolutionWidget({ onClose, canvasRef, onInsertText, onS
         } catch (err) {
             console.error("AI Translation Error:", err);
             window.dispatchEvent(new CustomEvent('show-toast', { 
-                detail: { message: "AI กำลังยุ่งหรือเซิร์ฟเวอร์แปลภาษามีปัญหา กรุณาลองใหม่ครับ", type: "error" } 
+                detail: { message: t("widget.translateErr"), type: "error" } 
             }));
         } finally {
             setIsLoading(false);
@@ -247,7 +249,7 @@ export default function AiSolutionWidget({ onClose, canvasRef, onInsertText, onS
                     <button
                         className="ai-widget-header-btn"
                         onClick={(e) => { e.stopPropagation(); setIsMinimized(v => !v); }}
-                        title={isMinimized ? "ขยาย" : "ย่อ"}
+                        title={isMinimized ? t("widget.expand") : t("widget.collapse")}
                     >
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
                             {isMinimized ? (
@@ -261,7 +263,7 @@ export default function AiSolutionWidget({ onClose, canvasRef, onInsertText, onS
                     <button
                         className="ai-widget-header-btn ai-widget-close-btn"
                         onClick={(e) => { e.stopPropagation(); onClose(); }}
-                        title="ปิด AI Solution"
+                        title={t("widget.closeAi")}
                     >
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
                             <path d="M18 6L6 18M6 6l12 12" />
@@ -279,13 +281,13 @@ export default function AiSolutionWidget({ onClose, canvasRef, onInsertText, onS
                             className={`ai-widget-tab ${activeTab === "generate" ? "active" : ""}`}
                             onClick={() => handleTabChange("generate")}
                         >
-                            <span>สร้างเนื้อหา</span>
+                            <span>{t("widget.generateContent")}</span>
                         </button>
                         <button
                             className={`ai-widget-tab ${activeTab === "translate" ? "active" : ""}`}
                             onClick={() => handleTabChange("translate")}
                         >
-                            <span>แปลภาษา</span>
+                            <span>{t("widget.translateContent")}</span>
                         </button>
                     </div>
 
@@ -296,26 +298,26 @@ export default function AiSolutionWidget({ onClose, canvasRef, onInsertText, onS
                                 className="ai-widget-capture-btn"
                                 style={{ flex: 1 }}
                                 onClick={handleCaptureCanvas}
-                                title="จับภาพจากกระดาน"
+                                title={t("widget.captureBoardTooltip")}
                             >
                                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                                     <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z" />
                                     <circle cx="12" cy="13" r="4" />
                                 </svg>
-                                <span>จับภาพกระดาน</span>
+                                <span>{t("widget.captureBoard")}</span>
                             </button>
                             <button
                                 className="ai-widget-capture-btn"
                                 style={{ flex: 1 }}
                                 onClick={handleUploadImage}
-                                title="อัปโหลดรูปภาพ"
+                                title={t("widget.uploadImgTooltip")}
                             >
                                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                                     <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
                                     <polyline points="17 8 12 3 7 8" />
                                     <line x1="12" y1="3" x2="12" y2="15" />
                                 </svg>
-                                <span>อัปโหลดรูป</span>
+                                <span>{t("widget.uploadImg")}</span>
                             </button>
                         </div>
                         {capturedImage && (
@@ -324,7 +326,7 @@ export default function AiSolutionWidget({ onClose, canvasRef, onInsertText, onS
                                 <button
                                     className="ai-widget-capture-remove"
                                     onClick={handleClearCapture}
-                                    title="ลบภาพ"
+                                    title={t("widget.deleteImg")}
                                 >
                                     <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round">
                                         <path d="M18 6L6 18M6 6l12 12" />
@@ -341,8 +343,8 @@ export default function AiSolutionWidget({ onClose, canvasRef, onInsertText, onS
                         rows={3}
                         placeholder={
                             activeTab === "generate"
-                                ? "พิมพ์คำสั่ง... เช่น อธิบายเรื่องนี้, สร้างแบบฝึกหัด"
-                                : "พิมพ์ข้อความที่ต้องการแปล..."
+                                ? t("widget.promptPlaceholder")
+                                : t("widget.translatePlaceholder")
                         }
                         value={prompt}
                         onChange={(e) => setPrompt(e.target.value)}
@@ -357,7 +359,7 @@ export default function AiSolutionWidget({ onClose, canvasRef, onInsertText, onS
                     {/* ── Quick Actions (Generate tab only) ── */}
                     {activeTab === "generate" && (
                         <div className="ai-widget-quick-actions">
-                            {QUICK_ACTIONS.map((action) => (
+                            {getQuickActions(t).map((action) => (
                                 <button
                                     key={action.id}
                                     className="ai-widget-quick-btn"
@@ -395,7 +397,7 @@ export default function AiSolutionWidget({ onClose, canvasRef, onInsertText, onS
                     >
                         {isLoading ? (
                             <>
-                                <span>กำลังประมวลผล...</span>
+                                <span>{t("widget.processing")}</span>
                             </>
                         ) : (
                             <>
@@ -403,7 +405,7 @@ export default function AiSolutionWidget({ onClose, canvasRef, onInsertText, onS
                                     <line x1="22" y1="2" x2="11" y2="13" />
                                     <polygon points="22 2 15 22 11 13 2 9 22 2" />
                                 </svg>
-                                <span>{activeTab === "generate" ? "ส่งคำสั่ง" : "แปลภาษา"}</span>
+                                <span>{activeTab === "generate" ? t("widget.sendCmd") : t("widget.translate")}</span>
                             </>
                         )}
                     </button>
@@ -418,13 +420,13 @@ export default function AiSolutionWidget({ onClose, canvasRef, onInsertText, onS
                                 <span></span>
                                 <span></span>
                             </span>
-                            <span>กำลังประมวลผล... กรุณารอสักครู่</span>
+                            <span>{t("widget.processingWait")}</span>
                         </div>
                     )}
                     {!isLoading && result && (
                         <>
                             <div className="ai-widget-result-divider">
-                                <span>ผลลัพธ์</span>
+                                <span>{t("widget.result")}</span>
                             </div>
                             <div className="ai-widget-result">
                                 {result.split("\n").map((line, i) => (
@@ -435,14 +437,14 @@ export default function AiSolutionWidget({ onClose, canvasRef, onInsertText, onS
                                 <button
                                     className="ai-widget-action-btn"
                                     onClick={handleCopy}
-                                    title="คัดลอกผลลัพธ์"
+                                    title={t("widget.copyResult")}
                                 >
                                     {copied ? (
                                         <>
                                             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                                                 <polyline points="20 6 9 17 4 12" />
                                             </svg>
-                                            <span>คัดลอกแล้ว!</span>
+                                            <span>{t("widget.copied")}</span>
                                         </>
                                     ) : (
                                         <>
@@ -450,21 +452,21 @@ export default function AiSolutionWidget({ onClose, canvasRef, onInsertText, onS
                                                 <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
                                                 <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
                                             </svg>
-                                            <span>คัดลอก</span>
+                                            <span>{t("widget.copy")}</span>
                                         </>
                                     )}
                                 </button>
                                 <button
                                     className="ai-widget-action-btn ai-widget-insert-btn"
                                     onClick={handleInsertToBoard}
-                                    title="วางผลลัพธ์ลงบอร์ด"
+                                    title={t("widget.pasteBoardTooltip")}
                                 >
                                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                                         <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
                                         <polyline points="7 10 12 15 17 10" />
                                         <line x1="12" y1="15" x2="12" y2="3" />
                                     </svg>
-                                    <span>วางลงบอร์ด</span>
+                                    <span>{t("widget.pasteBoard")}</span>
                                 </button>
                             </div>
                         </>

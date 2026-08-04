@@ -1,7 +1,9 @@
+import { useI18n } from "../i18n/i18n";
 import { useState, useRef, useEffect, useCallback } from "react";
 import { SERVER_URL } from "../core/socket";
 
 export default function VideoWidget({ video: incomingVideo, onUpdate, onDelete, onCaptureFrame, tool, zoom = 1, panOffset = { x: 0, y: 0 }, userRole, layerIndex = 0 }) {
+  const { t } = useI18n();
   const canEdit = userRole !== "viewer";
   const [localState, setLocalState] = useState(null);
   const video = localState || incomingVideo;
@@ -215,15 +217,15 @@ export default function VideoWidget({ video: incomingVideo, onUpdate, onDelete, 
         style={{ position: "absolute", top: -28, left: 0, right: 0, height: 28, background: "rgba(30,30,40,0.92)", borderRadius: "8px 8px 0 0",
           display: "flex", alignItems: "center", padding: "0 8px", cursor: "grab", gap: 6,
           opacity: showUI ? 1 : 0, pointerEvents: showUI ? "auto" : "none", transition: "opacity 0.2s", zIndex: 2 }}>
-        <span style={{ fontSize: 12, color: "#94a3b8", flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", userSelect: "none" }}>🎬 Video</span>
+        <span style={{ fontSize: 12, color: "#94a3b8", flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", userSelect: "none" }}>{t('videoWidget.title')}</span>
         {onCaptureFrame && (
-          <button onClick={handleCaptureFrame} title="แคปหน้าจอวิดีโอแปะลงกระดาน" style={{ background: "none", border: "none", color: "#fbbf24", fontSize: 15, cursor: "pointer", padding: "0 2px", transition: "transform 0.15s, color 0.15s" }}
+          <button onClick={handleCaptureFrame} title={t("videoWidget.captureTooltip")} style={{ background: "none", border: "none", color: "#fbbf24", fontSize: 15, cursor: "pointer", padding: "0 2px", transition: "transform 0.15s, color 0.15s" }}
             onPointerDown={e => e.stopPropagation()}
             onMouseEnter={e => { e.currentTarget.style.transform = "scale(1.2)"; e.currentTarget.style.color = "#fde68a"; }}
             onMouseLeave={e => { e.currentTarget.style.transform = "scale(1)"; e.currentTarget.style.color = "#fbbf24"; }}
           >📷</button>
         )}
-        {canEdit && <button onClick={handleDelete} onPointerDown={e => e.stopPropagation()} style={{ background: "none", border: "none", color: "#ef4444", fontSize: 14, cursor: "pointer", padding: "0 2px", lineHeight: 1 }} title="ลบวิดีโอ">✕</button>}
+        {canEdit && <button onClick={handleDelete} onPointerDown={e => e.stopPropagation()} style={{ background: "none", border: "none", color: "#ef4444", fontSize: 14, cursor: "pointer", padding: "0 2px", lineHeight: 1 }} title={t("videoWidget.deleteTooltip")}>✕</button>}
       </div>
 
       {/* Video */}
@@ -269,7 +271,7 @@ export default function VideoWidget({ video: incomingVideo, onUpdate, onDelete, 
           style={{ position: "absolute", inset: 0, background: "rgba(0,0,0,0.6)", borderRadius: showUI ? "0 0 8px 8px" : "8px",
           display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", cursor: "pointer", zIndex: 10 }}>
           <span style={{ fontSize: 32 }}>▶️</span>
-          <span style={{ color: "#fff", fontSize: 14, marginTop: 8, fontWeight: 500 }}>คลิกเพื่อเล่นวิดีโอ (รอการอนุญาตจากเบราว์เซอร์)</span>
+          <span style={{ color: "#fff", fontSize: 14, marginTop: 8, fontWeight: 500 }}>{t('videoWidget.autoplayBlocked')}</span>
         </div>
       )}
 
